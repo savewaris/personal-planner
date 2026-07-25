@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -13,6 +13,19 @@ export const metadata: Metadata = {
   title: "Planner — Personal Productivity Suite",
   description:
     "Centralize your life into distinct workspace contexts, manage tasks with Dual-View Kanban & List, and build daily habits.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Planner",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2d2d35",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
