@@ -15,6 +15,12 @@ export default function DashboardHome() {
   const { activeContext } = useContextSwitcher();
   const { tasks, habits, stats, isLoading, updateTaskStatus, toggleHabit } = usePlannerStore();
 
+  // Hydration Mount Safety Flag to Prevent React Error #418
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Overlay Modal States
   const [isCmdOpen, setIsCmdOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -58,7 +64,7 @@ export default function DashboardHome() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            {currentDateFormatted}
+            {isMounted ? currentDateFormatted : "Today"}
           </div>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
             Welcome back, <span className="gradient-text">Personal Creator</span>
