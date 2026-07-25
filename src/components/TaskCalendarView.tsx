@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { motion } from "framer-motion";
 import { TaskItem } from "./TaskCard";
 
 interface TaskCalendarViewProps {
@@ -14,7 +13,6 @@ interface TaskCalendarViewProps {
 export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
   tasks,
   onStatusChange,
-  onDeleteTask,
   onOpenAddModal,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,6 +21,13 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
   const month = currentDate.getMonth();
 
   const monthName = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  // Timezone-safe local date string formatting (YYYY-MM-DD)
+  const formatLocalDateStr = (y: number, m: number, d: number) => {
+    const mm = String(m + 1).padStart(2, "0");
+    const dd = String(d).padStart(2, "0");
+    return `${y}-${mm}-${dd}`;
+  };
 
   // Compute days for calendar grid
   const calendarGrid = useMemo(() => {
@@ -38,17 +43,17 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       const pDay = prevMonthLastDay - i;
-      const pDate = new Date(year, month - 1, pDay);
-      const dateStr = pDate.toISOString().split("T")[0];
+      const prevMonthIdx = month === 0 ? 11 : month - 1;
+      const prevYear = month === 0 ? year - 1 : year;
+      const dateStr = formatLocalDateStr(prevYear, prevMonthIdx, pDay);
       days.push({ dateStr, dayNum: pDay, isCurrentMonth: false, isToday: false });
     }
 
     // Current month days
-    const todayStr = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const todayStr = formatLocalDateStr(now.getFullYear(), now.getMonth(), now.getDate());
     for (let d = 1; d <= totalDaysInMonth; d++) {
-      const cDate = new Date(year, month, d);
-      // Format YYYY-MM-DD
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const dateStr = formatLocalDateStr(year, month, d);
       days.push({
         dateStr,
         dayNum: d,
@@ -60,8 +65,9 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
     // Next month padding days to complete 35 or 42 grid cells
     const remainingCells = (7 - (days.length % 7)) % 7;
     for (let n = 1; n <= remainingCells; n++) {
-      const nDate = new Date(year, month + 1, n);
-      const dateStr = nDate.toISOString().split("T")[0];
+      const nextMonthIdx = month === 11 ? 0 : month + 1;
+      const nextYear = month === 11 ? year + 1 : year;
+      const dateStr = formatLocalDateStr(nextYear, nextMonthIdx, n);
       days.push({ dateStr, dayNum: n, isCurrentMonth: false, isToday: false });
     }
 
@@ -132,12 +138,12 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-        {calendarGrid.map((cell) => {
+        {calendarGrid.map((cell, idx) => {
           const dayTasks = tasksByDate.get(cell.dateStr) || [];
 
           return (
             <div
-              key={cell.dateStr}
+              key={`${cell.dateStr}-${idx}`}
               className={`min-h-[90px] sm:min-h-[110px] p-1.5 sm:p-2 rounded-xl border flex flex-col justify-between transition-all group ${
                 cell.isCurrentMonth
                   ? "bg-zinc-900/60 border-white/5 hover:border-white/20"
@@ -166,7 +172,8 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
               <div className="space-y-1 my-1 overflow-y-auto max-h-16 no-scrollbar">
                 {dayTasks.map((t) => {
                   const isDone = t.status === "DONE";
-                  const todayStr = new Date().toISOString().split("T")[0];
+                  const now = new Date();
+                  const todayStr = formatLocalDateStr(now.getFullYear(), now.getMonth(), now.getDate());
                   const isOverdue = !isDone && t.dueDate && t.dueDate < todayStr;
 
                   return (

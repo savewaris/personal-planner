@@ -1,13 +1,14 @@
-# Mandatory 4-Point Interactive Quality Verification Rule
+# Mandatory Quality Verification & Mistake Prevention Rules
 
 NEVER declare a task finished, resolved, or working without executing the comprehensive 4-point verification loop:
 
-## Mandatory Verification Loop:
-1. **TypeScript Compiler Check**: `npx tsc --noEmit` must return 0 errors.
+## Core Mistake Prevention Guardrails (DO NOT REPEAT MISTAKES):
+1. **Unique React Keys**: When rendering arrays of grid cells or items (e.g. calendar dates), NEVER use raw date strings alone as keys. ALWAYS append index: `key={`${dateStr}-${index}`}`.
+2. **Dashed Border Radius Bleed**: When styling containers with `border-dashed` and `rounded-*`, ALWAYS include `overflow-hidden` to prevent corner dashed border bleeding.
+3. **No Redundant Floating Action Buttons**: If section headers already contain direct `+ New Task` / `+ Add Habit` buttons, DO NOT overlay floating `+` FAB buttons on the page.
+4. **Timezone-Safe Date Formatting**: NEVER use `.toISOString().split("T")[0]` for local calendar month grid generation (timezone offsets shift midnight dates). Use local year, month, date string formatters.
+
+## Verification Loop Checklist:
+1. **TypeScript Check**: `npx tsc --noEmit` must return 0 errors.
 2. **Jest Test Suite**: `npx jest` must pass 100%.
-3. **Interactive Chrome DevTools MCP Testing**:
-   - MUST navigate live pages (`/`, `/tasks`, `/habits`, `/calendar`, `/settings`).
-   - MUST interactively click **EVERY button type** (create drawer triggers, status checkboxes, context pills, view mode toggles, tab switches, collapse sidebar).
-   - MUST type test text into input fields and test every wireframe state.
-   - MUST capture visual screenshots of verified screens.
-4. **Security & Performance Audit**: Ensure all route handlers use `withErrorHandler` and UI interactions feel instantaneous.
+3. **Interactive Chrome DevTools MCP Verification**: Must verify live screens without console errors or layout pop.

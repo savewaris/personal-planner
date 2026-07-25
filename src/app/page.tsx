@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ContextSwitcher } from "@/components/ContextSwitcher";
 import { CommandPalette } from "@/components/CommandPalette";
-import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { CreateTaskDrawer } from "@/components/CreateTaskDrawer";
 import { CreateHabitDrawer } from "@/components/CreateHabitDrawer";
 import { useContextSwitcher } from "@/context/ContextSwitcherContext";
@@ -121,7 +120,7 @@ export default function DashboardHome() {
             subtitle: "Consecutive daily completions",
             icon: (
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 0 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
               </svg>
             ),
           },
@@ -183,7 +182,7 @@ export default function DashboardHome() {
                 <div className="w-6 h-6 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
               </div>
             ) : recentTasks.length === 0 ? (
-              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all">
+              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all overflow-hidden">
                 <p className="text-xs text-zinc-500">No tasks created yet.</p>
                 <button
                   type="button"
@@ -262,7 +261,7 @@ export default function DashboardHome() {
                 <div className="w-6 h-6 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
               </div>
             ) : habits.length === 0 ? (
-              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all">
+              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all overflow-hidden">
                 <p className="text-xs text-zinc-500">No habits added yet.</p>
                 <button
                   type="button"
@@ -325,12 +324,6 @@ export default function DashboardHome() {
       <CommandPalette
         isOpen={isCmdOpen}
         onClose={() => setIsCmdOpen(false)}
-        onOpenTaskModal={() => setIsTaskModalOpen(true)}
-        onOpenHabitModal={() => setIsHabitModalOpen(true)}
-      />
-
-      {/* Floating Action Button */}
-      <QuickAddFAB
         onOpenTaskModal={() => setIsTaskModalOpen(true)}
         onOpenHabitModal={() => setIsHabitModalOpen(true)}
       />
