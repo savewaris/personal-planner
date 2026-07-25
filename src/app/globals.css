@@ -7,8 +7,8 @@
 }
 
 :root {
-  /* +10% Brighter Dark Background Canvas (Soft Apple Charcoal/Slate) */
-  --background: #222227;
+  /* Medium Dark Grey Background Canvas (zinc-800 tone) */
+  --background: #2d2d35;
   --foreground: #f4f4f5;
 
   /* Accent Colors */
@@ -31,27 +31,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Styling - Refined Soft Dark Surface */
+/* Glassmorphism Styling - Refined Medium Dark Grey Surfaces */
 .glass {
-  background: rgba(42, 42, 50, 0.7);
+  background: rgba(45, 45, 55, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .glass-card {
-  background: rgba(38, 38, 46, 0.8);
+  background: rgba(54, 54, 66, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Gradient Text Effect */
@@ -82,8 +82,8 @@ body {
 .bg-grid {
   background-size: 32px 32px;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
 }
 
 /* Custom Scrollbar - Apple Minimal */
@@ -97,12 +97,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* Hide scrollbar utility */
