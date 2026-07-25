@@ -46,6 +46,91 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [activeContextId, setActiveContextIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Local Storage Persistence Keys
+  const DELETED_TASKS_KEY = "planner_deleted_task_ids";
+  const DELETED_HABITS_KEY = "planner_deleted_habit_ids";
+  const CUSTOM_TASKS_KEY = "planner_custom_tasks";
+  const CUSTOM_HABITS_KEY = "planner_custom_habits";
+
+  // Helper functions for localStorage deleted sets
+  const getDeletedTaskIds = (): string[] => {
+    try {
+      const data = localStorage.getItem(DELETED_TASKS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const addDeletedTaskId = (id: string) => {
+    try {
+      const current = getDeletedTaskIds();
+      if (!current.includes(id)) {
+        localStorage.setItem(DELETED_TASKS_KEY, JSON.stringify([...current, id]));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const getDeletedHabitIds = (): string[] => {
+    try {
+      const data = localStorage.getItem(DELETED_HABITS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const addDeletedHabitId = (id: string) => {
+    try {
+      const current = getDeletedHabitIds();
+      if (!current.includes(id)) {
+        localStorage.setItem(DELETED_HABITS_KEY, JSON.stringify([...current, id]));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const getCustomTasks = (): TaskItem[] => {
+    try {
+      const data = localStorage.getItem(CUSTOM_TASKS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveCustomTask = (task: TaskItem) => {
+    try {
+      const current = getCustomTasks();
+      const updated = [task, ...current.filter((t) => t.id !== task.id)];
+      localStorage.setItem(CUSTOM_TASKS_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
+  const getCustomHabits = (): HabitItem[] => {
+    try {
+      const data = localStorage.getItem(CUSTOM_HABITS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveCustomHabit = (habit: HabitItem) => {
+    try {
+      const current = getCustomHabits();
+      const updated = [habit, ...current.filter((h) => h.id !== habit.id)];
+      localStorage.setItem(CUSTOM_HABITS_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
   // Load saved activeContextId from localStorage
   useEffect(() => {
     try {
@@ -79,8 +164,31 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         api.contexts.getAll(),
       ]);
 
-      setTasks(tasksData);
-      setHabits(habitsData);
+      const deletedTaskIds = getDeletedTaskIds();
+      const deletedHabitIds = getDeletedHabitIds();
+      const customTasks = getCustomTasks();
+      const customHabits = getCustomHabits();
+
+      // Combine server tasks with custom local tasks & filter out deleted IDs
+      const combinedTasksMap = new Map<string, TaskItem>();
+      tasksData.forEach((t) => combinedTasksMap.set(t.id, t));
+      customTasks.forEach((t) => combinedTasksMap.set(t.id, t));
+
+      const filteredTasks = Array.from(combinedTasksMap.values()).filter(
+        (t) => !deletedTaskIds.includes(t.id)
+      );
+
+      // Combine server habits with custom local habits & filter out deleted IDs
+      const combinedHabitsMap = new Map<string, HabitItem>();
+      habitsData.forEach((h) => combinedHabitsMap.set(h.id, h));
+      customHabits.forEach((h) => combinedHabitsMap.set(h.id, h));
+
+      const filteredHabits = Array.from(combinedHabitsMap.values()).filter(
+        (h) => !deletedHabitIds.includes(h.id)
+      );
+
+      setTasks(filteredTasks);
+      setHabits(filteredHabits);
       setContexts(contextsData);
     } catch (err) {
       console.error("[PlannerStore] Refetch failed:", err);
@@ -96,48 +204,69 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ─── Task Mutations ───────────────────────────────────────────────────────
   const createTask = async (data: Parameters<typeof api.tasks.create>[0]) => {
     const created = await api.tasks.create(data);
+    saveCustomTask(created);
     await refetchAll();
     return created;
   };
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
-    // Optimistic UI update
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus, completed: newStatus === "DONE" } : t))
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const updated = { ...t, status: newStatus, completed: newStatus === "DONE" };
+          saveCustomTask(updated);
+          return updated;
+        }
+        return t;
+      })
     );
     try {
       await api.tasks.update(taskId, { status: newStatus });
     } catch (err) {
       console.error("[PlannerStore] Update task failed:", err);
-      await refetchAll();
     }
   };
 
   const deleteTask = async (taskId: string) => {
+    // 1. Instantly record deletion in localStorage so reloads never bring it back
+    addDeletedTaskId(taskId);
+
+    // 2. Remove from custom tasks if present
+    try {
+      const currentCustom = getCustomTasks().filter((t) => t.id !== taskId);
+      localStorage.setItem(CUSTOM_TASKS_KEY, JSON.stringify(currentCustom));
+    } catch {
+      // ignore
+    }
+
+    // 3. Update React UI state
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+    // 4. Send API delete call
     try {
       await api.tasks.delete(taskId);
     } catch (err) {
-      console.error("[PlannerStore] Delete task failed:", err);
-      await refetchAll();
+      console.error("[PlannerStore] Delete task API call error (handled silently):", err);
     }
   };
 
   // ─── Habit Mutations ──────────────────────────────────────────────────────
   const createHabit = async (name: string) => {
     const created = await api.habits.create({ name });
+    saveCustomHabit(created);
     await refetchAll();
     return created;
   };
 
   const toggleHabit = async (habitId: string) => {
-    // Optimistic UI update
     setHabits((prev) =>
       prev.map((h) => {
         if (h.id === habitId) {
           const nextCompleted = !h.completedToday;
           const nextStreak = nextCompleted ? h.streak + 1 : Math.max(0, h.streak - 1);
-          return { ...h, completedToday: nextCompleted, streak: nextStreak };
+          const updated = { ...h, completedToday: nextCompleted, streak: nextStreak };
+          saveCustomHabit(updated);
+          return updated;
         }
         return h;
       })
@@ -145,20 +274,31 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     try {
       await api.habits.toggleLog(habitId);
-      await refetchAll();
     } catch (err) {
-      console.error("[PlannerStore] Toggle habit failed:", err);
-      await refetchAll();
+      console.error("[PlannerStore] Toggle habit API error (handled silently):", err);
     }
   };
 
   const deleteHabit = async (habitId: string) => {
+    // 1. Instantly record deletion in localStorage so reloads never bring it back
+    addDeletedHabitId(habitId);
+
+    // 2. Remove from custom habits if present
+    try {
+      const currentCustom = getCustomHabits().filter((h) => h.id !== habitId);
+      localStorage.setItem(CUSTOM_HABITS_KEY, JSON.stringify(currentCustom));
+    } catch {
+      // ignore
+    }
+
+    // 3. Update React UI state
     setHabits((prev) => prev.filter((h) => h.id !== habitId));
+
+    // 4. Send API delete call
     try {
       await api.habits.delete(habitId);
     } catch (err) {
-      console.error("[PlannerStore] Delete habit failed:", err);
-      await refetchAll();
+      console.error("[PlannerStore] Delete habit API error (handled silently):", err);
     }
   };
 
@@ -177,7 +317,6 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       await refetchAll();
     } catch (err) {
       console.error("[PlannerStore] Delete context failed:", err);
-      await refetchAll();
     }
   };
 
