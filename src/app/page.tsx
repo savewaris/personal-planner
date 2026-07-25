@@ -182,7 +182,7 @@ export default function DashboardHome() {
                 <div className="w-6 h-6 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
               </div>
             ) : recentTasks.length === 0 ? (
-              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all overflow-hidden">
+              <div className="py-8 text-center border border-white/10 hover:border-indigo-500/40 bg-white/5 hover:bg-white/10 rounded-2xl transition-all">
                 <p className="text-xs text-zinc-500">No tasks created yet.</p>
                 <button
                   type="button"
@@ -261,7 +261,7 @@ export default function DashboardHome() {
                 <div className="w-6 h-6 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
               </div>
             ) : habits.length === 0 ? (
-              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all overflow-hidden">
+              <div className="py-8 text-center border border-white/10 hover:border-indigo-500/40 bg-white/5 hover:bg-white/10 rounded-2xl transition-all">
                 <p className="text-xs text-zinc-500">No habits added yet.</p>
                 <button
                   type="button"

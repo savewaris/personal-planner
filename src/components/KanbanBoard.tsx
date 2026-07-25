@@ -90,13 +90,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               <AnimatePresence mode="popLayout">
                 {colTasks.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ scale: 1.03 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 22 }}
-                    className="py-12 border-2 border-dashed border-white/20 hover:border-indigo-500/50 bg-white/5 hover:bg-white/10 rounded-2xl text-center cursor-pointer transition-colors shadow-lg hover:shadow-indigo-500/10 group overflow-hidden"
+                  <div
                     onClick={() => onOpenAddModal(col.id)}
+                    className="py-12 border border-white/10 hover:border-indigo-500/40 bg-white/5 hover:bg-white/10 rounded-2xl text-center cursor-pointer transition-all duration-200 group"
                   >
                     <p className="text-xs text-zinc-400 font-medium group-hover:text-zinc-200 transition-colors">
                       No tasks in {col.title}
@@ -104,7 +100,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     <span className="inline-block mt-2 text-xs text-indigo-400 group-hover:text-indigo-300 font-semibold transition-colors">
                       + Create One
                     </span>
-                  </motion.div>
+                  </div>
                 ) : (
                   colTasks.map((task) => (
                     <TaskCard
