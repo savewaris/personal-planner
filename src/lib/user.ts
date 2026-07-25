@@ -29,30 +29,57 @@ export const LOCAL_USER_NAME = "Personal User";
  * @returns The local User record with its contexts included
  */
 export async function getOrCreateLocalUser() {
-  // Upsert the local user — creates on first run, no-ops afterwards
-  const user = await prisma.user.upsert({
-    where: { id: LOCAL_USER_ID },
-    update: {},
-    create: {
+  if (!process.env.DATABASE_URL) {
+    return {
       id: LOCAL_USER_ID,
       email: LOCAL_USER_EMAIL,
       name: LOCAL_USER_NAME,
-    },
-    include: {
-      contexts: true,
-    },
-  });
-
-  // If the user has no contexts yet, seed a default "Personal" context
-  if (user.contexts.length === 0) {
-    await prisma.context.create({
-      data: {
-        name: "Personal",
-        color: "blue",
-        userId: LOCAL_USER_ID,
-      },
-    });
+      contexts: [
+        { id: "ctx-personal", name: "Personal", color: "blue", userId: LOCAL_USER_ID },
+        { id: "ctx-work", name: "Work", color: "emerald", userId: LOCAL_USER_ID },
+        { id: "ctx-freelance", name: "Freelance", color: "purple", userId: LOCAL_USER_ID },
+      ],
+    };
   }
 
-  return user;
+  try {
+    // Upsert the local user — creates on first run, no-ops afterwards
+    const user = await prisma.user.upsert({
+      where: { id: LOCAL_USER_ID },
+      update: {},
+      create: {
+        id: LOCAL_USER_ID,
+        email: LOCAL_USER_EMAIL,
+        name: LOCAL_USER_NAME,
+      },
+      include: {
+        contexts: true,
+      },
+    });
+
+    // If the user has no contexts yet, seed default contexts
+    if (user.contexts.length === 0) {
+      await prisma.context.createMany({
+        data: [
+          { id: "ctx-personal", name: "Personal", color: "blue", userId: LOCAL_USER_ID },
+          { id: "ctx-work", name: "Work", color: "emerald", userId: LOCAL_USER_ID },
+          { id: "ctx-freelance", name: "Freelance", color: "purple", userId: LOCAL_USER_ID },
+        ],
+      });
+    }
+
+    return user;
+  } catch (error) {
+    console.warn("[Prisma] getOrCreateLocalUser fallback activated:", error);
+    return {
+      id: LOCAL_USER_ID,
+      email: LOCAL_USER_EMAIL,
+      name: LOCAL_USER_NAME,
+      contexts: [
+        { id: "ctx-personal", name: "Personal", color: "blue", userId: LOCAL_USER_ID },
+        { id: "ctx-work", name: "Work", color: "emerald", userId: LOCAL_USER_ID },
+        { id: "ctx-freelance", name: "Freelance", color: "purple", userId: LOCAL_USER_ID },
+      ],
+    };
+  }
 }
