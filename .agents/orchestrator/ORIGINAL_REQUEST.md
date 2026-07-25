@@ -1,0 +1,117 @@
+# Original User Request
+
+## 2026-07-21T16:23:37Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+
+A data-driven Next.js web application designed to centralize your life into distinct environments (Contexts) with Project Hubs, a Unified To-Do List, and a Habit Tracker.
+
+Working directory: `d:/save/Antigravity/Planner`
+Integrity mode: development
+
+## Requirements
+
+### R1. Implement NextAuth.js Authentication
+Set up NextAuth.js with Credentials (Email/Password), Google OAuth, GitHub OAuth, and Magic Links. The Prisma adapter must be used since the database schema is already scaffolded.
+
+### R2. Build the Context Switcher UI
+Implement a frontend UI with Tailwind CSS that allows the user to visually toggle between contexts (e.g., Full-Time Job, Freelance). The app's data and theme should update based on the active context.
+
+### R3. Build the Unified To-Do List & Habit Tracker
+Create the frontend components and backend API route handlers for a master task list (aggregating tasks across all contexts, filterable by active workspace) and a globally visible habit tracker with streak tracking. 
+
+### R4. Test Automation
+Write and configure Jest and Playwright tests to verify the UI functionality, authentication flows, and backend API routes programmatically.
+
+## Acceptance Criteria
+
+### Authentication
+- [ ] Users can log in using Credentials, Google, GitHub, or Magic Links.
+- [ ] Session data is properly stored in the Prisma database.
+
+### Application Logic & UI
+- [ ] Users can switch Contexts and see the UI/theme dynamically change.
+- [ ] The Unified To-Do List accurately aggregates tasks and correctly filters them by the active context.
+- [ ] The Habit Tracker successfully logs daily completions and increments the streak count correctly.
+
+### Verification
+- [ ] Automated tests (Jest/Playwright) are written and pass successfully, confirming the application behaves as expected.
+
+## 2026-07-23T03:34:35Z
+
+<USER_REQUEST>
+# Teamwork Project Prompt — Personal Mode Transition
+
+A data-driven Next.js personal productivity application designed for single-user use. Eliminates authentication barriers so the user can immediately access workspace Contexts, Project Hubs, the Unified To-Do List, and Habit Tracker.
+
+Working directory: `d:/save/Antigravity/Planner`
+Integrity mode: development
+
+## Requirements
+
+### R1. Personal Mode (No Auth Barrier)
+Bypass NextAuth login forms and session checks. Direct all dashboard views and API endpoints to operate under a default local user profile (`userId: "local"`). Auto-seed the "local" user and default "Personal" context if missing.
+
+### R2. Instant Access Navbar & Dashboard
+Update the Navbar and main page so the user lands directly on their workspace dashboard with full access to Context Switcher, Task List, and Habit Tracker without login buttons or sign-in prompts.
+
+### R3. API & Database Simplification
+Simplify route handlers (`/api/contexts`, `/api/tasks`, `/api/habits`) to automatically reference the local user account without requiring session authentication headers or 401 unauthorized checks.
+
+### R4. Automated Verification
+Ensure `npm run build` passes with 0 compile errors, unit tests updated for single-user personal mode pass 100%, and visual UI inspection confirms a clean, friction-free dashboard.
+
+## Acceptance Criteria
+
+### Personal Mode UI
+- [ ] Navigating to `http://localhost:3000` directly loads the full dashboard and task manager.
+- [ ] No login forms, sign-in buttons, or auth redirects block application usage.
+
+### Data & API Operations
+- [ ] Creating/updating/deleting Contexts, Tasks, and Habits succeeds seamlessly under the default local user context.
+- [ ] Habit daily completion logs and streak calculations function without session errors.
+
+### Verification
+- [ ] `npm run build` succeeds cleanly.
+- [ ] Unit tests updated for single-user mode pass 100%.
+</USER_REQUEST>
+
+## 2026-07-23T03:38:54Z
+
+<USER_REQUEST>
+Redesign and build a premium, state-of-the-art UI/UX ("UX UI Pro Max") for the contextual Life Planner Next.js application, featuring dynamic workspace context switching, Framer Motion micro-animations, a dual-view Task Management hub (Kanban + List), and a gamified Habit Tracker with streak visualizers and heatmaps.
+
+Working directory: d:/save/Antigravity/Planner
+Integrity mode: development
+
+## Requirements
+
+### R1. Design System & UX UI Pro Max Aesthetics
+Implement a modern design system featuring dark glassmorphism, glowing glass card surfaces, sleek typography (Inter/Outfit), fluid Framer Motion micro-interactions, and context-tailored dynamic accent color tokens (e.g. Work, Personal, Freelance).
+
+### R2. Command Center Navigation & Workspace Switcher
+Build a responsive Command Center layout comprising a collapsible glass sidebar, a top navigation bar with dynamic context switcher pills, a `Cmd+K` / `Ctrl+K` command palette modal, and a floating quick-add action button.
+
+### R3. Dual-View Task Management Subsystem
+Implement a dual-view task hub allowing seamless toggling between an interactive Drag-and-Drop Kanban Board (To Do, In Progress, Done) and a keyboard-friendly Table/List View, equipped with priority badges, inline subtask checklists, tag filters, and real-time text search.
+
+### R4. Gamified Habit Tracker & Activity Analytics
+Develop an interactive Habit Tracker with streak flame visualizers, a GitHub-style 365-day completion activity heatmap grid, weekly completion progress charts, and celebratory completion micro-animations.
+
+## Acceptance Criteria
+
+### UI/UX & Design Quality
+- [ ] Uses Framer Motion for all tab switches, modal popovers, board column drag-and-drop, and card state transitions.
+- [ ] Dynamic CSS color tokens update fluidly across the application when changing active Context.
+- [ ] Fully responsive on mobile, tablet, and desktop viewports with accessible ARIA semantics and high-contrast dark theme colors.
+
+### Code & Technical Standards
+- [ ] Zero TypeScript compilation errors (`npm run build` passes cleanly).
+- [ ] Full integration with existing Prisma models (`User`, `Context`, `Project`, `Task`, `Habit`, `HabitLog`) and API routes under Personal Mode (`userId: "local"`).
+- [ ] Automated verification via Playwright E2E and Jest test suites passing 100%.
+</USER_REQUEST>
+
+

@@ -1,65 +1,339 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ContextSwitcher } from "@/components/ContextSwitcher";
+import { CommandPalette } from "@/components/CommandPalette";
+import { QuickAddFAB } from "@/components/QuickAddFAB";
+import { CreateTaskDrawer } from "@/components/CreateTaskDrawer";
+import { CreateHabitDrawer } from "@/components/CreateHabitDrawer";
+import { useContextSwitcher } from "@/context/ContextSwitcherContext";
+import { usePlannerStore } from "@/context/PlannerStoreContext";
+import { HabitStreakVisualizer } from "@/components/HabitStreakVisualizer";
+
+export default function DashboardHome() {
+  const { activeContext } = useContextSwitcher();
+  const { tasks, habits, stats, isLoading, updateTaskStatus, toggleHabit } = usePlannerStore();
+
+  // Overlay Modal States
+  const [isCmdOpen, setIsCmdOpen] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+
+  // Global Cmd+K Keyboard Shortcut Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsCmdOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Current Date String
+  const currentDateFormatted = useMemo(() => {
+    return new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, []);
+
+  // Filter tasks for dashboard view
+  const recentTasks = useMemo(() => tasks.slice(0, 5), [tasks]);
+  const completedTodayHabits = useMemo(() => habits.filter((h) => h.completedToday).length, [habits]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-8">
+      {/* Welcome Header + Date */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6"
+      >
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            {currentDateFormatted}
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+            Welcome back, <span className="gradient-text">Personal Creator</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-sm text-zinc-400">
+            {activeContext
+              ? `Overview for your ${activeContext.name} workspace.`
+              : "Overview of your productivity across all workspace contexts."}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Context Switcher Pills Header */}
+        <div className="shrink-0">
+          <ContextSwitcher variant="pills" />
         </div>
-      </main>
-    </div>
+      </motion.div>
+
+      {/* Dashboard Stats Row */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        {[
+          {
+            title: "Total Tasks",
+            value: stats.totalTasks,
+            subtitle: `${stats.completedTasks} completed`,
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            ),
+          },
+          {
+            title: "Completion Rate",
+            value: `${stats.completionRate}%`,
+            subtitle: "Overall task progress",
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              </svg>
+            ),
+          },
+          {
+            title: "Active Habits",
+            value: stats.activeHabits,
+            subtitle: `${completedTodayHabits} done today`,
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            ),
+          },
+          {
+            title: "Best Streak",
+            value: `${stats.maxStreak} Days`,
+            subtitle: "Consecutive daily completions",
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 0 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+              </svg>
+            ),
+          },
+        ].map((stat) => (
+          <div key={stat.title} className="glass-card p-4 rounded-2xl border border-white/10 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-400">{stat.title}</span>
+              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                {stat.icon}
+              </div>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white">{stat.value}</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">{stat.subtitle}</p>
+            </div>
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Two Column Summary Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+      >
+        {/* Left Column: Tasks Overview Card */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white">Recent Tasks</h3>
+                <p className="text-xs text-zinc-400">Quick snapshot of your active tasks</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Direct + New Task Button */}
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  type="button"
+                  onClick={() => setIsTaskModalOpen(true)}
+                  className="btn-premium px-3 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>+ New Task</span>
+                </motion.button>
+
+                <Link
+                  href="/tasks"
+                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                >
+                  View Hub →
+                </Link>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="py-8 flex justify-center">
+                <div className="w-6 h-6 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+              </div>
+            ) : recentTasks.length === 0 ? (
+              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all">
+                <p className="text-xs text-zinc-500">No tasks created yet.</p>
+                <button
+                  type="button"
+                  onClick={() => setIsTaskModalOpen(true)}
+                  className="mt-2 text-xs text-indigo-400 hover:underline cursor-pointer font-semibold"
+                >
+                  + Create Your First Task
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {recentTasks.map((t) => (
+                  <div
+                    key={t.id}
+                    className="p-3.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between gap-3 hover:border-white/15 transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => updateTaskStatus(t.id, t.completed ? "TODO" : "DONE")}
+                        className={`w-5 h-5 rounded flex items-center justify-center transition-all cursor-pointer ${
+                          t.completed
+                            ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/20"
+                            : "border border-zinc-700 hover:border-indigo-400 bg-zinc-900"
+                        }`}
+                      >
+                        {t.completed && (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 stroke-[3]" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                      <span className={`text-xs font-semibold truncate ${t.completed ? "line-through text-zinc-500" : "text-zinc-200"}`}>
+                        {t.title}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+                        {t.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Habits Overview Card */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white">Daily Habits</h3>
+                <p className="text-xs text-zinc-400">{completedTodayHabits} of {habits.length} done today</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Direct + New Habit Button */}
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  type="button"
+                  onClick={() => setIsHabitModalOpen(true)}
+                  className="btn-premium px-3 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1 cursor-pointer"
+                >
+                  <span>+ Add Habit</span>
+                </motion.button>
+
+                <HabitStreakVisualizer streak={stats.maxStreak} />
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="py-8 flex justify-center">
+                <div className="w-6 h-6 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+              </div>
+            ) : habits.length === 0 ? (
+              <div className="py-8 text-center border-2 border-dashed border-white/20 hover:border-indigo-500/40 rounded-2xl transition-all">
+                <p className="text-xs text-zinc-500">No habits added yet.</p>
+                <button
+                  type="button"
+                  onClick={() => setIsHabitModalOpen(true)}
+                  className="mt-2 text-xs text-indigo-400 hover:underline cursor-pointer font-semibold"
+                >
+                  + Create Your First Habit
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {habits.map((h) => (
+                  <div
+                    key={h.id}
+                    className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between gap-3 hover:border-white/15 transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => toggleHabit(h.id)}
+                        className={`w-5 h-5 rounded flex items-center justify-center transition-all cursor-pointer ${
+                          h.completedToday
+                            ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/20"
+                            : "border border-zinc-700 hover:border-indigo-400 bg-zinc-900"
+                        }`}
+                      >
+                        {h.completedToday && (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 stroke-[3]" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                      <span className={`text-xs font-semibold truncate ${h.completedToday ? "line-through text-zinc-500" : "text-zinc-200"}`}>
+                        {h.name}
+                      </span>
+                    </div>
+
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
+                      🔥 {h.streak}d
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Standalone Drawers for Dashboard actions */}
+      <CreateTaskDrawer
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+      />
+      <CreateHabitDrawer
+        isOpen={isHabitModalOpen}
+        onClose={() => setIsHabitModalOpen(false)}
+      />
+
+      {/* Command Palette Overlay */}
+      <CommandPalette
+        isOpen={isCmdOpen}
+        onClose={() => setIsCmdOpen(false)}
+        onOpenTaskModal={() => setIsTaskModalOpen(true)}
+        onOpenHabitModal={() => setIsHabitModalOpen(true)}
+      />
+
+      {/* Floating Action Button */}
+      <QuickAddFAB
+        onOpenTaskModal={() => setIsTaskModalOpen(true)}
+        onOpenHabitModal={() => setIsHabitModalOpen(true)}
+      />
+    </main>
   );
 }

@@ -1,0 +1,113 @@
+// ─── Prisma Schema — Personal Mode (SQLite) ──────────────────────────────────
+// Simplified schema for single-user Personal Mode using local SQLite (dev.db).
+// Removed auth tables (Account, Session, VerificationToken).
+// Added Task status/priority/tags/subtasks/dueDate, HabitLog date string unique constraint.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User ───────────────────────────────────────────────────────────────────
+model User {
+  id        String   @id
+  name      String?
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contexts Context[]
+  habits   Habit[]
+}
+
+// ─── Context ────────────────────────────────────────────────────────────────
+model Context {
+  id        String   @id @default(uuid())
+  name      String
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projects Project[]
+  tasks    Task[]
+
+  @@index([userId])
+}
+
+// ─── Project ────────────────────────────────────────────────────────────────
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  links       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contextId String
+  context   Context @relation(fields: [contextId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([contextId])
+}
+
+// ─── Task ───────────────────────────────────────────────────────────────────
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  status      String   @default("TODO") // TODO | IN_PROGRESS | DONE
+  priority    String   @default("MEDIUM") // LOW | MEDIUM | HIGH
+  dueDate     String?  // YYYY-MM-DD ISO date string
+  tags        String?  // JSON array of tag strings
+  subtasks    String?  // JSON array of subtask objects
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contextId String
+  context   Context @relation(fields: [contextId], references: [id], onDelete: Cascade)
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([contextId])
+  @@index([projectId])
+  @@index([dueDate])
+}
+
+// ─── Habit ──────────────────────────────────────────────────────────────────
+model Habit {
+  id        String   @id @default(uuid())
+  name      String
+  streak    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  logs HabitLog[]
+
+  @@index([userId])
+}
+
+// ─── HabitLog ───────────────────────────────────────────────────────────────
+model HabitLog {
+  id        String  @id @default(uuid())
+  date      String  // YYYY-MM-DD format string
+  completed Boolean @default(true)
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([habitId])
+}

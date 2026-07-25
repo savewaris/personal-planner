@@ -1,0 +1,438 @@
+{
+  "communities": {
+    "0": [
+      "ref_react",
+      "src_app_page",
+      "src_app_page_herosection",
+      "src_app_page_home",
+      "src_components_addcontextmodal",
+      "src_components_addcontextmodal_addcontextmodal",
+      "src_components_addcontextmodal_addcontextmodalprops",
+      "src_components_colorindicator",
+      "src_components_colorindicator_colorindicator",
+      "src_components_colorindicator_colorindicatorprops",
+      "src_components_contextbadge",
+      "src_components_contextbadge_contextbadge",
+      "src_components_contextbadge_contextbadgeprops",
+      "src_components_contextswitcher",
+      "src_components_contextswitcher_contextswitcher",
+      "src_components_contextswitcher_contextswitcherprops",
+      "src_components_editcontextmodal",
+      "src_components_editcontextmodal_editcontextmodal",
+      "src_components_editcontextmodal_editcontextmodalprops",
+      "src_components_habittracker",
+      "src_components_habittracker_habit",
+      "src_components_habittracker_habitlog",
+      "src_components_habittracker_habittracker",
+      "src_components_navbar",
+      "src_components_navbar_navbar",
+      "src_components_tasklist",
+      "src_components_tasklist_filtertab",
+      "src_components_tasklist_task",
+      "src_components_tasklist_taskcontext",
+      "src_components_tasklist_tasklist",
+      "src_components_tasklist_taskproject",
+      "src_context_contextswitchercontext_usecontextswitcher",
+      "src_lib_colors",
+      "src_lib_colors_color_palette",
+      "src_lib_colors_colorthemeoption",
+      "src_lib_colors_contextcolor",
+      "src_lib_colors_getcolortheme"
+    ],
+    "1": [
+      "eslint",
+      "eslint_config_next",
+      "jest",
+      "jest_environment_jsdom",
+      "package_devdependencies",
+      "package_devdependencies_eslint",
+      "package_devdependencies_eslint_config_next",
+      "package_devdependencies_jest",
+      "package_devdependencies_jest_environment_jsdom",
+      "package_devdependencies_playwright_test",
+      "package_devdependencies_prisma",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_tailwindcss_postcss",
+      "package_devdependencies_ts_jest",
+      "package_devdependencies_types_bcryptjs",
+      "package_devdependencies_types_jest",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_nodemailer",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_typescript",
+      "playwright_test",
+      "prisma",
+      "tailwindcss",
+      "tailwindcss_postcss",
+      "ts_jest",
+      "types_bcryptjs",
+      "types_jest",
+      "types_node",
+      "types_nodemailer",
+      "types_react",
+      "types_react_dom",
+      "typescript"
+    ],
+    "2": [
+      "src_app_api_auth_nextauth_route",
+      "src_app_api_auth_nextauth_route_handler",
+      "src_app_api_auth_register_route",
+      "src_app_api_auth_register_route_post",
+      "src_app_api_contexts_id_route",
+      "src_app_api_contexts_id_route_contextrouteparams",
+      "src_app_api_contexts_id_route_delete",
+      "src_app_api_contexts_id_route_patch",
+      "src_app_api_contexts_route",
+      "src_app_api_contexts_route_get",
+      "src_app_api_contexts_route_post",
+      "src_app_api_habits_id_log_route",
+      "src_app_api_habits_id_log_route_post",
+      "src_app_api_habits_route",
+      "src_app_api_habits_route_get",
+      "src_app_api_habits_route_post",
+      "src_app_api_tasks_id_route",
+      "src_app_api_tasks_id_route_delete",
+      "src_app_api_tasks_id_route_patch",
+      "src_app_api_tasks_route",
+      "src_app_api_tasks_route_get",
+      "src_app_api_tasks_route_post",
+      "src_lib_auth",
+      "src_lib_auth_authoptions",
+      "src_lib_prisma",
+      "src_lib_prisma_globalforprisma",
+      "src_lib_streak",
+      "src_lib_streak_calculatestreak",
+      "src_lib_streak_formatdatekey",
+      "src_lib_streak_habitloginput",
+      "tests_jest_tier2_challenger_streak_tasks_test",
+      "tests_jest_tier2_challenger_streak_tasks_test_buildtaskwhereclause"
+    ],
+    "3": [
+      "ref_dom",
+      "ref_dom_iterable",
+      "ref_esnext",
+      "ref_jest",
+      "ref_node",
+      "ref_react_dom",
+      "tsconfig_compileroptions",
+      "tsconfig_compileroptions_allowjs",
+      "tsconfig_compileroptions_esmoduleinterop",
+      "tsconfig_compileroptions_incremental",
+      "tsconfig_compileroptions_isolatedmodules",
+      "tsconfig_compileroptions_jsx",
+      "tsconfig_compileroptions_lib",
+      "tsconfig_compileroptions_module",
+      "tsconfig_compileroptions_moduleresolution",
+      "tsconfig_compileroptions_noemit",
+      "tsconfig_compileroptions_paths",
+      "tsconfig_compileroptions_plugins",
+      "tsconfig_compileroptions_resolvejsonmodule",
+      "tsconfig_compileroptions_skiplibcheck",
+      "tsconfig_compileroptions_strict",
+      "tsconfig_compileroptions_target",
+      "tsconfig_compileroptions_types"
+    ],
+    "4": [
+      "auth_prisma_adapter",
+      "bcryptjs",
+      "next",
+      "next_auth",
+      "nodemailer",
+      "package_dependencies",
+      "package_dependencies_auth_prisma_adapter",
+      "package_dependencies_bcryptjs",
+      "package_dependencies_next",
+      "package_dependencies_next_auth",
+      "package_dependencies_nodemailer",
+      "package_dependencies_prisma_client",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_zod",
+      "prisma_client",
+      "react",
+      "react_dom",
+      "zod"
+    ],
+    "5": [
+      "src_app_layout",
+      "src_app_layout_geistmono",
+      "src_app_layout_geistsans",
+      "src_app_layout_metadata",
+      "src_app_layout_rootlayout",
+      "src_components_providers",
+      "src_components_providers_providers",
+      "src_components_providers_providersprops",
+      "src_context_contextswitchercontext",
+      "src_context_contextswitchercontext_applytheme",
+      "src_context_contextswitchercontext_context",
+      "src_context_contextswitchercontext_contextswitchercontext",
+      "src_context_contextswitchercontext_contextswitchercontexttype",
+      "src_context_contextswitchercontext_contextswitcherprovider",
+      "src_context_contextswitchercontext_createcontextinput",
+      "src_context_contextswitchercontext_supported_themes",
+      "src_context_contextswitchercontext_supportedtheme",
+      "src_context_contextswitchercontext_updatecontextinput"
+    ],
+    "6": [
+      "package",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_start",
+      "package_scripts_test",
+      "package_scripts_test_e2e",
+      "package_scripts_test_unit",
+      "package_version"
+    ],
+    "7": [
+      "ref_mts",
+      "ref_next_dev_types_ts",
+      "ref_next_env_d_ts",
+      "ref_next_types_ts",
+      "ref_node_modules",
+      "ref_ts",
+      "ref_tsx",
+      "tsconfig",
+      "tsconfig_exclude",
+      "tsconfig_include"
+    ],
+    "8": [
+      "src_types_next_auth_d",
+      "src_types_next_auth_d_jwt",
+      "src_types_next_auth_d_next_auth",
+      "src_types_next_auth_d_next_auth_jwt",
+      "src_types_next_auth_d_session",
+      "src_types_next_auth_d_user"
+    ],
+    "9": [
+      "src_types_prisma_d",
+      "src_types_prisma_d_prisma",
+      "src_types_prisma_d_prisma_client",
+      "src_types_prisma_d_prismaclient",
+      "src_types_prisma_d_prismaclient_constructor",
+      "src_types_prisma_d_transactionclient"
+    ],
+    "10": [
+      "jest_config",
+      "jest_config_createjestconfig",
+      "jest_config_customjestconfig",
+      "jest_config_nextjest"
+    ],
+    "11": [
+      "src_app_login_page",
+      "src_app_login_page_authtab",
+      "src_app_login_page_loginformcontent",
+      "src_app_login_page_loginpage"
+    ],
+    "12": [
+      "tests_jest_tier1_habits_test",
+      "tests_jest_tier1_habits_test_calculatestreak",
+      "tests_jest_tier1_habits_test_habit",
+      "tests_jest_tier1_habits_test_habitlog"
+    ],
+    "13": [
+      "tests_jest_tier3_cross_feature_test",
+      "tests_jest_tier3_cross_feature_test_context",
+      "tests_jest_tier3_cross_feature_test_habit",
+      "tests_jest_tier3_cross_feature_test_task"
+    ],
+    "14": [
+      "eslint_config",
+      "eslint_config_eslintconfig"
+    ],
+    "15": [
+      "next_config",
+      "next_config_nextconfig"
+    ],
+    "16": [
+      "postcss_config",
+      "postcss_config_config"
+    ],
+    "17": [
+      "tests_jest_tier1_contexts_test",
+      "tests_jest_tier1_contexts_test_workspacecontext"
+    ],
+    "18": [
+      "tests_jest_tier1_tasks_test",
+      "tests_jest_tier1_tasks_test_task"
+    ],
+    "19": [
+      "playwright_config"
+    ],
+    "20": [
+      "tests_e2e_tier1_auth_spec"
+    ],
+    "21": [
+      "tests_e2e_tier1_contexts_spec"
+    ],
+    "22": [
+      "tests_e2e_tier1_habits_spec"
+    ],
+    "23": [
+      "tests_e2e_tier1_tasks_spec"
+    ],
+    "24": [
+      "tests_e2e_tier2_boundary_spec"
+    ],
+    "25": [
+      "tests_e2e_tier3_cross_feature_spec"
+    ],
+    "26": [
+      "tests_e2e_tier4_real_world_spec"
+    ],
+    "27": [
+      "tests_jest_tier1_auth_test"
+    ],
+    "28": [
+      "tests_jest_tier2_boundary_test"
+    ]
+  },
+  "cohesion": {
+    "0": 0.1066066066066066,
+    "1": 0.06060606060606061,
+    "2": 0.11491935483870967,
+    "3": 0.08695652173913043,
+    "4": 0.10526315789473684,
+    "5": 0.13071895424836602,
+    "6": 0.16666666666666666,
+    "7": 0.2,
+    "8": 0.3333333333333333,
+    "9": 0.3333333333333333,
+    "10": 0.5,
+    "11": 0.5,
+    "12": 0.5,
+    "13": 0.5,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0,
+    "20": 1.0,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0
+  },
+  "gods": [
+    {
+      "id": "tsconfig_compileroptions",
+      "label": "compilerOptions",
+      "degree": 17
+    },
+    {
+      "id": "ref_react",
+      "label": "react",
+      "degree": 13
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 8
+    },
+    {
+      "id": "src_lib_auth_authoptions",
+      "label": "authOptions",
+      "degree": 8
+    },
+    {
+      "id": "src_lib_colors_getcolortheme",
+      "label": "getColorTheme()",
+      "degree": 7
+    },
+    {
+      "id": "src_lib_streak_formatdatekey",
+      "label": "formatDateKey()",
+      "degree": 7
+    },
+    {
+      "id": "src_lib_streak_calculatestreak",
+      "label": "calculateStreak()",
+      "degree": 7
+    },
+    {
+      "id": "tsconfig_include",
+      "label": "include",
+      "degree": 7
+    },
+    {
+      "id": "src_components_contextswitcher_contextswitcher",
+      "label": "ContextSwitcher()",
+      "degree": 5
+    },
+    {
+      "id": "src_context_contextswitchercontext_usecontextswitcher",
+      "label": "useContextSwitcher()",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "ContextBadge()",
+      "target": "getColorTheme()",
+      "source_files": [
+        "src/components/ContextBadge.tsx",
+        "src/lib/colors.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `ContextBadge()` unexpectedly reaches hub `getColorTheme()`"
+    },
+    {
+      "source": "POST()",
+      "target": "calculateStreak()",
+      "source_files": [
+        "src/app/api/habits/[id]/log/route.ts",
+        "src/lib/streak.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "POST()",
+      "target": "formatDateKey()",
+      "source_files": [
+        "src/app/api/habits/[id]/log/route.ts",
+        "src/lib/streak.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "GET()",
+      "target": "calculateStreak()",
+      "source_files": [
+        "src/app/api/habits/route.ts",
+        "src/lib/streak.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "GET()",
+      "target": "formatDateKey()",
+      "source_files": [
+        "src/app/api/habits/route.ts",
+        "src/lib/streak.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "cross-file semantic connection"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}
