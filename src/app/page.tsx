@@ -11,10 +11,13 @@ import { useContextSwitcher } from "@/context/ContextSwitcherContext";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { HabitStreakVisualizer } from "@/components/HabitStreakVisualizer";
 import { QuickNotesInbox } from "@/components/QuickNotesInbox";
+import { FlameStreakBadge } from "@/components/FlameStreakBadge";
+import { DashboardMiniCalendar } from "@/components/DashboardMiniCalendar";
+import { TasksInProgressCard } from "@/components/TasksInProgressCard";
 
 export default function DashboardHome() {
   const { activeContext } = useContextSwitcher();
-  const { tasks, habits, stats, isLoading, updateTaskStatus, toggleHabit } = usePlannerStore();
+  const { tasks, habits, isLoading, updateTaskStatus, toggleHabit, stats } = usePlannerStore();
 
   // Hydration Mount Safety Flag to Prevent React Error #418
   const [isMounted, setIsMounted] = useState(false);
@@ -54,7 +57,7 @@ export default function DashboardHome() {
   const completedTodayHabits = useMemo(() => habits.filter((h) => h.completedToday).length, [habits]);
 
   return (
-    <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-8">
+    <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto w-full space-y-8">
       {/* Welcome Header + Date */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -83,88 +86,37 @@ export default function DashboardHome() {
         </div>
       </motion.div>
 
-      {/* Dashboard Stats Row */}
+      {/* Top Banner Row: Mini Calendar (Left) & Tasks In Progress (Right) */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch"
       >
-        {[
-          {
-            title: "Total Tasks",
-            value: stats.totalTasks,
-            subtitle: `${stats.completedTasks} completed`,
-            icon: (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-            ),
-          },
-          {
-            title: "Completion Rate",
-            value: `${stats.completionRate}%`,
-            subtitle: "Overall task progress",
-            icon: (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-              </svg>
-            ),
-          },
-          {
-            title: "Active Habits",
-            value: stats.activeHabits,
-            subtitle: `${completedTodayHabits} done today`,
-            icon: (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
-            ),
-          },
-          {
-            title: "Quick Notes",
-            value: stats.pendingNotes,
-            subtitle: "Uncategorized thoughts",
-            icon: (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.508 1.333 1.508 2.316V18" />
-              </svg>
-            ),
-          },
-        ].map((stat) => (
-          <div key={stat.title} className="glass-card p-4 rounded-2xl border border-white/10 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-zinc-400">{stat.title}</span>
-              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                {stat.icon}
-              </div>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-white">{stat.value}</p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">{stat.subtitle}</p>
-            </div>
-          </div>
-        ))}
+        <div className="lg:col-span-5">
+          <DashboardMiniCalendar
+            tasks={tasks}
+            onOpenAddModalWithDate={() => setIsTaskModalOpen(true)}
+          />
+        </div>
+        <div className="lg:col-span-7">
+          <TasksInProgressCard
+            tasks={tasks}
+            onStatusChange={updateTaskStatus}
+            onOpenAddModal={() => setIsTaskModalOpen(true)}
+          />
+        </div>
       </motion.div>
 
-      {/* Quick Notes Inbox Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.15 }}
-      >
-        <QuickNotesInbox />
-      </motion.div>
-
-      {/* Two Column Summary Grid */}
+      {/* 3-Column Dashboard Layout: Left (Tasks) | Middle (Habits) | Far Right Edge (Quick Notes Inbox) */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start"
       >
-        {/* Left Column: Tasks Overview Card */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Column 1 (Left): Recent Tasks */}
+        <div className="lg:col-span-5 space-y-6">
           <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div>
@@ -248,8 +200,8 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Right Column: Habits Overview Card */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Column 2 (Middle): Daily Habits */}
+        <div className="lg:col-span-4 space-y-6">
           <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div>
@@ -315,14 +267,18 @@ export default function DashboardHome() {
                       </span>
                     </div>
 
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
-                      🔥 {h.streak}d
-                    </span>
+                    {/* Integrated Flame Streak Badge */}
+                    <FlameStreakBadge streak={h.streak} />
                   </div>
                 ))}
               </div>
             )}
           </div>
+        </div>
+
+        {/* Column 3 (Far Right Edge): Quick Notes Inbox */}
+        <div className="lg:col-span-3 space-y-6">
+          <QuickNotesInbox />
         </div>
       </motion.div>
 

@@ -6,6 +6,7 @@ import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { HabitStreakVisualizer } from "./HabitStreakVisualizer";
 import { HabitHeatmap } from "./HabitHeatmap";
 import { CreateHabitDrawer } from "./CreateHabitDrawer";
+import { FlameStreakBadge } from "./FlameStreakBadge";
 
 export const HabitTracker: React.FC<{ isModalOpenExternal?: boolean; onCloseModalExternal?: () => void }> = ({
   isModalOpenExternal = false,
@@ -113,11 +114,9 @@ export const HabitTracker: React.FC<{ isModalOpenExternal?: boolean; onCloseModa
                   </span>
                 </div>
 
-                {/* Right: Streak + Delete */}
+                {/* Right: Integrated Flame Streak Badge + Delete */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center gap-1">
-                    🔥 {habit.streak}d
-                  </span>
+                  <FlameStreakBadge streak={habit.streak} />
 
                   <button
                     type="button"

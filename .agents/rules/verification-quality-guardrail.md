@@ -8,6 +8,7 @@ NEVER declare a task finished, resolved, or working without executing the compre
 3. **No Redundant Floating Action Buttons**: If section headers already contain direct `+ New Task` / `+ Add Habit` buttons, DO NOT overlay floating `+` FAB buttons on the page.
 4. **Timezone-Safe Date Formatting**: NEVER use `.toISOString().split("T")[0]` for local calendar month grid generation (timezone offsets shift midnight dates). Use local year, month, date string formatters.
 5. **Cross-Device Deletion Sync**: NEVER rely on `localStorage` alone for state deletions! Always mutate server-side memory (`serverDb`) AND cloud database so deletions sync across Desktop Computer and Mobile iPhone instantly.
+6. **No Automatic Git Push**: DO NOT automatically run `git push origin main`. Always verify locally first and wait for explicit user confirmation before pushing to GitHub remote.
 
 ## Verification Loop Checklist:
 1. **TypeScript Check**: `npx tsc --noEmit` must return 0 errors.

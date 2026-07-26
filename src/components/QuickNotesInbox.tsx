@@ -58,94 +58,97 @@ export const QuickNotesInbox: React.FC = () => {
   };
 
   return (
-    <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4 relative overflow-hidden">
+    <div className="glass-card p-5 border border-white/10 rounded-2xl space-y-4 relative overflow-hidden h-full flex flex-col justify-between">
       {/* Background Decorative Shimmer */}
-      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-36 h-36 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-white/5 pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-            💡
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              Quick Notes Inbox
-              {notes.length > 0 && (
-                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  {notes.length} uncategorized
-                </span>
-              )}
-            </h3>
-            <p className="text-xs text-zinc-400">Jot down quick thoughts instantly — categorize them whenever you're ready.</p>
+      {/* Main Content Area */}
+      <div className="space-y-4">
+        {/* Header Bar */}
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+              💡
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                Quick Notes
+                {notes.length > 0 && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    {notes.length}
+                  </span>
+                )}
+              </h3>
+              <p className="text-[11px] text-zinc-400">Jot thoughts & categorize later</p>
+            </div>
           </div>
         </div>
+
+        {/* Quick Input Bar */}
+        <form onSubmit={handleQuickAdd} className="flex gap-2">
+          <input
+            type="text"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Jot down quick thought..."
+            className="flex-1 px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-indigo-500/60 transition-all"
+          />
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            type="submit"
+            disabled={!content.trim()}
+            className="btn-premium px-3 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-50"
+          >
+            + Note
+          </motion.button>
+        </form>
+
+        {/* Uncategorized Notes List (Vertical Stack for Far Right Column) */}
+        {notes.length === 0 ? (
+          <div className="py-6 text-center border border-white/10 hover:border-indigo-500/30 bg-white/5 rounded-xl transition-all">
+            <p className="text-xs text-zinc-500">Inbox empty! All notes organized.</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+            {notes.map((n) => (
+              <motion.div
+                key={n.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/40 space-y-2 flex flex-col justify-between transition-all group"
+              >
+                <p className="text-xs text-zinc-200 leading-relaxed font-medium line-clamp-3">
+                  {n.content}
+                </p>
+
+                <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => openCategorizeModal(n)}
+                    className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    ⚡ Categorize
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteNote(n.id)}
+                    className="p-1 text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer rounded"
+                    title="Delete note"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* Quick Input Bar */}
-      <form onSubmit={handleQuickAdd} className="flex gap-2">
-        <input
-          type="text"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Jot down a quick thought, idea, or reminder... (Press Enter)"
-          className="flex-1 px-4 py-2.5 rounded-xl bg-zinc-900/90 border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-indigo-500/60 transition-all"
-        />
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          type="submit"
-          disabled={!content.trim()}
-          className="btn-premium px-4 py-2.5 rounded-xl text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-50"
-        >
-          + Capture Note
-        </motion.button>
-      </form>
-
-      {/* Uncategorized Notes Grid */}
-      {notes.length === 0 ? (
-        <div className="py-6 text-center border border-white/10 hover:border-indigo-500/30 bg-white/5 rounded-xl transition-all">
-          <p className="text-xs text-zinc-500">Inbox empty! All quick notes are organized.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-          {notes.map((n) => (
-            <motion.div
-              key={n.id}
-              layout
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/40 space-y-3 flex flex-col justify-between transition-all group"
-            >
-              <p className="text-xs text-zinc-200 leading-relaxed font-medium line-clamp-3">
-                {n.content}
-              </p>
-
-              <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => openCategorizeModal(n)}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 transition-all cursor-pointer flex items-center gap-1"
-                >
-                  ⚡ Categorize
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => deleteNote(n.id)}
-                  className="p-1 text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer rounded"
-                  title="Delete note"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                  </svg>
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
 
       {/* Categorize Quick Action Modal Overlay */}
       <AnimatePresence>

@@ -34,8 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} dark h-full antialiased`}>
-      <body className="min-h-full text-zinc-100 font-sans transition-colors duration-200" style={{ backgroundColor: "var(--background)" }}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} dark h-full antialiased`}>
+      <body suppressHydrationWarning className="min-h-full text-zinc-100 font-sans transition-colors duration-200" style={{ backgroundColor: "var(--background)" }}>
         <Providers>
           <div className="flex min-h-screen w-full text-zinc-100 bg-grid relative" style={{ backgroundColor: "var(--background)" }}>
             {/* Background Ambient Glow Blobs */}
