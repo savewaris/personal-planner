@@ -9,13 +9,27 @@
  */
 
 import { TaskItem } from "@/components/TaskCard";
-import { HabitItem, WorkspaceContextItem } from "@/services/api";
+import { HabitItem, WorkspaceContextItem, NoteItem } from "@/services/api";
 
 // Default Initial Contexts
 const DEFAULT_CONTEXTS: WorkspaceContextItem[] = [
   { id: "ctx-personal", name: "Personal", color: "blue", userId: "local" },
   { id: "ctx-work", name: "Work", color: "emerald", userId: "local" },
   { id: "ctx-freelance", name: "Freelance", color: "purple", userId: "local" },
+];
+
+// Default Initial Notes
+const DEFAULT_NOTES: NoteItem[] = [
+  {
+    id: "note-1",
+    content: "Ideas for UI polish: add dark glass card micro-animations and quick action drawer",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "note-2",
+    content: "Buy noise-canceling headphones for deep focus work sessions",
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 // Default Initial Tasks
@@ -88,19 +102,48 @@ const globalStore = globalThis as unknown as {
   serverTasks: TaskItem[] | undefined;
   serverHabits: HabitItem[] | undefined;
   serverContexts: WorkspaceContextItem[] | undefined;
+  serverNotes: NoteItem[] | undefined;
   deletedTaskIds: Set<string> | undefined;
   deletedHabitIds: Set<string> | undefined;
   deletedContextIds: Set<string> | undefined;
+  deletedNoteIds: Set<string> | undefined;
 };
 
 if (!globalStore.serverTasks) globalStore.serverTasks = [...DEFAULT_TASKS];
 if (!globalStore.serverHabits) globalStore.serverHabits = [...DEFAULT_HABITS];
 if (!globalStore.serverContexts) globalStore.serverContexts = [...DEFAULT_CONTEXTS];
+if (!globalStore.serverNotes) globalStore.serverNotes = [...DEFAULT_NOTES];
 if (!globalStore.deletedTaskIds) globalStore.deletedTaskIds = new Set<string>();
 if (!globalStore.deletedHabitIds) globalStore.deletedHabitIds = new Set<string>();
 if (!globalStore.deletedContextIds) globalStore.deletedContextIds = new Set<string>();
+if (!globalStore.deletedNoteIds) globalStore.deletedNoteIds = new Set<string>();
 
 export const serverDb = {
+  // Notes
+  getNotes: () => {
+    return (globalStore.serverNotes || []).filter(
+      (n) => !globalStore.deletedNoteIds?.has(n.id)
+    );
+  },
+
+  addNote: (note: NoteItem) => {
+    globalStore.serverNotes = [note, ...(globalStore.serverNotes || [])];
+    return note;
+  },
+
+  updateNote: (id: string, updates: Partial<NoteItem>) => {
+    globalStore.serverNotes = (globalStore.serverNotes || []).map((n) =>
+      n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n
+    );
+    return globalStore.serverNotes.find((n) => n.id === id);
+  },
+
+  deleteNote: (id: string) => {
+    globalStore.deletedNoteIds?.add(id);
+    globalStore.serverNotes = (globalStore.serverNotes || []).filter((n) => n.id !== id);
+    return true;
+  },
+
   // Tasks
   getTasks: (contextId?: string, status?: string, search?: string) => {
     let list = (globalStore.serverTasks || []).filter(

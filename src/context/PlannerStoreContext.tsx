@@ -1,13 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
-import { api, HabitItem, WorkspaceContextItem } from "@/services/api";
+import { api, HabitItem, WorkspaceContextItem, NoteItem } from "@/services/api";
 import { TaskItem } from "@/components/TaskCard";
 
 interface PlannerStoreContextType {
   tasks: TaskItem[];
   habits: HabitItem[];
   contexts: WorkspaceContextItem[];
+  notes: NoteItem[];
   activeContextId: string | null;
   setActiveContextId: (id: string | null) => void;
   isLoading: boolean;
@@ -23,6 +24,12 @@ interface PlannerStoreContextType {
   toggleHabit: (habitId: string) => Promise<void>;
   deleteHabit: (habitId: string) => Promise<void>;
 
+  // Note Mutations
+  createNote: (content: string, contextId?: string) => Promise<NoteItem>;
+  deleteNote: (noteId: string) => Promise<void>;
+  convertNoteToTask: (noteId: string, taskData: Parameters<typeof api.tasks.create>[0]) => Promise<void>;
+  convertNoteToHabit: (noteId: string, habitName: string) => Promise<void>;
+
   // Context Mutations
   createContext: (name: string, color?: string) => Promise<WorkspaceContextItem>;
   deleteContext: (contextId: string) => Promise<void>;
@@ -34,6 +41,7 @@ interface PlannerStoreContextType {
     completionRate: number;
     activeHabits: number;
     maxStreak: number;
+    pendingNotes: number;
   };
 }
 
@@ -43,89 +51,52 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [habits, setHabits] = useState<HabitItem[]>([]);
   const [contexts, setContexts] = useState<WorkspaceContextItem[]>([]);
+  const [notes, setNotes] = useState<NoteItem[]>([]);
   const [activeContextId, setActiveContextIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Local Storage Persistence Keys
   const DELETED_TASKS_KEY = "planner_deleted_task_ids";
   const DELETED_HABITS_KEY = "planner_deleted_habit_ids";
+  const DELETED_NOTES_KEY = "planner_deleted_note_ids";
   const CUSTOM_TASKS_KEY = "planner_custom_tasks";
   const CUSTOM_HABITS_KEY = "planner_custom_habits";
+  const CUSTOM_NOTES_KEY = "planner_custom_notes";
 
-  // Helper functions for localStorage deleted sets
-  const getDeletedTaskIds = (): string[] => {
+  const getDeletedIds = (key: string): string[] => {
     try {
-      const data = localStorage.getItem(DELETED_TASKS_KEY);
+      const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
   };
 
-  const addDeletedTaskId = (id: string) => {
+  const addDeletedId = (key: string, id: string) => {
     try {
-      const current = getDeletedTaskIds();
+      const current = getDeletedIds(key);
       if (!current.includes(id)) {
-        localStorage.setItem(DELETED_TASKS_KEY, JSON.stringify([...current, id]));
+        localStorage.setItem(key, JSON.stringify([...current, id]));
       }
     } catch {
       // ignore
     }
   };
 
-  const getDeletedHabitIds = (): string[] => {
+  const getCustomItems = <T,>(key: string): T[] => {
     try {
-      const data = localStorage.getItem(DELETED_HABITS_KEY);
+      const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
   };
 
-  const addDeletedHabitId = (id: string) => {
+  const saveCustomItem = <T extends { id: string }>(key: string, item: T) => {
     try {
-      const current = getDeletedHabitIds();
-      if (!current.includes(id)) {
-        localStorage.setItem(DELETED_HABITS_KEY, JSON.stringify([...current, id]));
-      }
-    } catch {
-      // ignore
-    }
-  };
-
-  const getCustomTasks = (): TaskItem[] => {
-    try {
-      const data = localStorage.getItem(CUSTOM_TASKS_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const saveCustomTask = (task: TaskItem) => {
-    try {
-      const current = getCustomTasks();
-      const updated = [task, ...current.filter((t) => t.id !== task.id)];
-      localStorage.setItem(CUSTOM_TASKS_KEY, JSON.stringify(updated));
-    } catch {
-      // ignore
-    }
-  };
-
-  const getCustomHabits = (): HabitItem[] => {
-    try {
-      const data = localStorage.getItem(CUSTOM_HABITS_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const saveCustomHabit = (habit: HabitItem) => {
-    try {
-      const current = getCustomHabits();
-      const updated = [habit, ...current.filter((h) => h.id !== habit.id)];
-      localStorage.setItem(CUSTOM_HABITS_KEY, JSON.stringify(updated));
+      const current = getCustomItems<T>(key);
+      const updated = [item, ...current.filter((i) => i.id !== item.id)];
+      localStorage.setItem(key, JSON.stringify(updated));
     } catch {
       // ignore
     }
@@ -158,38 +129,43 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const refetchAll = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [tasksData, habitsData, contextsData] = await Promise.all([
+      const [tasksData, habitsData, contextsData, notesData] = await Promise.all([
         api.tasks.getAll({ contextId: activeContextId || undefined }),
         api.habits.getAll(),
         api.contexts.getAll(),
+        api.notes.getAll(),
       ]);
 
-      const deletedTaskIds = getDeletedTaskIds();
-      const deletedHabitIds = getDeletedHabitIds();
-      const customTasks = getCustomTasks();
-      const customHabits = getCustomHabits();
+      const deletedTaskIds = getDeletedIds(DELETED_TASKS_KEY);
+      const deletedHabitIds = getDeletedIds(DELETED_HABITS_KEY);
+      const deletedNoteIds = getDeletedIds(DELETED_NOTES_KEY);
 
-      // Combine server tasks with custom local tasks & filter out deleted IDs
+      const customTasks = getCustomItems<TaskItem>(CUSTOM_TASKS_KEY);
+      const customHabits = getCustomItems<HabitItem>(CUSTOM_HABITS_KEY);
+      const customNotes = getCustomItems<NoteItem>(CUSTOM_NOTES_KEY);
+
+      // Tasks combine
       const combinedTasksMap = new Map<string, TaskItem>();
       tasksData.forEach((t) => combinedTasksMap.set(t.id, t));
       customTasks.forEach((t) => combinedTasksMap.set(t.id, t));
+      const filteredTasks = Array.from(combinedTasksMap.values()).filter((t) => !deletedTaskIds.includes(t.id));
 
-      const filteredTasks = Array.from(combinedTasksMap.values()).filter(
-        (t) => !deletedTaskIds.includes(t.id)
-      );
-
-      // Combine server habits with custom local habits & filter out deleted IDs
+      // Habits combine
       const combinedHabitsMap = new Map<string, HabitItem>();
       habitsData.forEach((h) => combinedHabitsMap.set(h.id, h));
       customHabits.forEach((h) => combinedHabitsMap.set(h.id, h));
+      const filteredHabits = Array.from(combinedHabitsMap.values()).filter((h) => !deletedHabitIds.includes(h.id));
 
-      const filteredHabits = Array.from(combinedHabitsMap.values()).filter(
-        (h) => !deletedHabitIds.includes(h.id)
-      );
+      // Notes combine
+      const combinedNotesMap = new Map<string, NoteItem>();
+      notesData.forEach((n) => combinedNotesMap.set(n.id, n));
+      customNotes.forEach((n) => combinedNotesMap.set(n.id, n));
+      const filteredNotes = Array.from(combinedNotesMap.values()).filter((n) => !deletedNoteIds.includes(n.id));
 
       setTasks(filteredTasks);
       setHabits(filteredHabits);
       setContexts(contextsData);
+      setNotes(filteredNotes);
     } catch (err) {
       console.error("[PlannerStore] Refetch failed:", err);
     } finally {
@@ -204,7 +180,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ─── Task Mutations ───────────────────────────────────────────────────────
   const createTask = async (data: Parameters<typeof api.tasks.create>[0]) => {
     const created = await api.tasks.create(data);
-    saveCustomTask(created);
+    saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, created);
     await refetchAll();
     return created;
   };
@@ -214,7 +190,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       prev.map((t) => {
         if (t.id === taskId) {
           const updated = { ...t, status: newStatus, completed: newStatus === "DONE" };
-          saveCustomTask(updated);
+          saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, updated);
           return updated;
         }
         return t;
@@ -228,32 +204,19 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const deleteTask = async (taskId: string) => {
-    // 1. Instantly record deletion in localStorage so reloads never bring it back
-    addDeletedTaskId(taskId);
-
-    // 2. Remove from custom tasks if present
-    try {
-      const currentCustom = getCustomTasks().filter((t) => t.id !== taskId);
-      localStorage.setItem(CUSTOM_TASKS_KEY, JSON.stringify(currentCustom));
-    } catch {
-      // ignore
-    }
-
-    // 3. Update React UI state
+    addDeletedId(DELETED_TASKS_KEY, taskId);
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
-
-    // 4. Send API delete call
     try {
       await api.tasks.delete(taskId);
     } catch (err) {
-      console.error("[PlannerStore] Delete task API call error (handled silently):", err);
+      console.error("[PlannerStore] Delete task error:", err);
     }
   };
 
   // ─── Habit Mutations ──────────────────────────────────────────────────────
   const createHabit = async (name: string) => {
     const created = await api.habits.create({ name });
-    saveCustomHabit(created);
+    saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, created);
     await refetchAll();
     return created;
   };
@@ -265,7 +228,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
           const nextCompleted = !h.completedToday;
           const nextStreak = nextCompleted ? h.streak + 1 : Math.max(0, h.streak - 1);
           const updated = { ...h, completedToday: nextCompleted, streak: nextStreak };
-          saveCustomHabit(updated);
+          saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, updated);
           return updated;
         }
         return h;
@@ -275,31 +238,50 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       await api.habits.toggleLog(habitId);
     } catch (err) {
-      console.error("[PlannerStore] Toggle habit API error (handled silently):", err);
+      console.error("[PlannerStore] Toggle habit error:", err);
     }
   };
 
   const deleteHabit = async (habitId: string) => {
-    // 1. Instantly record deletion in localStorage so reloads never bring it back
-    addDeletedHabitId(habitId);
-
-    // 2. Remove from custom habits if present
-    try {
-      const currentCustom = getCustomHabits().filter((h) => h.id !== habitId);
-      localStorage.setItem(CUSTOM_HABITS_KEY, JSON.stringify(currentCustom));
-    } catch {
-      // ignore
-    }
-
-    // 3. Update React UI state
+    addDeletedId(DELETED_HABITS_KEY, habitId);
     setHabits((prev) => prev.filter((h) => h.id !== habitId));
-
-    // 4. Send API delete call
     try {
       await api.habits.delete(habitId);
     } catch (err) {
-      console.error("[PlannerStore] Delete habit API error (handled silently):", err);
+      console.error("[PlannerStore] Delete habit error:", err);
     }
+  };
+
+  // ─── Note Mutations ───────────────────────────────────────────────────────
+  const createNote = async (content: string, contextId?: string) => {
+    const created = await api.notes.create({ content, contextId });
+    saveCustomItem<NoteItem>(CUSTOM_NOTES_KEY, created);
+    await refetchAll();
+    return created;
+  };
+
+  const deleteNote = async (noteId: string) => {
+    addDeletedId(DELETED_NOTES_KEY, noteId);
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    try {
+      await api.notes.delete(noteId);
+    } catch (err) {
+      console.error("[PlannerStore] Delete note error:", err);
+    }
+  };
+
+  const convertNoteToTask = async (noteId: string, taskData: Parameters<typeof api.tasks.create>[0]) => {
+    // 1. Create the new task
+    await createTask(taskData);
+    // 2. Delete the converted note
+    await deleteNote(noteId);
+  };
+
+  const convertNoteToHabit = async (noteId: string, habitName: string) => {
+    // 1. Create the new habit
+    await createHabit(habitName);
+    // 2. Delete the converted note
+    await deleteNote(noteId);
   };
 
   // ─── Context Mutations ────────────────────────────────────────────────────
@@ -327,6 +309,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     const activeHabits = habits.length;
     const maxStreak = habits.length > 0 ? Math.max(...habits.map((h) => h.streak || 0)) : 0;
+    const pendingNotes = notes.length;
 
     return {
       totalTasks,
@@ -334,8 +317,9 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       completionRate,
       activeHabits,
       maxStreak,
+      pendingNotes,
     };
-  }, [tasks, habits]);
+  }, [tasks, habits, notes]);
 
   return (
     <PlannerStoreContext.Provider
@@ -343,6 +327,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         tasks,
         habits,
         contexts,
+        notes,
         activeContextId,
         setActiveContextId,
         isLoading,
@@ -353,6 +338,10 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         createHabit,
         toggleHabit,
         deleteHabit,
+        createNote,
+        deleteNote,
+        convertNoteToTask,
+        convertNoteToHabit,
         createContext,
         deleteContext,
         stats,

@@ -2,7 +2,7 @@
  * Unified Typed API Client Service
  * 
  * Centralizes all HTTP requests to backend API endpoints.
- * Provides type-safe methods for Contexts, Tasks, and Habits.
+ * Provides type-safe methods for Contexts, Tasks, Habits, and Quick Notes.
  */
 
 import { TaskItem } from "@/components/TaskCard";
@@ -20,6 +20,14 @@ export interface HabitItem {
   streak: number;
   completedToday?: boolean;
   logs: { id: string; date: string; completed: boolean }[];
+}
+
+export interface NoteItem {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  contextId?: string | null;
 }
 
 class ApiService {
@@ -126,6 +134,28 @@ class ApiService {
 
     delete: (id: string): Promise<{ success: boolean }> =>
       this.fetchJson(`/api/habits/${id}`, {
+        method: "DELETE",
+      }),
+  };
+
+  // ─── Notes API ─────────────────────────────────────────────────────────────
+  notes = {
+    getAll: (): Promise<NoteItem[]> => this.fetchJson("/api/notes"),
+
+    create: (data: { content: string; contextId?: string }): Promise<NoteItem> =>
+      this.fetchJson("/api/notes", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: { content?: string; contextId?: string }): Promise<NoteItem> =>
+      this.fetchJson(`/api/notes/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: string): Promise<{ success: boolean }> =>
+      this.fetchJson(`/api/notes/${id}`, {
         method: "DELETE",
       }),
   };
