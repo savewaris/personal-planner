@@ -80,47 +80,45 @@ export default function DashboardHome() {
         </div>
       </motion.div>
 
-      {/* Top Banner Row (4-4-4 Split): Mini Calendar | Tasks In Progress | Quick Notes Inbox */}
+      {/* High-Density 2-Column Dashboard Grid (Left: 8 Cols | Right: 4 Cols) */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
       >
-        {/* Left: Mini Calendar */}
-        <div className="lg:col-span-4">
-          <DashboardMiniCalendar
-            tasks={tasks}
-            onOpenAddModalWithDate={() => setIsTaskModalOpen(true)}
-          />
+        {/* Left Column (8 Cols): Mini Calendar + Tasks In Progress Banner (Top) & Daily Habits (Bottom) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Top Banner Row (Mini Calendar + Tasks In Progress) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+            <div className="md:col-span-5">
+              <DashboardMiniCalendar
+                tasks={tasks}
+                onOpenAddModalWithDate={() => setIsTaskModalOpen(true)}
+              />
+            </div>
+            <div className="md:col-span-7">
+              <TasksInProgressCard
+                tasks={tasks}
+                onStatusChange={updateTaskStatus}
+                onOpenAddModal={() => setIsTaskModalOpen(true)}
+              />
+            </div>
+          </div>
+
+          {/* Daily Habits Tracker & Checklist */}
+          <div>
+            <HabitTracker
+              isModalOpenExternal={isHabitModalOpen}
+              onCloseModalExternal={() => setIsHabitModalOpen(false)}
+            />
+          </div>
         </div>
 
-        {/* Center: Tasks In Progress */}
-        <div className="lg:col-span-4">
-          <TasksInProgressCard
-            tasks={tasks}
-            onStatusChange={updateTaskStatus}
-            onOpenAddModal={() => setIsTaskModalOpen(true)}
-          />
-        </div>
-
-        {/* Right Side of Tasks In Progress: Quick Notes Inbox */}
-        <div className="lg:col-span-4">
+        {/* Right Sidebar Column (4 Cols): Pinned Quick Notes Inbox */}
+        <div className="lg:col-span-4 sticky top-20 space-y-6">
           <QuickNotesInbox />
         </div>
-      </motion.div>
-
-      {/* Lower Section: Full-Width Daily Habits Hub & Checklist */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="w-full"
-      >
-        <HabitTracker
-          isModalOpenExternal={isHabitModalOpen}
-          onCloseModalExternal={() => setIsHabitModalOpen(false)}
-        />
       </motion.div>
 
       {/* Standalone Drawers for Dashboard actions */}
