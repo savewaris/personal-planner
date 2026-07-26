@@ -2,43 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { LOCAL_USER_ID, getOrCreateLocalUser } from "@/lib/user";
 import { calculateStreak, formatDateKey } from "@/lib/streak";
 import { withErrorHandler, successResponse, errorResponse } from "@/lib/api-response";
-
-const FALLBACK_HABITS = [
-  {
-    id: "habit-1",
-    name: "Morning Meditation (10 mins)",
-    streak: 1,
-    completedToday: true,
-    userId: LOCAL_USER_ID,
-    logs: [{ id: "log-1", date: formatDateKey(new Date()), completed: true }],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "habit-2",
-    name: "Read 15 Pages of a Book",
-    streak: 1,
-    completedToday: true,
-    userId: LOCAL_USER_ID,
-    logs: [{ id: "log-2", date: formatDateKey(new Date()), completed: true }],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "habit-3",
-    name: "Workout",
-    streak: 0,
-    completedToday: false,
-    userId: LOCAL_USER_ID,
-    logs: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+import { serverDb } from "@/lib/db-store";
 
 export const GET = withErrorHandler(async () => {
   if (!process.env.DATABASE_URL) {
-    return successResponse(FALLBACK_HABITS);
+    return successResponse(serverDb.getHabits());
   }
 
   try {
@@ -69,10 +37,10 @@ export const GET = withErrorHandler(async () => {
       };
     });
 
-    return successResponse(result.length > 0 ? result : FALLBACK_HABITS);
+    return successResponse(result);
   } catch (error) {
     console.warn("[Prisma GET /api/habits fallback]:", error);
-    return successResponse(FALLBACK_HABITS);
+    return successResponse(serverDb.getHabits());
   }
 });
 
@@ -84,17 +52,20 @@ export const POST = withErrorHandler(async (request: Request) => {
     return errorResponse("Habit name is required", 400);
   }
 
+  const newHabit = {
+    id: `habit-${Date.now()}`,
+    name: name.trim(),
+    streak: 0,
+    completedToday: false,
+    userId: LOCAL_USER_ID,
+    logs: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  serverDb.addHabit(newHabit);
+
   if (!process.env.DATABASE_URL) {
-    const newHabit = {
-      id: `habit-${Date.now()}`,
-      name: name.trim(),
-      streak: 0,
-      completedToday: false,
-      userId: LOCAL_USER_ID,
-      logs: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
     return successResponse(newHabit, 201);
   }
 
@@ -121,16 +92,6 @@ export const POST = withErrorHandler(async (request: Request) => {
       201
     );
   } catch (error) {
-    const newHabit = {
-      id: `habit-${Date.now()}`,
-      name: name.trim(),
-      streak: 0,
-      completedToday: false,
-      userId: LOCAL_USER_ID,
-      logs: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
     return successResponse(newHabit, 201);
   }
 });

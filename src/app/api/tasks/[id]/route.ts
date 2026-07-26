@@ -1,18 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { LOCAL_USER_ID } from "@/lib/user";
+import { serverDb } from "@/lib/db-store";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+
+  serverDb.updateTask(id, body);
+
+  if (!process.env.DATABASE_URL) {
+    return Response.json({ id, ...body, updatedAt: new Date().toISOString() });
+  }
+
   try {
-    const { id } = await params;
-    const body = await request.json();
-
-    if (!process.env.DATABASE_URL) {
-      return Response.json({ id, ...body, updatedAt: new Date().toISOString() });
-    }
-
     const existing = await prisma.task.findUnique({
       where: { id },
       include: { context: true },
@@ -41,8 +44,6 @@ export async function PATCH(
 
     return Response.json(updatedTask);
   } catch (error) {
-    const { id } = await params;
-    const body = await request.json().catch(() => ({}));
     return Response.json({ id, ...body, success: true });
   }
 }
@@ -51,23 +52,25 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
+  // Always mark task deleted in server memory store across all devices
+  serverDb.deleteTask(id);
+
+  if (!process.env.DATABASE_URL) {
+    return Response.json({ success: true });
+  }
+
   try {
-    const { id } = await params;
-
-    if (!process.env.DATABASE_URL) {
-      return Response.json({ success: true });
-    }
-
     const existing = await prisma.task.findUnique({
       where: { id },
       include: { context: true },
     });
 
-    if (!existing) {
-      return Response.json({ success: true });
+    if (existing) {
+      await prisma.task.delete({ where: { id } });
     }
 
-    await prisma.task.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ success: true });

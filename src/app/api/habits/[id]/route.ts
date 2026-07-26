@@ -1,17 +1,20 @@
 import { prisma } from "@/lib/prisma";
+import { serverDb } from "@/lib/db-store";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+
+  serverDb.updateHabit(id, body);
+
+  if (!process.env.DATABASE_URL) {
+    return Response.json({ id, ...body, updatedAt: new Date().toISOString() });
+  }
+
   try {
-    const { id } = await params;
-    const body = await request.json();
-
-    if (!process.env.DATABASE_URL) {
-      return Response.json({ id, ...body, updatedAt: new Date().toISOString() });
-    }
-
     const existing = await prisma.habit.findUnique({ where: { id } });
     if (!existing) {
       return Response.json({ id, ...body, updatedAt: new Date().toISOString() });
@@ -25,7 +28,6 @@ export async function PATCH(
 
     return Response.json(updated);
   } catch (error) {
-    const { id } = await params;
     return Response.json({ id, success: true });
   }
 }
@@ -34,19 +36,19 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
+  serverDb.deleteHabit(id);
+
+  if (!process.env.DATABASE_URL) {
+    return Response.json({ success: true });
+  }
+
   try {
-    const { id } = await params;
-
-    if (!process.env.DATABASE_URL) {
-      return Response.json({ success: true });
-    }
-
     const existing = await prisma.habit.findUnique({ where: { id } });
-    if (!existing) {
-      return Response.json({ success: true });
+    if (existing) {
+      await prisma.habit.delete({ where: { id } });
     }
-
-    await prisma.habit.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (error) {
     return Response.json({ success: true });
