@@ -1,13 +1,12 @@
-// ─── Prisma Schema — Personal Mode (SQLite) ──────────────────────────────────
-// Simplified schema for single-user Personal Mode using local SQLite (dev.db).
-// Added Task status/priority/tags/subtasks/dueDate, HabitLog date string unique constraint, and Note model.
+// ─── Prisma Schema — Personal Mode (Neon PostgreSQL) ─────────────────────────
+// Multi-device cloud sync via Neon Serverless PostgreSQL.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
