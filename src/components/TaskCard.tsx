@@ -80,7 +80,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       transition={{ duration: 0.2 }}
       className="glass-card p-4 space-y-3 border border-white/10 hover:border-indigo-500/40 relative group"
     >
-      {/* Top Meta: Context Badge + Priority Pill + Delete Button */}
+      {/* Top Meta: Context Badge + Priority Pill + Touch-friendly Delete Button */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           {task.context && (
@@ -107,11 +107,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           )}
         </div>
 
-        {/* Delete Button */}
+        {/* Delete Button — Always visible on mobile/touch, hover-reveal on desktop */}
         <button
           type="button"
           onClick={() => onDelete(task.id)}
-          className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-rose-400 transition-all cursor-pointer rounded-lg hover:bg-white/5"
+          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-rose-400 active:text-rose-400 transition-all cursor-pointer rounded-lg bg-white/5 sm:bg-transparent hover:bg-white/10 shrink-0"
           title="Delete task"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

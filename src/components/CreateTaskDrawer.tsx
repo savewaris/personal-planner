@@ -76,39 +76,41 @@ export const CreateTaskDrawer: React.FC<CreateTaskDrawerProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          {/* 40% Translucent Backdrop */}
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer z-40"
           />
 
-          {/* Slide-over Drawer on Right Side */}
+          {/* Slide-over Drawer on Right Side with Touch-Optimized Sticky Layout */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 350, damping: 32 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-zinc-900/95 backdrop-blur-2xl border-l border-white/10 p-6 flex flex-col justify-between shadow-2xl overflow-y-auto"
+            className="relative z-50 w-full max-w-md bg-zinc-900/95 backdrop-blur-2xl border-l border-white/10 flex flex-col justify-between shadow-2xl h-full max-h-screen overflow-hidden"
           >
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                <div>
-                  <h3 className="text-lg font-bold text-white">Create New Task</h3>
-                  <p className="text-xs text-zinc-400">Add task details and assign to workspace</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  ✕
-                </button>
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-white/10 shrink-0 bg-zinc-900/90">
+              <div>
+                <h3 className="text-base font-bold text-white">Create New Task</h3>
+                <p className="text-xs text-zinc-400">Add task details and assign context</p>
               </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 text-zinc-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
 
+            {/* Scrollable Form Body */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-4">
               <form onSubmit={handleCreateTask} id="create-task-drawer-form" className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-zinc-300 mb-1">Task Title *</label>
@@ -188,8 +190,8 @@ export const CreateTaskDrawer: React.FC<CreateTaskDrawerProps> = ({
               </form>
             </div>
 
-            {/* Drawer Footer Buttons */}
-            <div className="pt-6 border-t border-white/10 flex justify-end gap-3">
+            {/* Sticky Mobile-Friendly Drawer Action Footer */}
+            <div className="p-4 border-t border-white/10 bg-zinc-900/95 flex items-center justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={onClose}
@@ -201,7 +203,7 @@ export const CreateTaskDrawer: React.FC<CreateTaskDrawerProps> = ({
                 type="submit"
                 form="create-task-drawer-form"
                 disabled={isSubmitting}
-                className="btn-premium px-6 py-2.5 text-xs font-semibold rounded-xl cursor-pointer disabled:opacity-50"
+                className="btn-premium px-6 py-2.5 text-xs font-semibold rounded-xl cursor-pointer disabled:opacity-50 shadow-lg shadow-indigo-500/20"
               >
                 {isSubmitting ? "Creating..." : "Create Task"}
               </button>
