@@ -1,24 +1,24 @@
 import { prisma } from "@/lib/prisma";
-import { LOCAL_USER_ID, getOrCreateLocalUser } from "@/lib/user";
+import { getAuthenticatedUserId, seedUserDefaults } from "@/lib/user";
 import { withErrorHandler, successResponse, errorResponse } from "@/lib/api-response";
 import { serverDb } from "@/lib/db-store";
 
 export const GET = withErrorHandler(async (request: Request) => {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return errorResponse("Unauthorized", 401);
+
   const url = new URL(request.url);
   const contextId = url.searchParams.get("contextId") || undefined;
   const status = url.searchParams.get("status") || undefined;
   const search = url.searchParams.get("search") || undefined;
 
-  if (!process.env.DATABASE_URL) {
-    return successResponse(serverDb.getTasks(contextId, status, search));
-  }
-
   try {
-    await getOrCreateLocalUser();
+    // Ensure user has default data on first request
+    await seedUserDefaults(userId);
 
     const where: any = {
       context: {
-        userId: LOCAL_USER_ID,
+        userId,
       },
     };
 
@@ -42,12 +42,15 @@ export const GET = withErrorHandler(async (request: Request) => {
 
     return successResponse(tasks);
   } catch (error) {
-    console.warn("[Prisma GET /api/tasks fallback]:", error);
+    console.warn("[GET /api/tasks] Error:", error);
     return successResponse(serverDb.getTasks(contextId, status, search));
   }
 });
 
 export const POST = withErrorHandler(async (request: Request) => {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return errorResponse("Unauthorized", 401);
+
   const body = await request.json();
   const {
     title,
@@ -67,29 +70,21 @@ export const POST = withErrorHandler(async (request: Request) => {
   const tagsString = typeof tags === "object" ? JSON.stringify(tags) : tags;
   const subtasksString = typeof subtasks === "object" ? JSON.stringify(subtasks) : subtasks;
 
-  const newTask = {
-    id: `task-${Date.now()}`,
-    title: title.trim(),
-    description: description ? description.trim() : null,
-    completed: status === "DONE",
-    status: status || "TODO",
-    priority: priority || "MEDIUM",
-    tags: tagsString || null,
-    subtasks: subtasksString || null,
-    contextId: contextId || "ctx-personal",
-    projectId: projectId || null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  serverDb.addTask(newTask);
-
-  if (!process.env.DATABASE_URL) {
-    return successResponse(newTask, 201);
-  }
-
   try {
-    await getOrCreateLocalUser();
+    // Ensure user has default contexts before creating a task
+    await seedUserDefaults(userId);
+
+    // If no contextId provided, use user's first context
+    let resolvedContextId = contextId;
+    if (!resolvedContextId) {
+      const firstContext = await prisma.context.findFirst({ where: { userId } });
+      resolvedContextId = firstContext?.id;
+    }
+
+    if (!resolvedContextId) {
+      return errorResponse("No context available. Please create a workspace context first.", 400);
+    }
+
     const task = await prisma.task.create({
       data: {
         title: title.trim(),
@@ -99,7 +94,7 @@ export const POST = withErrorHandler(async (request: Request) => {
         priority: priority || "MEDIUM",
         tags: tagsString || null,
         subtasks: subtasksString || null,
-        contextId: contextId || "ctx-personal",
+        contextId: resolvedContextId,
         projectId: projectId || null,
       },
       include: {
@@ -109,6 +104,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     });
     return successResponse(task, 201);
   } catch (error) {
-    return successResponse(newTask, 201);
+    console.warn("[POST /api/tasks] Error:", error);
+    return errorResponse("Failed to create task", 500);
   }
 });

@@ -1,19 +1,15 @@
 import { prisma } from "@/lib/prisma";
-import { LOCAL_USER_ID } from "@/lib/user";
-import { serverDb } from "@/lib/db-store";
+import { getAuthenticatedUserId } from "@/lib/user";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
-
-  serverDb.updateTask(id, body);
-
-  if (!process.env.DATABASE_URL) {
-    return Response.json({ id, ...body, updatedAt: new Date().toISOString() });
-  }
 
   try {
     const existing = await prisma.task.findUnique({
@@ -21,8 +17,9 @@ export async function PATCH(
       include: { context: true },
     });
 
-    if (!existing || existing.context.userId !== LOCAL_USER_ID) {
-      return Response.json({ id, ...body, updatedAt: new Date().toISOString() });
+    // Verify ownership: task's context must belong to the authenticated user
+    if (!existing || existing.context.userId !== userId) {
+      return Response.json({ error: "Task not found" }, { status: 404 });
     }
 
     const updateData: any = {};
@@ -44,7 +41,7 @@ export async function PATCH(
 
     return Response.json(updatedTask);
   } catch (error) {
-    return Response.json({ id, ...body, success: true });
+    return Response.json({ error: "Failed to update task" }, { status: 500 });
   }
 }
 
@@ -52,14 +49,10 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
-
-  // Always mark task deleted in server memory store across all devices
-  serverDb.deleteTask(id);
-
-  if (!process.env.DATABASE_URL) {
-    return Response.json({ success: true });
-  }
 
   try {
     const existing = await prisma.task.findUnique({
@@ -67,12 +60,14 @@ export async function DELETE(
       include: { context: true },
     });
 
-    if (existing) {
-      await prisma.task.delete({ where: { id } });
+    // Verify ownership before deletion
+    if (!existing || existing.context.userId !== userId) {
+      return Response.json({ error: "Task not found" }, { status: 404 });
     }
 
+    await prisma.task.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (error) {
-    return Response.json({ success: true });
+    return Response.json({ error: "Failed to delete task" }, { status: 500 });
   }
 }

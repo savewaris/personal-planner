@@ -1,11 +1,12 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
-import { api, HabitItem, WorkspaceContextItem, NoteItem } from "@/services/api";
+import { api, HabitItem, WorkspaceContextItem, NoteItem, RoutineItem } from "@/services/api";
 import { TaskItem } from "@/components/TaskCard";
 
 interface PlannerStoreContextType {
   tasks: TaskItem[];
+  routines: RoutineItem[];
   habits: HabitItem[];
   contexts: WorkspaceContextItem[];
   notes: NoteItem[];
@@ -18,6 +19,11 @@ interface PlannerStoreContextType {
   createTask: (data: Parameters<typeof api.tasks.create>[0]) => Promise<TaskItem>;
   updateTaskStatus: (taskId: string, newStatus: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+
+  // Routine Mutations
+  createRoutine: (data: { title: string; dayKey: string; tags?: string[] }) => Promise<RoutineItem>;
+  toggleRoutine: (routineId: string) => Promise<void>;
+  deleteRoutine: (routineId: string) => Promise<void>;
 
   // Habit Mutations
   createHabit: (name: string) => Promise<HabitItem>;
@@ -49,6 +55,7 @@ const PlannerStoreContext = createContext<PlannerStoreContextType | undefined>(u
 
 export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [routines, setRoutines] = useState<RoutineItem[]>([]);
   const [habits, setHabits] = useState<HabitItem[]>([]);
   const [contexts, setContexts] = useState<WorkspaceContextItem[]>([]);
   const [notes, setNotes] = useState<NoteItem[]>([]);
@@ -57,9 +64,11 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Local Storage Persistence Keys
   const DELETED_TASKS_KEY = "planner_deleted_task_ids";
+  const DELETED_ROUTINES_KEY = "planner_deleted_routine_ids";
   const DELETED_HABITS_KEY = "planner_deleted_habit_ids";
   const DELETED_NOTES_KEY = "planner_deleted_note_ids";
   const CUSTOM_TASKS_KEY = "planner_custom_tasks";
+  const CUSTOM_ROUTINES_KEY = "planner_custom_routines";
   const CUSTOM_HABITS_KEY = "planner_custom_habits";
   const CUSTOM_NOTES_KEY = "planner_custom_notes";
 
@@ -129,18 +138,21 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const refetchAll = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [tasksData, habitsData, contextsData, notesData] = await Promise.all([
-        api.tasks.getAll({ contextId: activeContextId || undefined }),
-        api.habits.getAll(),
-        api.contexts.getAll(),
-        api.notes.getAll(),
+      const [tasksData, routinesData, habitsData, contextsData, notesData] = await Promise.all([
+        api.tasks.getAll({ contextId: activeContextId || undefined }).catch(() => []),
+        api.routines.getAll().catch(() => []),
+        api.habits.getAll().catch(() => []),
+        api.contexts.getAll().catch(() => []),
+        api.notes.getAll().catch(() => []),
       ]);
 
       const deletedTaskIds = getDeletedIds(DELETED_TASKS_KEY);
+      const deletedRoutineIds = getDeletedIds(DELETED_ROUTINES_KEY);
       const deletedHabitIds = getDeletedIds(DELETED_HABITS_KEY);
       const deletedNoteIds = getDeletedIds(DELETED_NOTES_KEY);
 
       const customTasks = getCustomItems<TaskItem>(CUSTOM_TASKS_KEY);
+      const customRoutines = getCustomItems<RoutineItem>(CUSTOM_ROUTINES_KEY);
       const customHabits = getCustomItems<HabitItem>(CUSTOM_HABITS_KEY);
       const customNotes = getCustomItems<NoteItem>(CUSTOM_NOTES_KEY);
 
@@ -149,6 +161,12 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       tasksData.forEach((t) => combinedTasksMap.set(t.id, t));
       customTasks.forEach((t) => combinedTasksMap.set(t.id, t));
       const filteredTasks = Array.from(combinedTasksMap.values()).filter((t) => !deletedTaskIds.includes(t.id));
+
+      // Routines combine
+      const combinedRoutinesMap = new Map<string, RoutineItem>();
+      routinesData.forEach((r) => combinedRoutinesMap.set(r.id, r));
+      customRoutines.forEach((r) => combinedRoutinesMap.set(r.id, r));
+      const filteredRoutines = Array.from(combinedRoutinesMap.values()).filter((r) => !deletedRoutineIds.includes(r.id));
 
       // Habits combine
       const combinedHabitsMap = new Map<string, HabitItem>();
@@ -163,6 +181,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const filteredNotes = Array.from(combinedNotesMap.values()).filter((n) => !deletedNoteIds.includes(n.id));
 
       setTasks(filteredTasks);
+      setRoutines(filteredRoutines);
       setHabits(filteredHabits);
       setContexts(contextsData);
       setNotes(filteredNotes);
@@ -177,12 +196,34 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     refetchAll();
   }, [refetchAll]);
 
-  // ─── Task Mutations ───────────────────────────────────────────────────────
+  // ─── Instant 0ms Optimistic Task Mutations ─────────────────────────────────
   const createTask = async (data: Parameters<typeof api.tasks.create>[0]) => {
-    const created = await api.tasks.create(data);
-    saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, created);
-    await refetchAll();
-    return created;
+    const tempId = `temp-task-${Date.now()}`;
+    const tempTask: TaskItem = {
+      id: tempId,
+      title: data.title,
+      description: data.description,
+      status: data.status || "TODO",
+      priority: data.priority || "MEDIUM",
+      dueDate: data.dueDate,
+      tags: data.tags ? (typeof data.tags === "string" ? data.tags : JSON.stringify(data.tags)) : null,
+      contextId: data.contextId || activeContextId || "",
+      completed: false,
+    };
+
+    // Instant 0ms UI update
+    setTasks((prev) => [tempTask, ...prev]);
+    saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, tempTask);
+
+    try {
+      const created = await api.tasks.create(data);
+      setTasks((prev) => prev.map((t) => (t.id === tempId ? created : t)));
+      saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, created);
+      return created;
+    } catch (err) {
+      console.warn("[PlannerStore] Background task create synced via local mode");
+      return tempTask;
+    }
   };
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
@@ -213,12 +254,87 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // ─── Habit Mutations ──────────────────────────────────────────────────────
+  // ─── Instant 0ms Optimistic Routine Mutations ──────────────────────────────
+  const createRoutine = async (data: { title: string; dayKey: string; tags?: string[] }) => {
+    const tempId = `temp-routine-${Date.now()}`;
+    const tempRoutine: RoutineItem = {
+      id: tempId,
+      title: data.title,
+      dayKey: data.dayKey,
+      completed: false,
+      tags: data.tags ? JSON.stringify(data.tags) : null,
+    };
+
+    // Instant 0ms UI update
+    setRoutines((prev) => [tempRoutine, ...prev]);
+    saveCustomItem<RoutineItem>(CUSTOM_ROUTINES_KEY, tempRoutine);
+
+    try {
+      const created = await api.routines.create(data);
+      setRoutines((prev) => prev.map((r) => (r.id === tempId ? created : r)));
+      saveCustomItem<RoutineItem>(CUSTOM_ROUTINES_KEY, created);
+      return created;
+    } catch (err) {
+      console.warn("[PlannerStore] Background routine create synced via local mode");
+      return tempRoutine;
+    }
+  };
+
+  const toggleRoutine = async (routineId: string) => {
+    setRoutines((prev) =>
+      prev.map((r) => {
+        if (r.id === routineId) {
+          const updated = { ...r, completed: !r.completed };
+          saveCustomItem<RoutineItem>(CUSTOM_ROUTINES_KEY, updated);
+          return updated;
+        }
+        return r;
+      })
+    );
+    try {
+      const routine = routines.find((r) => r.id === routineId);
+      if (routine) {
+        await api.routines.update(routineId, { completed: !routine.completed });
+      }
+    } catch (err) {
+      console.error("[PlannerStore] Toggle routine error:", err);
+    }
+  };
+
+  const deleteRoutine = async (routineId: string) => {
+    addDeletedId(DELETED_ROUTINES_KEY, routineId);
+    setRoutines((prev) => prev.filter((r) => r.id !== routineId));
+    try {
+      await api.routines.delete(routineId);
+    } catch (err) {
+      console.error("[PlannerStore] Delete routine error:", err);
+    }
+  };
+
+  // ─── Instant 0ms Optimistic Habit Mutations ────────────────────────────────
   const createHabit = async (name: string) => {
-    const created = await api.habits.create({ name });
-    saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, created);
-    await refetchAll();
-    return created;
+    const tempId = `temp-habit-${Date.now()}`;
+    const tempHabit: HabitItem = {
+      id: tempId,
+      name,
+      streak: 0,
+      completedToday: false,
+      logs: [],
+    };
+
+    // Instant 0ms UI update
+    setHabits((prev) => [tempHabit, ...prev]);
+    saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, tempHabit);
+
+    try {
+      const created = await api.habits.create({ name });
+      setHabits((prev) => prev.map((h) => (h.id === tempId ? created : h)));
+      saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, created);
+      return created;
+    } catch (err) {
+      console.warn("[PlannerStore] Background habit create synced via local mode");
+      return tempHabit;
+    }
   };
 
   const toggleHabit = async (habitId: string) => {
@@ -271,16 +387,12 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const convertNoteToTask = async (noteId: string, taskData: Parameters<typeof api.tasks.create>[0]) => {
-    // 1. Create the new task
     await createTask(taskData);
-    // 2. Delete the converted note
     await deleteNote(noteId);
   };
 
   const convertNoteToHabit = async (noteId: string, habitName: string) => {
-    // 1. Create the new habit
     await createHabit(habitName);
-    // 2. Delete the converted note
     await deleteNote(noteId);
   };
 
@@ -325,6 +437,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     <PlannerStoreContext.Provider
       value={{
         tasks,
+        routines,
         habits,
         contexts,
         notes,
@@ -335,6 +448,9 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         createTask,
         updateTaskStatus,
         deleteTask,
+        createRoutine,
+        toggleRoutine,
+        deleteRoutine,
         createHabit,
         toggleHabit,
         deleteHabit,

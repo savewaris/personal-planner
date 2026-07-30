@@ -12,20 +12,27 @@ export async function PATCH(
   const body = await request.json().catch(() => ({}));
 
   try {
-    const existing = await prisma.habit.findUnique({ where: { id } });
+    const existing = await (prisma as any).routine.findUnique({
+      where: { id },
+    });
+
     if (!existing || existing.userId !== userId) {
-      return Response.json({ error: "Habit not found" }, { status: 404 });
+      return Response.json({ error: "Routine not found" }, { status: 404 });
     }
 
-    const updated = await prisma.habit.update({
+    const updateData: any = {};
+    if (body.title !== undefined) updateData.title = body.title.trim();
+    if (body.dayKey !== undefined) updateData.dayKey = body.dayKey.toUpperCase().trim();
+    if (body.completed !== undefined) updateData.completed = Boolean(body.completed);
+
+    const updated = await (prisma as any).routine.update({
       where: { id },
-      data: { name: body.name ? body.name.trim() : existing.name },
-      include: { logs: true },
+      data: updateData,
     });
 
     return Response.json(updated);
   } catch (error) {
-    return Response.json({ error: "Failed to update habit" }, { status: 500 });
+    return Response.json({ error: "Failed to update routine" }, { status: 500 });
   }
 }
 
@@ -39,14 +46,17 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const existing = await prisma.habit.findUnique({ where: { id } });
+    const existing = await (prisma as any).routine.findUnique({
+      where: { id },
+    });
+
     if (!existing || existing.userId !== userId) {
-      return Response.json({ error: "Habit not found" }, { status: 404 });
+      return Response.json({ error: "Routine not found" }, { status: 404 });
     }
 
-    await prisma.habit.delete({ where: { id } });
+    await (prisma as any).routine.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (error) {
-    return Response.json({ error: "Failed to delete habit" }, { status: 500 });
+    return Response.json({ error: "Failed to delete routine" }, { status: 500 });
   }
 }

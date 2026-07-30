@@ -1,19 +1,18 @@
 import { prisma } from "@/lib/prisma";
-import { LOCAL_USER_ID, getOrCreateLocalUser } from "@/lib/user";
+import { getAuthenticatedUserId, seedUserDefaults } from "@/lib/user";
 import { calculateStreak, formatDateKey } from "@/lib/streak";
 import { withErrorHandler, successResponse, errorResponse } from "@/lib/api-response";
 import { serverDb } from "@/lib/db-store";
 
 export const GET = withErrorHandler(async () => {
-  if (!process.env.DATABASE_URL) {
-    return successResponse(serverDb.getHabits());
-  }
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return errorResponse("Unauthorized", 401);
 
   try {
-    await getOrCreateLocalUser();
+    await seedUserDefaults(userId);
 
     const habits = await prisma.habit.findMany({
-      where: { userId: LOCAL_USER_ID },
+      where: { userId },
       include: {
         logs: {
           orderBy: { date: "desc" },
@@ -39,12 +38,15 @@ export const GET = withErrorHandler(async () => {
 
     return successResponse(result);
   } catch (error) {
-    console.warn("[Prisma GET /api/habits fallback]:", error);
+    console.warn("[GET /api/habits] Error:", error);
     return successResponse(serverDb.getHabits());
   }
 });
 
 export const POST = withErrorHandler(async (request: Request) => {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return errorResponse("Unauthorized", 401);
+
   const body = await request.json();
   const { name } = body;
 
@@ -52,31 +54,12 @@ export const POST = withErrorHandler(async (request: Request) => {
     return errorResponse("Habit name is required", 400);
   }
 
-  const newHabit = {
-    id: `habit-${Date.now()}`,
-    name: name.trim(),
-    streak: 0,
-    completedToday: false,
-    userId: LOCAL_USER_ID,
-    logs: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  serverDb.addHabit(newHabit);
-
-  if (!process.env.DATABASE_URL) {
-    return successResponse(newHabit, 201);
-  }
-
   try {
-    await getOrCreateLocalUser();
-
     const habit = await prisma.habit.create({
       data: {
         name: name.trim(),
         streak: 0,
-        userId: LOCAL_USER_ID,
+        userId,
       },
       include: {
         logs: true,
@@ -92,6 +75,6 @@ export const POST = withErrorHandler(async (request: Request) => {
       201
     );
   } catch (error) {
-    return successResponse(newHabit, 201);
+    return errorResponse("Failed to create habit", 500);
   }
 });

@@ -2,7 +2,7 @@
  * Unified Typed API Client Service
  * 
  * Centralizes all HTTP requests to backend API endpoints.
- * Provides type-safe methods for Contexts, Tasks, Habits, and Quick Notes.
+ * Provides type-safe methods for Contexts, Tasks, Routines, Habits, and Quick Notes.
  */
 
 import { TaskItem } from "@/components/TaskCard";
@@ -11,6 +11,17 @@ export interface WorkspaceContextItem {
   id: string;
   name: string;
   color?: string | null;
+  userId?: string;
+}
+
+export interface RoutineItem {
+  id: string;
+  title: string;
+  dayKey: string; // MON | TUE | WED | THU | FRI | SAT | SUN
+  completed: boolean;
+  tags?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   userId?: string;
 }
 
@@ -85,7 +96,7 @@ class ApiService {
     create: (data: {
       title: string;
       description?: string;
-      contextId: string;
+      contextId?: string;
       projectId?: string;
       status?: string;
       priority?: string;
@@ -106,6 +117,32 @@ class ApiService {
 
     delete: (id: string): Promise<{ success: boolean }> =>
       this.fetchJson(`/api/tasks/${id}`, {
+        method: "DELETE",
+      }),
+  };
+
+  // ─── Routine API ──────────────────────────────────────────────────────────
+  routines = {
+    getAll: (params?: { dayKey?: string }): Promise<RoutineItem[]> => {
+      let url = "/api/routines";
+      if (params?.dayKey) url += `?dayKey=${params.dayKey}`;
+      return this.fetchJson(url);
+    },
+
+    create: (data: { title: string; dayKey: string; tags?: string[] }): Promise<RoutineItem> =>
+      this.fetchJson("/api/routines", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: Partial<RoutineItem>): Promise<RoutineItem> =>
+      this.fetchJson(`/api/routines/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: string): Promise<{ success: boolean }> =>
+      this.fetchJson(`/api/routines/${id}`, {
         method: "DELETE",
       }),
   };

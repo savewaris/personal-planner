@@ -1,5 +1,5 @@
-// ─── Prisma Schema — Personal Mode (Neon PostgreSQL) ─────────────────────────
-// Multi-device cloud sync via Neon Serverless PostgreSQL.
+// ─── Prisma Schema — Multi-User Mode (Neon PostgreSQL + NextAuth) ────────────
+// Google OAuth authentication with per-user data isolation.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,15 +10,62 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── NextAuth.js Models ─────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 // ─── User ───────────────────────────────────────────────────────────────────
 model User {
-  id        String   @id
-  name      String?
-  email     String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
+  accounts Account[]
+  sessions Session[]
   contexts Context[]
+  tasks    Task[]
+  routines Routine[]
   habits   Habit[]
   notes    Note[]
 }
@@ -58,7 +105,7 @@ model Project {
   @@index([contextId])
 }
 
-// ─── Task ───────────────────────────────────────────────────────────────────
+// ─── Task (One-Off Quick To-Do) ──────────────────────────────────────────────
 model Task {
   id          String   @id @default(uuid())
   title       String
@@ -72,15 +119,36 @@ model Task {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   contextId String
   context   Context @relation(fields: [contextId], references: [id], onDelete: Cascade)
 
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
   @@index([contextId])
   @@index([projectId])
   @@index([dueDate])
+}
+
+// ─── Routine (Weekly Recurring Routine MON–SUN) ──────────────────────────────
+model Routine {
+  id        String   @id @default(uuid())
+  title     String
+  dayKey    String   // MON | TUE | WED | THU | FRI | SAT | SUN
+  completed Boolean  @default(false)
+  tags      String?  // JSON array of tag strings
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dayKey])
 }
 
 // ─── Habit ──────────────────────────────────────────────────────────────────

@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Sidebar } from "@/components/Sidebar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,9 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Planner — Personal Productivity Suite",
-  description:
-    "Centralize your life into distinct workspace contexts, manage tasks with Dual-View Kanban & List, and build daily habits.",
+  title: "Planner — Quick To-Do App",
+  description: "Ultra-fast personal to-do list with chat-style task creation.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -22,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2d2d35",
+  themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -42,11 +40,8 @@ export default function RootLayout({
             <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="fixed bottom-0 right-1/4 w-[450px] h-[450px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-            {/* Sidebar Navigation */}
-            <Sidebar />
-
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0 relative z-10">
+            {/* Main Content Area — Full Screen */}
+            <div className="flex-1 flex flex-col min-w-0 relative z-10">
               {children}
             </div>
           </div>

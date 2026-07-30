@@ -11,8 +11,7 @@ export interface ProvidersProps {
 /**
  * Global App Providers
  * 
- * Encloses the application with ContextSwitcherProvider and PlannerStoreProvider
- * for centralized reactive data store management.
+ * Encloses the app with ContextSwitcherProvider and PlannerStoreProvider.
  */
 export function Providers({ children }: ProvidersProps) {
   return (

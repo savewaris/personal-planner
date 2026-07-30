@@ -1,32 +1,30 @@
 import { prisma } from "@/lib/prisma";
-import { LOCAL_USER_ID, getOrCreateLocalUser } from "@/lib/user";
+import { getAuthenticatedUserId, seedUserDefaults } from "@/lib/user";
 import { withErrorHandler, successResponse, errorResponse } from "@/lib/api-response";
 
-const FALLBACK_CONTEXTS = [
-  { id: "ctx-personal", name: "Personal", color: "blue", userId: LOCAL_USER_ID, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "ctx-work", name: "Work", color: "emerald", userId: LOCAL_USER_ID, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "ctx-freelance", name: "Freelance", color: "purple", userId: LOCAL_USER_ID, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-];
-
 export const GET = withErrorHandler(async () => {
-  if (!process.env.DATABASE_URL) {
-    return successResponse(FALLBACK_CONTEXTS);
-  }
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return errorResponse("Unauthorized", 401);
 
   try {
-    await getOrCreateLocalUser();
+    // Ensure user has default contexts on first request
+    await seedUserDefaults(userId);
+
     const contexts = await prisma.context.findMany({
-      where: { userId: LOCAL_USER_ID },
+      where: { userId },
       orderBy: { createdAt: "asc" },
     });
-    return successResponse(contexts.length > 0 ? contexts : FALLBACK_CONTEXTS);
+    return successResponse(contexts);
   } catch (error) {
-    console.warn("[Prisma GET /api/contexts fallback]:", error);
-    return successResponse(FALLBACK_CONTEXTS);
+    console.warn("[GET /api/contexts] Error:", error);
+    return errorResponse("Failed to load contexts", 500);
   }
 });
 
 export const POST = withErrorHandler(async (request: Request) => {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return errorResponse("Unauthorized", 401);
+
   const body = await request.json();
   const { name, color } = body;
 
@@ -34,37 +32,16 @@ export const POST = withErrorHandler(async (request: Request) => {
     return errorResponse("Context name is required", 400);
   }
 
-  if (!process.env.DATABASE_URL) {
-    const newContext = {
-      id: `ctx-${Date.now()}`,
-      name: name.trim(),
-      color: color || "blue",
-      userId: LOCAL_USER_ID,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    return successResponse(newContext, 201);
-  }
-
   try {
-    await getOrCreateLocalUser();
     const context = await prisma.context.create({
       data: {
         name: name.trim(),
         color: color || "blue",
-        userId: LOCAL_USER_ID,
+        userId,
       },
     });
     return successResponse(context, 201);
   } catch (error) {
-    const fallbackContext = {
-      id: `ctx-${Date.now()}`,
-      name: name.trim(),
-      color: color || "blue",
-      userId: LOCAL_USER_ID,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    return successResponse(fallbackContext, 201);
+    return errorResponse("Failed to create context", 500);
   }
 });
