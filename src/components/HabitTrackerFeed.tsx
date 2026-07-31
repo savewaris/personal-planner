@@ -192,15 +192,15 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
       <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5">
+            <h2 className="text-base font-extrabold text-white tracking-tight flex items-center gap-1.5">
               <span>Habit Tracker</span>
               <span className="text-amber-400">🔥</span>
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
               Database: Habit
             </span>
           </div>
-          <p className="text-xs text-zinc-400 font-medium">
+          <p className="text-sm text-zinc-400 font-medium">
             Track daily streaks and habits
           </p>
         </div>
@@ -511,14 +511,14 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
                           }}
                           onBlur={() => saveEditing(habit.id)}
                           autoFocus
-                          className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
+                          className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-sm text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
                         />
                       ) : (
                         /* Clickable Habit Name to Edit Inline */
                         <span
                           onClick={() => startEditing(habit)}
                           title="Click to edit habit name inline"
-                          className={`text-xs font-medium transition-all truncate cursor-pointer hover:text-amber-300 ${
+                          className={`text-sm font-medium transition-all truncate cursor-pointer hover:text-amber-300 ${
                             isDone
                               ? "line-through text-zinc-400 font-normal"
                               : "text-zinc-100"
@@ -530,7 +530,7 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
 
                       {/* Streak Badge */}
                       {!isEditingThis && (
-                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0 flex items-center gap-1">
+                        <span className="px-1.5 py-0.2 rounded-full text-[11px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0 flex items-center gap-1">
                           <span>🔥</span> {habit.streak} d
                         </span>
                       )}

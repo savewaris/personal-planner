@@ -151,14 +151,14 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
       <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-extrabold text-white tracking-tight">
+            <h2 className="text-base font-extrabold text-white tracking-tight">
               Weekly Routines
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
               Database: Routine
             </span>
           </div>
-          <p className="text-xs text-zinc-400 font-medium">
+          <p className="text-sm text-zinc-400 font-medium">
             Select a day to view or add daily routines
           </p>
         </div>
@@ -292,14 +292,14 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                               }}
                               autoFocus
                               placeholder="Edit routine title..."
-                              className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
+                              className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-sm text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
                             />
                           ) : (
                             /* Clickable Routine Title to Edit Inline */
                             <span
                               onClick={() => startEditing(routine)}
                               title="Click to edit routine title inline"
-                              className={`text-xs font-medium truncate cursor-pointer hover:text-amber-300 ${
+                              className={`text-sm font-medium truncate cursor-pointer hover:text-amber-300 ${
                                 isDone ? "line-through text-zinc-500" : "text-zinc-200"
                               }`}
                             >
@@ -309,14 +309,14 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
 
                           {!isEditingThis && (
                             <>
-                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                              <span className="px-1.5 py-0.2 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
                                 {routine.dayKey}
                               </span>
 
                               {rTags.map((tag) => {
                                 const style = getTagColorStyle(tag);
                                 return (
-                                  <span key={tag} className={`px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${style.bg} ${style.border} ${style.text} shrink-0`}>
+                                  <span key={tag} className={`px-1.5 py-0.2 rounded-full text-[11px] font-semibold border ${style.bg} ${style.border} ${style.text} shrink-0`}>
                                     #{tag}
                                   </span>
                                 );
