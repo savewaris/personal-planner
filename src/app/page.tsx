@@ -83,45 +83,6 @@ export default function DashboardPage() {
 
   return (
     <main className="flex-1 py-6 px-4 sm:px-6 lg:px-10 max-w-full mx-auto w-full space-y-5 pb-12">
-      {/* Level 1 Primary Focal Point Header: Title + Stats Badges */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 glass-card p-4.5 rounded-2xl border border-white/15 shadow-2xl bg-gradient-to-r from-zinc-950/90 via-zinc-900/80 to-zinc-950/90 backdrop-blur-2xl"
-      >
-        {/* Left: Prominent Level 1 Dashboard Title (h1) */}
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 shrink-0">
-            <span className="bg-gradient-to-r from-indigo-300 via-purple-300 to-amber-300 bg-clip-text text-transparent">
-              Planner Dashboard
-            </span>
-            <span className="text-amber-400 drop-shadow-md">✨</span>
-          </h1>
-          <span className="px-3 py-1 rounded-full text-sm font-semibold bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 shrink-0 shadow-sm">
-            {todayFormatted}
-          </span>
-        </div>
-
-        {/* Right: High-Hierarchy Stats Badges (text-sm badges) */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-sm font-semibold text-indigo-300 shadow-sm">
-            <span className="text-zinc-400 font-medium">Tasks:</span>
-            <span className="text-white font-bold">{stats.totalTasks}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-sm font-semibold text-emerald-300 shadow-sm">
-            <span className="text-zinc-400 font-medium">Done:</span>
-            <span className="text-emerald-300 font-bold">{stats.completionRate}%</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-sm font-semibold text-amber-300 shadow-sm">
-            <span className="text-zinc-400 font-medium">Streak:</span>
-            <span className="text-amber-300 font-bold">🔥 {stats.maxStreak}d</span>
-          </div>
-        </div>
-      </motion.div>
-
       {/* View Switcher Bar (text-base body level) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
