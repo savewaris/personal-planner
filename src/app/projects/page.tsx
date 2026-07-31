@@ -392,6 +392,10 @@ export default function ProjectsPage() {
               const tags = parseTags(project.tags);
               const isEditingThis = editingProjectId === project.id;
 
+              const hasGoal = Boolean(project.goal && project.goal.trim());
+              const hasScope = Boolean(project.scope && project.scope.trim());
+              const hasDeliverables = Boolean(project.deliverables && project.deliverables.trim());
+
               const completedReqs = reqs.filter((r) => r.completed).length;
               const progressPct = reqs.length > 0 ? Math.round((completedReqs / reqs.length) * 100) : 0;
 
@@ -502,7 +506,7 @@ export default function ProjectsPage() {
 
                           {/* Structured Badges: Goal, Scope, Deliverables */}
                           <div className="grid grid-cols-1 gap-2 pt-1">
-                            {project.goal ? (
+                            {hasGoal ? (
                               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-0.5">
                                 <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1">
                                   <span>🎯</span> Goal
@@ -515,13 +519,20 @@ export default function ProjectsPage() {
                               <button
                                 type="button"
                                 onClick={() => startEditing(project)}
-                                className="p-2 rounded-xl border border-dashed border-amber-500/30 text-amber-300/70 hover:text-amber-200 hover:border-amber-400 hover:bg-amber-500/10 text-xs font-bold transition-all text-left flex items-center gap-1.5 cursor-pointer"
+                                className="w-full p-2.5 rounded-xl border-2 border-dashed border-amber-400/60 bg-amber-500/10 text-amber-300 hover:text-amber-100 hover:border-amber-300 hover:bg-amber-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
                               >
-                                <span>+</span> Add Project Goal 🎯
+                                <span className="flex items-center gap-1.5">
+                                  <span>🎯</span>
+                                  <span>Project Goal:</span>
+                                  <span className="font-medium text-zinc-400 group-hover:text-amber-200 italic">Not set yet</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-amber-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
+                                  + Add Goal
+                                </span>
                               </button>
                             )}
 
-                            {project.scope ? (
+                            {hasScope ? (
                               <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-0.5">
                                 <span className="text-xs font-extrabold text-indigo-300 flex items-center gap-1">
                                   <span>📐</span> Scope
@@ -534,13 +545,20 @@ export default function ProjectsPage() {
                               <button
                                 type="button"
                                 onClick={() => startEditing(project)}
-                                className="p-2 rounded-xl border border-dashed border-indigo-500/30 text-indigo-300/70 hover:text-indigo-200 hover:border-indigo-400 hover:bg-indigo-500/10 text-xs font-bold transition-all text-left flex items-center gap-1.5 cursor-pointer"
+                                className="w-full p-2.5 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
                               >
-                                <span>+</span> Add Project Scope 📐
+                                <span className="flex items-center gap-1.5">
+                                  <span>📐</span>
+                                  <span>Project Scope:</span>
+                                  <span className="font-medium text-zinc-400 group-hover:text-indigo-200 italic">Not set yet</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-indigo-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
+                                  + Add Scope
+                                </span>
                               </button>
                             )}
 
-                            {project.deliverables ? (
+                            {hasDeliverables ? (
                               <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-0.5">
                                 <span className="text-xs font-extrabold text-emerald-300 flex items-center gap-1">
                                   <span>📦</span> Key Deliverables
@@ -553,9 +571,16 @@ export default function ProjectsPage() {
                               <button
                                 type="button"
                                 onClick={() => startEditing(project)}
-                                className="p-2 rounded-xl border border-dashed border-emerald-500/30 text-emerald-300/70 hover:text-emerald-200 hover:border-emerald-400 hover:bg-emerald-500/10 text-xs font-bold transition-all text-left flex items-center gap-1.5 cursor-pointer"
+                                className="w-full p-2.5 rounded-xl border-2 border-dashed border-emerald-400/60 bg-emerald-500/10 text-emerald-300 hover:text-emerald-100 hover:border-emerald-300 hover:bg-emerald-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
                               >
-                                <span>+</span> Add Key Deliverables 📦
+                                <span className="flex items-center gap-1.5">
+                                  <span>📦</span>
+                                  <span>Deliverables:</span>
+                                  <span className="font-medium text-zinc-400 group-hover:text-emerald-200 italic">Not set yet</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
+                                  + Add Deliverables
+                                </span>
                               </button>
                             )}
                           </div>
