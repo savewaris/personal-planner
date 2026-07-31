@@ -470,102 +470,87 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
                       : "glass-card border-white/10 hover:border-amber-500/30 bg-zinc-900/60 shadow-sm"
                   }`}
                 >
-                  {/* Left Checkbox & Habit Name */}
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                    <button
-                      type="button"
-                      onClick={() => onToggleHabit(habit.id)}
-                      className={`shrink-0 w-4.5 h-4.5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
-                        isDone
-                          ? "bg-amber-500 border-amber-400 text-zinc-950 shadow-sm"
-                          : "border-white/20 hover:border-amber-400 bg-white/5"
-                      }`}
-                    >
-                      {isDone && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="w-3 h-3 stroke-[3]"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M4.5 12.75l6 6 9-13.5"
-                          />
-                        </svg>
-                      )}
-                    </button>
-
-                    <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                      {isEditingThis ? (
-                        /* Direct Inline Input Box */
-                        <input
-                          type="text"
-                          value={editingText}
-                          onChange={(e) => setEditingText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEditing(habit.id);
-                            if (e.key === "Escape") cancelEditing();
-                          }}
-                          onBlur={() => saveEditing(habit.id)}
-                          autoFocus
-                          className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-lg text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-bold"
-                        />
-                      ) : (
-                        /* Clickable Habit Name to Edit Inline (h3 / item title level) */
-                        <span
-                          onClick={() => startEditing(habit)}
-                          title="Click to edit habit name inline"
-                          className={`text-lg font-bold transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
-                            isDone
-                              ? "line-through text-zinc-400 font-normal"
-                              : "text-zinc-100"
-                          }`}
-                        >
-                          {habit.name}
-                        </span>
-                      )}
-
-                      {/* Streak Badge (text-sm badge level) */}
-                      {!isEditingThis && (
-                        <span className="px-2.5 py-0.5 rounded-full text-sm font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0 flex items-center gap-1">
-                          <span>🔥</span> {habit.streak} d
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right Actions: Inline Edit Controls or Default Actions */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {isEditingThis ? (
-                      <>
+                  {isEditingThis ? (
+                    /* Mobile-Friendly Full-Width Inline Edit Row (No Overlap) */
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full min-w-0">
+                      <input
+                        type="text"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEditing(habit.id);
+                          if (e.key === "Escape") cancelEditing();
+                        }}
+                        autoFocus
+                        placeholder="Edit habit name..."
+                        className="flex-1 min-w-0 bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1.5 text-lg text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-bold"
+                      />
+                      <div className="flex items-center justify-end gap-1.5 shrink-0">
                         <button
                           type="button"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => saveEditing(habit.id)}
                           title="Save inline edit (Enter)"
-                          className="p-1 px-2 rounded-lg bg-emerald-500 text-zinc-950 font-bold text-[11px] hover:bg-emerald-400 transition-all cursor-pointer shadow-sm"
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-500 text-zinc-950 font-extrabold text-xs hover:bg-emerald-400 transition-all cursor-pointer shadow-sm flex items-center gap-1"
                         >
-                          ✓ Save
+                          <span>✓</span> Save
                         </button>
                         <button
                           type="button"
-                          onMouseDown={(e) => e.preventDefault()}
                           onClick={cancelEditing}
                           title="Cancel edit (Esc)"
-                          className="p-1 px-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-xs"
+                          className="px-2.5 py-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-xs font-bold"
                         >
                           ✕
                         </button>
-                      </>
-                    ) : (
-                      <>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between min-w-0 w-full">
+                      <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                        <button
+                          type="button"
+                          onClick={() => onToggleHabit?.(habit.id)}
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                            isDone
+                              ? "bg-amber-500 border-amber-400 text-zinc-950 shadow-sm"
+                              : "border-white/20 hover:border-amber-400 bg-white/5"
+                          }`}
+                        >
+                          {isDone && (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          )}
+                        </button>
+
+                        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                          {/* Clickable Habit Name to Edit Inline (h3 / item title level) */}
+                          <span
+                            onClick={() => startEditing(habit)}
+                            title="Click to edit habit name inline"
+                            className={`text-lg font-bold transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
+                              isDone
+                                ? "line-through text-zinc-400 font-normal"
+                                : "text-zinc-100"
+                            }`}
+                          >
+                            {habit.name}
+                          </span>
+
+                          {/* Streak Badge (text-sm badge level) */}
+                          <span className="px-2.5 py-0.5 rounded-full text-sm font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0 flex items-center gap-1">
+                            <span>🔥</span> {habit.streak} d
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right Actions: Default Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => startEditing(habit)}
-                          title="Edit habit name inline"
+                          title="Edit habit inline"
                           className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
                         >
                           ✏️
@@ -573,28 +558,17 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
 
                         <button
                           type="button"
-                          onClick={() => onDeleteHabit(habit.id)}
+                          onClick={() => onDeleteHabit?.(habit.id)}
                           title="Delete habit"
-                          className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.75}
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                            />
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                           </svg>
                         </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               );
             })}

@@ -336,41 +336,61 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                         : "bg-zinc-900/60 border-white/10 hover:border-indigo-500/30"
                     }`}
                   >
-                    <div className="flex items-center justify-between min-w-0">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                        <button
-                          type="button"
-                          onClick={() => onToggleRoutine?.(routine.id)}
-                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                            isDone
-                              ? "bg-emerald-500 border-emerald-400 text-zinc-950"
-                              : "border-white/20 hover:border-indigo-400 bg-white/5"
-                          }`}
-                        >
-                          {isDone && (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                          )}
-                        </button>
+                    {isEditingThis ? (
+                      /* Mobile-Friendly Full-Width Inline Edit Row (No Overlap) */
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full min-w-0">
+                        <input
+                          type="text"
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEditing(routine.id);
+                            if (e.key === "Escape") cancelEditing();
+                          }}
+                          autoFocus
+                          placeholder="Edit routine title..."
+                          className="flex-1 min-w-0 bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1.5 text-lg text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-bold"
+                        />
+                        <div className="flex items-center justify-end gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => saveEditing(routine.id)}
+                            title="Save inline edit (Enter)"
+                            className="px-3.5 py-1.5 rounded-xl bg-emerald-500 text-zinc-950 font-extrabold text-xs hover:bg-emerald-400 transition-all cursor-pointer shadow-sm flex items-center gap-1"
+                          >
+                            <span>✓</span> Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditing}
+                            title="Cancel edit (Esc)"
+                            className="px-2.5 py-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-xs font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                          <button
+                            type="button"
+                            onClick={() => onToggleRoutine?.(routine.id)}
+                            className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                              isDone
+                                ? "bg-emerald-500 border-emerald-400 text-zinc-950"
+                                : "border-white/20 hover:border-indigo-400 bg-white/5"
+                            }`}
+                          >
+                            {isDone && (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                            )}
+                          </button>
 
-                        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                          {isEditingThis ? (
-                            /* Direct Inline Input Box */
-                            <input
-                              type="text"
-                              value={editingText}
-                              onChange={(e) => setEditingText(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") saveEditing(routine.id);
-                                if (e.key === "Escape") cancelEditing();
-                              }}
-                              autoFocus
-                              placeholder="Edit routine title..."
-                              className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-lg text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-bold"
-                            />
-                          ) : (
-                            /* Clickable Routine Title to Edit Inline (h3 / item title level) */
+                          <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                            {/* Clickable Routine Title to Edit Inline (h3 / item title level) */}
                             <span
                               onClick={() => startEditing(routine)}
                               title="Click to edit routine title inline"
@@ -380,83 +400,54 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                             >
                               {routine.title}
                             </span>
-                          )}
 
-                          {!isEditingThis && (
-                            <>
-                              <span className="px-2 py-0.5 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
-                                {routine.dayKey}
-                              </span>
+                            <span className="px-2 py-0.5 rounded-full text-sm font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                              {routine.dayKey}
+                            </span>
 
-                              {rTags.map((tag) => {
-                                const isSelected = selectedTagsFilter.some(
-                                  (st) => st.toLowerCase() === tag.toLowerCase()
-                                );
-                                const colorClasses = getTagColorClasses(tag, isSelected);
-                                return (
-                                  <button
-                                    key={tag}
-                                    type="button"
-                                    onClick={() => toggleTagFilter(tag)}
-                                    className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
-                                  >
-                                    #{tag}
-                                  </button>
-                                );
-                              })}
-                            </>
-                          )}
+                            {rTags.map((tag) => {
+                              const isSelected = selectedTagsFilter.some(
+                                (st) => st.toLowerCase() === tag.toLowerCase()
+                              );
+                              const colorClasses = getTagColorClasses(tag, isSelected);
+                              return (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => toggleTagFilter(tag)}
+                                  className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
+                                >
+                                  #{tag}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Right Actions: Default Actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => startEditing(routine)}
+                            title="Edit routine inline"
+                            className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
+                          >
+                            ✏️
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onDeleteRoutine?.(routine.id)}
+                            title="Delete routine"
+                            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
-
-                      {/* Right Actions: Inline Edit Controls or Default Actions */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        {isEditingThis ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => saveEditing(routine.id)}
-                              title="Save inline edit (Enter)"
-                              className="p-1 px-2 rounded-lg bg-emerald-500 text-zinc-950 font-bold text-[11px] hover:bg-emerald-400 transition-all cursor-pointer shadow-sm"
-                            >
-                              ✓ Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEditing}
-                              title="Cancel edit (Esc)"
-                              className="p-1 px-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-xs"
-                            >
-                              ✕
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => startEditing(routine)}
-                              title="Edit routine inline"
-                              className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
-                            >
-                              ✏️
-                            </button>
-
-                            {onDeleteRoutine && (
-                              <button
-                                type="button"
-                                onClick={() => onDeleteRoutine(routine.id)}
-                                title="Delete routine"
-                                className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                </svg>
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    )}
 
                     {/* Inline Tag Manager Row (Shown while editing) */}
                     {isEditingThis && (
