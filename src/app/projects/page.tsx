@@ -9,9 +9,6 @@ import { NotionTagInput, getTagColorClasses } from "@/components/NotionTagInput"
 export default function ProjectsPage() {
   const { projects, createProject, updateProject, deleteProject } = usePlannerStore();
 
-  // Filter States
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("ALL");
-  const [selectedTagsFilter, setSelectedTagsFilter] = useState<string[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // New Project Form State
@@ -19,8 +16,10 @@ export default function ProjectsPage() {
   const [newDescription, setNewDescription] = useState("");
   const [newReqs, setNewReqs] = useState<string[]>([""]);
   const [newTechStack, setNewTechStack] = useState("");
-  const [newStatus, setNewStatus] = useState<"PLANNING" | "IN_PROGRESS" | "COMPLETED">("PLANNING");
   const [newTags, setNewTags] = useState<string[]>([]);
+
+  // Project-Themed Validation State (replaces default browser popup)
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Editing State
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -61,46 +60,16 @@ export default function ProjectsPage() {
     }
   };
 
-  // Collect All Unique Tags across Projects
-  const allTags = useMemo(() => {
-    const set = new Set<string>();
-    projects.forEach((p) => {
-      parseTags(p.tags).forEach((t) => set.add(t));
-    });
-    return Array.from(set);
-  }, [projects]);
-
-  const toggleTagFilter = (tag: string) => {
-    setSelectedTagsFilter((prev) =>
-      prev.some((t) => t.toLowerCase() === tag.toLowerCase())
-        ? prev.filter((t) => t.toLowerCase() !== tag.toLowerCase())
-        : [...prev, tag]
-    );
-  };
-
-  // Filter Projects by Status and AND Tag Logic
-  const filteredProjects = useMemo(() => {
-    return projects.filter((project) => {
-      // Status Filter
-      if (selectedStatusFilter !== "ALL" && project.status !== selectedStatusFilter) {
-        return false;
-      }
-
-      // AND Tag Filter
-      if (selectedTagsFilter.length > 0) {
-        const pTags = parseTags(project.tags).map((t) => t.toLowerCase());
-        const matchesAll = selectedTagsFilter.every((st) => pTags.includes(st.toLowerCase()));
-        if (!matchesAll) return false;
-      }
-
-      return true;
-    });
-  }, [projects, selectedStatusFilter, selectedTagsFilter]);
-
-  // Handle Project Creation
+  // Handle Project Creation with Custom Project-Themed Validation Prompt
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+
+    if (!newTitle.trim()) {
+      setValidationError("Please fill out the Project Title field.");
+      return;
+    }
+
+    setValidationError(null);
 
     const formattedReqs: ProjectRequirement[] = newReqs
       .filter((r) => r.trim())
@@ -116,7 +85,6 @@ export default function ProjectsPage() {
       description: newDescription.trim(),
       requirements: formattedReqs,
       techStack: formattedTech,
-      status: newStatus,
       tags: JSON.stringify(newTags),
     });
 
@@ -124,7 +92,6 @@ export default function ProjectsPage() {
     setNewDescription("");
     setNewReqs([""]);
     setNewTechStack("");
-    setNewStatus("PLANNING");
     setNewTags([]);
     setIsCreateOpen(false);
   };
@@ -134,13 +101,8 @@ export default function ProjectsPage() {
     const currentReqs = parseReqs(project.requirements);
     const updatedReqs = currentReqs.map((r) => (r.id === reqId ? { ...r, completed: !r.completed } : r));
 
-    // Auto-update project status to COMPLETED if all requirements done
-    const allDone = updatedReqs.length > 0 && updatedReqs.every((r) => r.completed);
-    const newProjectStatus = allDone ? "COMPLETED" : project.status;
-
     await updateProject(project.id, {
       requirements: updatedReqs,
-      status: newProjectStatus,
     });
   };
 
@@ -164,18 +126,9 @@ export default function ProjectsPage() {
     setEditingProjectId(null);
   };
 
-  // Stats Counters
-  const stats = useMemo(() => {
-    const total = projects.length;
-    const planning = projects.filter((p) => p.status === "PLANNING").length;
-    const inProgress = projects.filter((p) => p.status === "IN_PROGRESS").length;
-    const completed = projects.filter((p) => p.status === "COMPLETED").length;
-    return { total, planning, inProgress, completed };
-  }, [projects]);
-
   return (
     <main className="flex-1 py-6 px-4 sm:px-6 lg:px-10 max-w-full mx-auto w-full space-y-6 pb-12">
-      {/* Level 1 Header: Projects Hub Title + Stats Badges */}
+      {/* Level 1 Header: Projects Hub Title */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 glass-card p-5 rounded-2xl border border-white/15 shadow-2xl bg-gradient-to-r from-zinc-950/90 via-zinc-900/80 to-zinc-950/90 backdrop-blur-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-black shadow-lg">
@@ -186,30 +139,22 @@ export default function ProjectsPage() {
               Projects Hub
             </h1>
             <p className="text-xs font-semibold text-zinc-400">
-              Build, track requirements, and manage project specifications
+              Build, track requirements, and store project specifications
             </p>
           </div>
         </div>
 
-        {/* Action Button & Stats Badges */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-xs font-bold shrink-0">
-            <span className="px-3 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
-              In Progress: <strong className="text-white">{stats.inProgress}</strong>
-            </span>
-            <span className="px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
-              Done: <strong className="text-emerald-300">{stats.completed}</strong>
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(!isCreateOpen)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-extrabold text-sm transition-all cursor-pointer shadow-lg shadow-indigo-500/25 flex items-center gap-2"
-          >
-            <span>{isCreateOpen ? "✕ Close" : "+ New Project"}</span>
-          </button>
-        </div>
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsCreateOpen(!isCreateOpen);
+            setValidationError(null);
+          }}
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-extrabold text-sm transition-all cursor-pointer shadow-lg shadow-indigo-500/25 flex items-center gap-2 shrink-0"
+        >
+          <span>{isCreateOpen ? "✕ Close" : "+ New Project"}</span>
+        </button>
       </div>
 
       {/* New Project Form Drawer */}
@@ -220,7 +165,8 @@ export default function ProjectsPage() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             onSubmit={handleCreateProject}
-            className="glass-card p-5 rounded-2xl border border-indigo-500/30 space-y-4 overflow-hidden bg-zinc-950/90 shadow-2xl"
+            noValidate // Disables browser native white validation popup
+            className="glass-card p-5 rounded-2xl border border-indigo-500/30 space-y-4 overflow-hidden bg-zinc-950/90 shadow-2xl relative"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
@@ -229,31 +175,41 @@ export default function ProjectsPage() {
               <span className="text-xs text-zinc-400 font-semibold">Store requirements & specs</span>
             </div>
 
+            {/* Project-Themed Custom Validation Prompt Banner */}
+            {validationError && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2.5 p-3 rounded-xl border border-rose-500/50 bg-rose-500/15 text-rose-300 text-xs font-extrabold shadow-lg shadow-rose-500/10"
+              >
+                <span className="w-5 h-5 rounded-lg bg-rose-500 text-zinc-950 flex items-center justify-center font-black text-xs shrink-0">
+                  !
+                </span>
+                <span>{validationError}</span>
+              </motion.div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Title & Status */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300">Project Title *</label>
+              {/* Title Input */}
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
+                  <span>Project Title</span>
+                  <span className="text-rose-400 font-black">*</span>
+                </label>
                 <input
                   type="text"
-                  required
                   value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
+                  onChange={(e) => {
+                    setNewTitle(e.target.value);
+                    if (e.target.value.trim()) setValidationError(null);
+                  }}
                   placeholder="e.g., Personal Planner Pro Max"
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-indigo-400 transition-all font-semibold"
+                  className={`w-full bg-zinc-900 border rounded-xl px-3.5 py-2 text-base text-white outline-none transition-all font-semibold ${
+                    validationError
+                      ? "border-rose-500 ring-2 ring-rose-500/50 shadow-lg shadow-rose-500/20"
+                      : "border-white/10 focus:border-indigo-400"
+                  }`}
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300">Target Status</label>
-                <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value as any)}
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-indigo-400 transition-all font-semibold"
-                >
-                  <option value="PLANNING">📝 PLANNING</option>
-                  <option value="IN_PROGRESS">⚡ IN_PROGRESS</option>
-                  <option value="COMPLETED">✅ COMPLETED</option>
-                </select>
               </div>
 
               {/* Description */}
@@ -330,7 +286,10 @@ export default function ProjectsPage() {
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
               <button
                 type="button"
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => {
+                  setIsCreateOpen(false);
+                  setValidationError(null);
+                }}
                 className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white font-bold text-sm transition-all cursor-pointer"
               >
                 Cancel
@@ -346,76 +305,13 @@ export default function ProjectsPage() {
         )}
       </AnimatePresence>
 
-      {/* View Filter Bar (Status Tabs + Multi-Select Notion Tag Bar) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 bg-zinc-950/90 p-1.5 rounded-2xl border border-white/10 shadow-lg shrink-0">
-            {(["ALL", "PLANNING", "IN_PROGRESS", "COMPLETED"] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setSelectedStatusFilter(tab)}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
-                  selectedStatusFilter === tab
-                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/20"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {tab === "ALL" && "🌐 All Projects"}
-                {tab === "PLANNING" && "📝 Planning"}
-                {tab === "IN_PROGRESS" && "⚡ In Progress"}
-                {tab === "COMPLETED" && "✅ Completed"}
-              </button>
-            ))}
-          </div>
-
-          <span className="text-xs font-semibold text-zinc-400">
-            Showing <strong className="text-white">{filteredProjects.length}</strong> of {projects.length} projects
-          </span>
-        </div>
-
-        {/* Multi-Select High-Tone Notion Tag Filter Bar */}
-        {allTags.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-            <span className="text-xs font-bold text-zinc-400 shrink-0">Filter by Tag:</span>
-            {allTags.map((tag) => {
-              const isSelected = selectedTagsFilter.some((st) => st.toLowerCase() === tag.toLowerCase());
-              const colorClasses = getTagColorClasses(tag, isSelected);
-
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTagFilter(tag)}
-                  className={`px-3 py-1 rounded-full text-sm font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
-                >
-                  #{tag}
-                </button>
-              );
-            })}
-            {selectedTagsFilter.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setSelectedTagsFilter([])}
-                className="text-xs font-semibold text-amber-400 hover:text-amber-300 shrink-0 ml-1 cursor-pointer"
-              >
-                Clear ({selectedTagsFilter.length})
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Projects Feed */}
-      {filteredProjects.length === 0 ? (
+      {/* Projects Feed (Clean display with no filters) */}
+      {projects.length === 0 ? (
         <div className="glass-card p-12 rounded-2xl border border-white/10 text-center space-y-3 bg-zinc-950/60">
           <div className="text-4xl">🚀</div>
-          <h3 className="text-xl font-bold text-white">No Projects Found</h3>
+          <h3 className="text-xl font-bold text-white">No Projects Stored</h3>
           <p className="text-sm text-zinc-400 max-w-md mx-auto">
-            {selectedStatusFilter !== "ALL" || selectedTagsFilter.length > 0
-              ? "No projects match your active filters. Try clearing your search or status tabs."
-              : "Create your first project specification to store requirements, description, and tech stack!"}
+            Create your first project specification to store requirements, description, and tech stack!
           </p>
           <button
             type="button"
@@ -428,7 +324,7 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <AnimatePresence mode="popLayout">
-            {filteredProjects.map((project) => {
+            {projects.map((project) => {
               const reqs = parseReqs(project.requirements);
               const tech = parseTech(project.techStack);
               const tags = parseTags(project.tags);
@@ -450,7 +346,7 @@ export default function ProjectsPage() {
                       : "border-white/10 hover:border-indigo-500/40 bg-zinc-900/70 shadow-lg"
                   }`}
                 >
-                  {/* Card Header & Status Badge */}
+                  {/* Card Header */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       {isEditingThis ? (
@@ -510,18 +406,6 @@ export default function ProjectsPage() {
 
                       {!isEditingThis && (
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold border shrink-0 ${
-                              project.status === "COMPLETED"
-                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-                                : project.status === "IN_PROGRESS"
-                                ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-300"
-                                : "bg-amber-500/15 border-amber-500/30 text-amber-300"
-                            }`}
-                          >
-                            {project.status}
-                          </span>
-
                           <button
                             type="button"
                             onClick={() => startEditing(project)}
@@ -616,18 +500,15 @@ export default function ProjectsPage() {
                     {tags.length > 0 && (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {tags.map((t) => {
-                          const isSelected = selectedTagsFilter.some((st) => st.toLowerCase() === t.toLowerCase());
-                          const colorClasses = getTagColorClasses(t, isSelected);
+                          const colorClasses = getTagColorClasses(t, false);
 
                           return (
-                            <button
+                            <span
                               key={t}
-                              type="button"
-                              onClick={() => toggleTagFilter(t)}
-                              className={`px-2.5 py-0.5 rounded-full text-sm font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
+                              className={`px-2.5 py-0.5 rounded-full text-sm font-semibold border shrink-0 ${colorClasses}`}
                             >
                               #{t}
-                            </button>
+                            </span>
                           );
                         })}
                       </div>
