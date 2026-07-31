@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
-import { api, HabitItem, WorkspaceContextItem, NoteItem, RoutineItem } from "@/services/api";
+import { api, HabitItem, WorkspaceContextItem, NoteItem, RoutineItem, ProjectItem } from "@/services/api";
 import { TaskItem } from "@/components/TaskCard";
 
 interface PlannerStoreContextType {
@@ -10,10 +10,16 @@ interface PlannerStoreContextType {
   habits: HabitItem[];
   contexts: WorkspaceContextItem[];
   notes: NoteItem[];
+  projects: ProjectItem[];
   activeContextId: string | null;
   setActiveContextId: (id: string | null) => void;
   isLoading: boolean;
   refetchAll: () => Promise<void>;
+
+  // Project Mutations
+  createProject: (data: Parameters<typeof api.projects.create>[0]) => Promise<ProjectItem>;
+  updateProject: (id: string, updates: Partial<Omit<ProjectItem, "id">>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
 
   // Task Mutations
   createTask: (data: Parameters<typeof api.tasks.create>[0]) => Promise<TaskItem>;
@@ -62,6 +68,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [habits, setHabits] = useState<HabitItem[]>([]);
   const [contexts, setContexts] = useState<WorkspaceContextItem[]>([]);
   const [notes, setNotes] = useState<NoteItem[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [activeContextId, setActiveContextIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,10 +77,12 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const DELETED_ROUTINES_KEY = "planner_deleted_routine_ids";
   const DELETED_HABITS_KEY = "planner_deleted_habit_ids";
   const DELETED_NOTES_KEY = "planner_deleted_note_ids";
+  const DELETED_PROJECTS_KEY = "planner_deleted_project_ids";
   const CUSTOM_TASKS_KEY = "planner_custom_tasks";
   const CUSTOM_ROUTINES_KEY = "planner_custom_routines";
   const CUSTOM_HABITS_KEY = "planner_custom_habits";
   const CUSTOM_NOTES_KEY = "planner_custom_notes";
+  const CUSTOM_PROJECTS_KEY = "planner_custom_projects";
 
   const getDeletedIds = (key: string): string[] => {
     try {
@@ -163,23 +172,26 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const refetchAll = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [tasksData, routinesData, habitsData, contextsData, notesData] = await Promise.all([
+      const [tasksData, routinesData, habitsData, contextsData, notesData, projectsData] = await Promise.all([
         api.tasks.getAll({ contextId: activeContextId || undefined }).catch(() => []),
         api.routines.getAll().catch(() => []),
         api.habits.getAll().catch(() => []),
         api.contexts.getAll().catch(() => []),
         api.notes.getAll().catch(() => []),
+        api.projects.getAll().catch(() => []),
       ]);
 
       const deletedTaskIds = getDeletedIds(DELETED_TASKS_KEY);
       const deletedRoutineIds = getDeletedIds(DELETED_ROUTINES_KEY);
       const deletedHabitIds = getDeletedIds(DELETED_HABITS_KEY);
       const deletedNoteIds = getDeletedIds(DELETED_NOTES_KEY);
+      const deletedProjectIds = getDeletedIds(DELETED_PROJECTS_KEY);
 
       const customTasks = getCustomItems<TaskItem>(CUSTOM_TASKS_KEY);
       const customRoutines = getCustomItems<RoutineItem>(CUSTOM_ROUTINES_KEY);
       const customHabits = getCustomItems<HabitItem>(CUSTOM_HABITS_KEY);
       const customNotes = getCustomItems<NoteItem>(CUSTOM_NOTES_KEY);
+      const customProjects = getCustomItems<ProjectItem>(CUSTOM_PROJECTS_KEY);
 
       // Clean out temp-* entries from custom items if real DB items match
       const cleanCustomTasks = customTasks.filter((ct) => {
@@ -519,6 +531,64 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     await deleteNote(noteId);
   };
 
+  // ─── Project Mutations ───────────────────────────────────────────────────
+  const createProject = async (data: Parameters<typeof api.projects.create>[0]) => {
+    const tempId = `temp-proj-${Date.now()}`;
+    const tempProject: ProjectItem = {
+      id: tempId,
+      title: data.title,
+      description: data.description || "",
+      requirements: data.requirements || [],
+      techStack: data.techStack || [],
+      status: data.status || "PLANNING",
+      tags: data.tags || null,
+      createdAt: new Date().toISOString(),
+    };
+
+    setProjects((prev) => [tempProject, ...prev]);
+    saveCustomItem<ProjectItem>(CUSTOM_PROJECTS_KEY, tempProject);
+
+    try {
+      const created = await api.projects.create(data);
+      setProjects((prev) => prev.map((p) => (p.id === tempId ? created : p)));
+      replaceCustomItem<ProjectItem>(CUSTOM_PROJECTS_KEY, tempId, created);
+      return created;
+    } catch {
+      return tempProject;
+    }
+  };
+
+  const updateProject = async (id: string, updates: Partial<Omit<ProjectItem, "id">>) => {
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const updated = { ...p, ...updates };
+          saveCustomItem<ProjectItem>(CUSTOM_PROJECTS_KEY, updated);
+          return updated;
+        }
+        return p;
+      })
+    );
+
+    try {
+      await api.projects.update(id, updates);
+    } catch {
+      // Local fallback saved
+    }
+  };
+
+  const deleteProject = async (id: string) => {
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    addDeletedId(DELETED_PROJECTS_KEY, id);
+    removeCustomItem(CUSTOM_PROJECTS_KEY, id);
+
+    try {
+      await api.projects.delete(id);
+    } catch {
+      // Local fallback deleted
+    }
+  };
+
   // ─── Context Mutations ────────────────────────────────────────────────────
   const createContext = async (name: string, color?: string) => {
     const created = await api.contexts.create({ name, color });
@@ -564,10 +634,14 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         habits,
         contexts,
         notes,
+        projects,
         activeContextId,
         setActiveContextId,
         isLoading,
         refetchAll,
+        createProject,
+        updateProject,
+        deleteProject,
         createTask,
         updateTask,
         updateTaskStatus,

@@ -41,6 +41,24 @@ export interface NoteItem {
   contextId?: string | null;
 }
 
+export interface ProjectRequirement {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface ProjectItem {
+  id: string;
+  title: string;
+  description: string;
+  requirements: ProjectRequirement[];
+  techStack: string[];
+  status: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
+  tags?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 class ApiService {
   private async fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     const res = await fetch(url, {
@@ -58,6 +76,38 @@ class ApiService {
 
     return res.json();
   }
+
+  // ─── Projects API ──────────────────────────────────────────────────────────
+  projects = {
+    getAll: (): Promise<ProjectItem[]> => this.fetchJson("/api/projects"),
+
+    create: (data: {
+      title: string;
+      description?: string;
+      requirements?: ProjectRequirement[];
+      techStack?: string[];
+      status?: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
+      tags?: string;
+    }): Promise<ProjectItem> =>
+      this.fetchJson("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (
+      id: string,
+      data: Partial<Omit<ProjectItem, "id">>
+    ): Promise<ProjectItem> =>
+      this.fetchJson(`/api/projects/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: string): Promise<{ success: boolean }> =>
+      this.fetchJson(`/api/projects/${id}`, {
+        method: "DELETE",
+      }),
+  };
 
   // ─── Context API ──────────────────────────────────────────────────────────
   contexts = {
