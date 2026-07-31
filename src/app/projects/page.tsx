@@ -502,7 +502,7 @@ export default function ProjectsPage() {
 
                           {/* Structured Badges: Goal, Scope, Deliverables */}
                           <div className="grid grid-cols-1 gap-2 pt-1">
-                            {project.goal && (
+                            {project.goal ? (
                               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-0.5">
                                 <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1">
                                   <span>🎯</span> Goal
@@ -511,9 +511,17 @@ export default function ProjectsPage() {
                                   {project.goal}
                                 </p>
                               </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEditing(project)}
+                                className="p-2 rounded-xl border border-dashed border-amber-500/30 text-amber-300/70 hover:text-amber-200 hover:border-amber-400 hover:bg-amber-500/10 text-xs font-bold transition-all text-left flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <span>+</span> Add Project Goal 🎯
+                              </button>
                             )}
 
-                            {project.scope && (
+                            {project.scope ? (
                               <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-0.5">
                                 <span className="text-xs font-extrabold text-indigo-300 flex items-center gap-1">
                                   <span>📐</span> Scope
@@ -522,9 +530,17 @@ export default function ProjectsPage() {
                                   {project.scope}
                                 </p>
                               </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEditing(project)}
+                                className="p-2 rounded-xl border border-dashed border-indigo-500/30 text-indigo-300/70 hover:text-indigo-200 hover:border-indigo-400 hover:bg-indigo-500/10 text-xs font-bold transition-all text-left flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <span>+</span> Add Project Scope 📐
+                              </button>
                             )}
 
-                            {project.deliverables && (
+                            {project.deliverables ? (
                               <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-0.5">
                                 <span className="text-xs font-extrabold text-emerald-300 flex items-center gap-1">
                                   <span>📦</span> Key Deliverables
@@ -533,6 +549,14 @@ export default function ProjectsPage() {
                                   {project.deliverables}
                                 </p>
                               </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEditing(project)}
+                                className="p-2 rounded-xl border border-dashed border-emerald-500/30 text-emerald-300/70 hover:text-emerald-200 hover:border-emerald-400 hover:bg-emerald-500/10 text-xs font-bold transition-all text-left flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <span>+</span> Add Key Deliverables 📦
+                              </button>
                             )}
                           </div>
                         </div>
