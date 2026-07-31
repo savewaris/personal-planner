@@ -18,6 +18,9 @@ export async function PATCH(
           ...(body.goal !== undefined && { goal: body.goal }),
           ...(body.scope !== undefined && { scope: body.scope }),
           ...(body.deliverables !== undefined && { deliverables: body.deliverables }),
+          ...(body.workflow !== undefined && {
+            workflow: typeof body.workflow === "string" ? body.workflow : JSON.stringify(body.workflow),
+          }),
           ...(body.requirements !== undefined && {
             requirements: typeof body.requirements === "string" ? body.requirements : JSON.stringify(body.requirements),
           }),

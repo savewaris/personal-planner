@@ -40,6 +40,35 @@ const REQUIREMENT_PRESETS = [
   },
 ];
 
+const WORKFLOW_PRESETS = [
+  {
+    name: "🔄 Standard Dev Workflow",
+    steps: [
+      "Step 1: Architectural Plan & Requirements Specification",
+      "Step 2: Database Schema Design & API Endpoint Setup",
+      "Step 3: Dark Glassmorphic Frontend Component Build",
+      "Step 4: Integration Testing & Verification",
+      "Step 5: Production Build & Vercel Deployment",
+    ],
+  },
+  {
+    name: "🚀 Rapid Prototype",
+    steps: [
+      "Step 1: Wireframe Mockup & Core Layout",
+      "Step 2: Component Scaffolding & State Management",
+      "Step 3: Demo Data Validation & User Feedback",
+    ],
+  },
+  {
+    name: "🔬 AI / Data Pipeline",
+    steps: [
+      "Step 1: Data Ingestion & Preprocessing Pipeline",
+      "Step 2: Prompt Engineering & Model Tuning",
+      "Step 3: API Gateway & UI Integration",
+    ],
+  },
+];
+
 export default function ProjectsPage() {
   const { projects, createProject, updateProject, deleteProject } = usePlannerStore();
 
@@ -51,6 +80,7 @@ export default function ProjectsPage() {
   const [newGoal, setNewGoal] = useState("");
   const [newScope, setNewScope] = useState("");
   const [newDeliverables, setNewDeliverables] = useState("");
+  const [newWorkflowSteps, setNewWorkflowSteps] = useState<string[]>([""]);
   const [newReqs, setNewReqs] = useState<string[]>([""]);
   const [newTechStack, setNewTechStack] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
@@ -59,6 +89,7 @@ export default function ProjectsPage() {
   const [showGoalInput, setShowGoalInput] = useState(false);
   const [showScopeInput, setShowScopeInput] = useState(false);
   const [showDeliverablesInput, setShowDeliverablesInput] = useState(false);
+  const [showWorkflowInput, setShowWorkflowInput] = useState(false);
   const [showSummaryInput, setShowSummaryInput] = useState(false);
 
   // Bulk Paste State
@@ -75,6 +106,7 @@ export default function ProjectsPage() {
   const [editingGoal, setEditingGoal] = useState("");
   const [editingScope, setEditingScope] = useState("");
   const [editingDeliverables, setEditingDeliverables] = useState("");
+  const [editingWorkflowSteps, setEditingWorkflowSteps] = useState<string[]>([""]);
 
   // Parse JSON or Array helpers
   const parseReqs = (raw: any): ProjectRequirement[] => {
@@ -110,6 +142,17 @@ export default function ProjectsPage() {
     }
   };
 
+  const parseWorkflow = (raw: any): string[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return typeof raw === "string" ? raw.split("\n").map((s) => s.trim()).filter(Boolean) : [];
+    }
+  };
+
   // Handle Project Creation
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +168,10 @@ export default function ProjectsPage() {
       .filter((r) => r.trim())
       .map((r, idx) => ({ id: `req-${Date.now()}-${idx}`, text: r.trim(), completed: false }));
 
+    const formattedWorkflow = newWorkflowSteps
+      .filter((s) => s.trim())
+      .map((s) => s.trim());
+
     const formattedTech = newTechStack
       .split(",")
       .map((t) => t.trim())
@@ -136,6 +183,7 @@ export default function ProjectsPage() {
       goal: newGoal.trim(),
       scope: newScope.trim(),
       deliverables: newDeliverables.trim(),
+      workflow: JSON.stringify(formattedWorkflow),
       requirements: formattedReqs,
       techStack: formattedTech,
       tags: JSON.stringify(newTags),
@@ -146,12 +194,14 @@ export default function ProjectsPage() {
     setNewGoal("");
     setNewScope("");
     setNewDeliverables("");
+    setNewWorkflowSteps([""]);
     setNewReqs([""]);
     setNewTechStack("");
     setNewTags([]);
     setShowGoalInput(false);
     setShowScopeInput(false);
     setShowDeliverablesInput(false);
+    setShowWorkflowInput(false);
     setShowSummaryInput(false);
     setIsCreateOpen(false);
   };
@@ -174,16 +224,21 @@ export default function ProjectsPage() {
     setEditingGoal(project.goal || "");
     setEditingScope(project.scope || "");
     setEditingDeliverables(project.deliverables || "");
+    const existingWorkflow = parseWorkflow(project.workflow);
+    setEditingWorkflowSteps(existingWorkflow.length > 0 ? existingWorkflow : [""]);
   };
 
   const saveEditing = async (projectId: string) => {
     if (!editingTitle.trim()) return;
+    const formattedWorkflow = editingWorkflowSteps.filter((s) => s.trim()).map((s) => s.trim());
+
     await updateProject(projectId, {
       title: editingTitle.trim(),
       description: editingSummary.trim(),
       goal: editingGoal.trim(),
       scope: editingScope.trim(),
       deliverables: editingDeliverables.trim(),
+      workflow: JSON.stringify(formattedWorkflow),
     });
     setEditingProjectId(null);
   };
@@ -370,6 +425,81 @@ export default function ProjectsPage() {
                       placeholder="Expected outputs, milestones & tech specs..."
                       className="w-full bg-zinc-900 border border-emerald-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-emerald-400 transition-all font-medium"
                     />
+                  </motion.div>
+                )}
+              </div>
+
+              {/* 🔄 Project Workflow Timeline */}
+              <div className="space-y-2">
+                {!showWorkflowInput && newWorkflowSteps.every((s) => !s.trim()) ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowWorkflowInput(true)}
+                    className="w-full p-3 rounded-xl border-2 border-dashed border-cyan-400/60 bg-cyan-500/10 text-cyan-300 hover:text-cyan-100 hover:border-cyan-300 hover:bg-cyan-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">🔄</span>
+                      <span className="text-lg font-bold">Project Workflow</span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-cyan-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
+                      + Add Workflow
+                    </span>
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-lg font-bold text-cyan-300 flex items-center gap-2">
+                        <span>🔄</span> Project Workflow Timeline
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setNewWorkflowSteps((prev) => [...prev, ""])}
+                        className="text-xs font-extrabold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                      >
+                        + Add Step
+                      </button>
+                    </div>
+
+                    {/* Workflow Presets */}
+                    <div className="flex items-center gap-1.5 flex-wrap p-2 rounded-xl bg-zinc-900 border border-white/5">
+                      <span className="text-[11px] font-extrabold text-zinc-400 shrink-0">⚡ Presets:</span>
+                      {WORKFLOW_PRESETS.map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => setNewWorkflowSteps(preset.steps)}
+                          className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 hover:border-cyan-400 text-zinc-300 hover:text-cyan-200 text-xs font-semibold cursor-pointer"
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {newWorkflowSteps.map((step, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold text-cyan-400 shrink-0">Step {idx + 1}:</span>
+                        <input
+                          type="text"
+                          value={step}
+                          onChange={(e) => {
+                            const updated = [...newWorkflowSteps];
+                            updated[idx] = e.target.value;
+                            setNewWorkflowSteps(updated);
+                          }}
+                          placeholder={`Step ${idx + 1} detail...`}
+                          className="flex-1 bg-zinc-900 border border-cyan-400/40 rounded-xl px-3 py-1.5 text-base text-white outline-none focus:border-cyan-400 font-medium"
+                        />
+                        {newWorkflowSteps.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setNewWorkflowSteps((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-zinc-500 hover:text-rose-400 text-xs font-bold px-1.5"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </motion.div>
                 )}
               </div>
@@ -648,6 +778,44 @@ export default function ProjectsPage() {
                           </div>
 
                           <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-bold text-cyan-300">🔄 Workflow Steps</label>
+                              <button
+                                type="button"
+                                onClick={() => setEditingWorkflowSteps((prev) => [...prev, ""])}
+                                className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300"
+                              >
+                                + Add Step
+                              </button>
+                            </div>
+                            {editingWorkflowSteps.map((step, idx) => (
+                              <div key={idx} className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-cyan-400 shrink-0">{idx + 1}.</span>
+                                <input
+                                  type="text"
+                                  value={step}
+                                  onChange={(e) => {
+                                    const updated = [...editingWorkflowSteps];
+                                    updated[idx] = e.target.value;
+                                    setEditingWorkflowSteps(updated);
+                                  }}
+                                  placeholder={`Step ${idx + 1}...`}
+                                  className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-2.5 py-1 text-sm text-white outline-none font-medium"
+                                />
+                                {editingWorkflowSteps.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingWorkflowSteps((prev) => prev.filter((_, i) => i !== idx))}
+                                    className="text-zinc-500 hover:text-rose-400 text-xs font-bold px-1"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="space-y-2">
                             <label className="text-xs font-bold text-purple-300">📝 Overview Summary</label>
                             <textarea
                               rows={2}
@@ -771,6 +939,47 @@ export default function ProjectsPage() {
                                 </span>
                               </button>
                             )}
+
+                            {/* 🔄 Workflow Timeline */}
+                            {(() => {
+                              const workflowSteps = parseWorkflow(project.workflow);
+                              const hasWorkflow = workflowSteps.length > 0;
+
+                              return hasWorkflow ? (
+                                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/25 space-y-2">
+                                  <span className="text-xs font-extrabold text-cyan-300 flex items-center gap-1">
+                                    <span>🔄</span> Project Workflow Timeline
+                                  </span>
+                                  <div className="space-y-2 pt-1 border-l-2 border-cyan-400/40 ml-1.5">
+                                    {workflowSteps.map((step, idx) => (
+                                      <div key={idx} className="flex items-start gap-2 pl-3 relative">
+                                        <span className="w-5 h-5 rounded-full bg-cyan-400 text-zinc-950 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5 shadow-md">
+                                          {idx + 1}
+                                        </span>
+                                        <span className="text-sm font-semibold text-cyan-100 break-words leading-snug">
+                                          {step}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(project)}
+                                  className="w-full p-2.5 rounded-xl border-2 border-dashed border-cyan-400/60 bg-cyan-500/10 text-cyan-300 hover:text-cyan-100 hover:border-cyan-300 hover:bg-cyan-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                                >
+                                  <span className="flex items-center gap-1.5">
+                                    <span>🔄</span>
+                                    <span>Project Workflow:</span>
+                                    <span className="font-medium text-zinc-400 group-hover:text-cyan-200 italic">Not set yet</span>
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-md bg-cyan-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
+                                    + Add Workflow
+                                  </span>
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       )}
