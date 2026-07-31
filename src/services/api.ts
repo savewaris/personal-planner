@@ -87,6 +87,9 @@ class ApiService {
     create: (data: {
       title: string;
       description?: string;
+      goal?: string;
+      scope?: string;
+      deliverables?: string;
       requirements?: ProjectRequirement[];
       techStack?: string[];
       status?: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
