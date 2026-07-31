@@ -83,32 +83,41 @@ export default function DashboardPage() {
 
   return (
     <main className="flex-1 py-6 px-4 sm:px-6 lg:px-10 max-w-full mx-auto w-full space-y-5 pb-12">
-      {/* Compact Header: Title + Stats Badge */}
+      {/* Level 1 Primary Focal Point Header: Title + Stats Badges */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 glass-card p-4 rounded-2xl border border-white/10"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 glass-card p-4.5 rounded-2xl border border-white/15 shadow-2xl bg-gradient-to-r from-zinc-950/90 via-zinc-900/80 to-zinc-950/90 backdrop-blur-2xl"
       >
-        {/* Left: Compact Dashboard Title */}
+        {/* Left: Prominent Level 1 Dashboard Title */}
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5 shrink-0">
-            <span>Planner Dashboard</span>
-            <span className="text-indigo-400">✨</span>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 shrink-0">
+            <span className="bg-gradient-to-r from-indigo-300 via-purple-300 to-amber-300 bg-clip-text text-transparent">
+              Planner Dashboard
+            </span>
+            <span className="text-amber-400 drop-shadow-md">✨</span>
           </h1>
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/10 text-zinc-300 shrink-0">
+          <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 shrink-0 shadow-sm">
             {todayFormatted}
           </span>
         </div>
 
-        {/* Right: Stats Badge */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-950/60 px-3 py-1.5 rounded-xl border border-white/10 shrink-0">
-            <span>Tasks: <strong className="text-indigo-400">{stats.totalTasks}</strong></span>
-            <span className="text-zinc-600">•</span>
-            <span>Done: <strong className="text-emerald-400">{stats.completionRate}%</strong></span>
-            <span className="text-zinc-600">•</span>
-            <span>Streak: <strong className="text-amber-400">🔥 {stats.maxStreak}d</strong></span>
+        {/* Right: High-Hierarchy Stats Badges */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-xs font-bold text-indigo-300 shadow-sm">
+            <span className="text-zinc-400 font-semibold">Tasks:</span>
+            <span className="text-white text-sm font-black">{stats.totalTasks}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-300 shadow-sm">
+            <span className="text-zinc-400 font-semibold">Done:</span>
+            <span className="text-emerald-300 text-sm font-black">{stats.completionRate}%</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-300 shadow-sm">
+            <span className="text-zinc-400 font-semibold">Streak:</span>
+            <span className="text-amber-300 text-sm font-black">🔥 {stats.maxStreak}d</span>
           </div>
         </div>
       </motion.div>

@@ -181,29 +181,35 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
 
   return (
     <div className="glass-card rounded-2xl border border-white/10 p-3.5 space-y-3 shadow-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+      {/* Level 1 Section Header */}
+      <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-extrabold text-white tracking-tight">
-              Weekly Routines
+            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
+              <span>Weekly Routines</span>
+              <span className="text-indigo-400">📅</span>
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-sm">
               Database: Routine
             </span>
           </div>
-          <p className="text-base text-zinc-400 font-medium">
+          <p className="text-xs text-zinc-400 font-medium">
             Select a day to view or add daily routines
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => onSelectDate(todayKey)}
-          className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-all cursor-pointer shrink-0"
-        >
-          Today ({todayKey})
-        </button>
+        {selectedDateStr ? (
+          <button
+            onClick={() => onSelectDate(null)}
+            className="px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-extrabold text-xs hover:bg-indigo-500/25 transition-all cursor-pointer shadow-sm"
+          >
+            Show All Days
+          </button>
+        ) : (
+          <span className="px-3 py-1 rounded-full bg-zinc-800/60 border border-white/10 text-zinc-400 font-bold text-xs">
+            Viewing: All Days
+          </span>
+        )}
       </div>
 
       {/* 7 Day Names Strip (MON-SUN) */}

@@ -188,24 +188,24 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
 
   return (
     <div className="glass-card rounded-2xl border border-white/10 p-3.5 space-y-3 shadow-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+      {/* Level 1 Section Header */}
+      <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-extrabold text-white tracking-tight flex items-center gap-1.5">
+            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
               <span>Habit Tracker</span>
               <span className="text-amber-400">🔥</span>
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm">
               Database: Habit
             </span>
           </div>
-          <p className="text-base text-zinc-400 font-medium">
+          <p className="text-xs text-zinc-400 font-medium">
             Track daily streaks and habits
           </p>
         </div>
 
-        <div className="text-xs text-zinc-400 font-medium">
+        <div className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-extrabold text-xs shrink-0 shadow-sm">
           {habits.filter((h) => h.completedToday).length} / {habits.length} Done Today
         </div>
       </div>

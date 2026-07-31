@@ -152,23 +152,24 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
 
   return (
     <div className="glass-card rounded-2xl border border-white/10 p-3.5 space-y-3 shadow-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+      {/* Level 1 Section Header */}
+      <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-extrabold text-white tracking-tight">
-              Quick To-Do Tasks
+            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
+              <span>Quick To-Do Tasks</span>
+              <span className="text-purple-400">⚡</span>
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm">
               Database: Task
             </span>
           </div>
-          <p className="text-base text-zinc-400 font-medium">
+          <p className="text-xs text-zinc-400 font-medium">
             One-off tasks independent of weekly routines
           </p>
         </div>
 
-        <div className="text-base text-zinc-400 font-medium">
+        <div className="px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 font-extrabold text-xs shrink-0 shadow-sm">
           {completedTasksCount} / {tasks.length} Done
         </div>
       </div>
