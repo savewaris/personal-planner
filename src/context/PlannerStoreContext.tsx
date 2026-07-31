@@ -111,6 +111,28 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Replaces or removes a temporary item ID from localStorage when DB creation finishes
+  const replaceCustomItem = <T extends { id: string }>(key: string, oldId: string, newItem: T) => {
+    try {
+      const current = getCustomItems<T>(key);
+      const updated = [newItem, ...current.filter((i) => i.id !== oldId && i.id !== newItem.id)];
+      localStorage.setItem(key, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Removes a temporary item ID from localStorage
+  const removeCustomItem = (key: string, id: string) => {
+    try {
+      const current = getCustomItems<{ id: string }>(key);
+      const updated = current.filter((i) => i.id !== id);
+      localStorage.setItem(key, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
   // Load saved activeContextId from localStorage
   useEffect(() => {
     try {
@@ -134,7 +156,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Central Refetch Function
+  // Central Refetch Function with Duplication Cleanup
   const refetchAll = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -156,28 +178,60 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const customHabits = getCustomItems<HabitItem>(CUSTOM_HABITS_KEY);
       const customNotes = getCustomItems<NoteItem>(CUSTOM_NOTES_KEY);
 
-      // Tasks combine
+      // Clean out temp-* entries from custom items if real DB items match
+      const cleanCustomTasks = customTasks.filter((ct) => {
+        if (ct.id.startsWith("temp-")) {
+          // If a real task from API has matching title, purge temp entry from localStorage
+          if (tasksData.some((dt) => dt.title.trim().toLowerCase() === ct.title.trim().toLowerCase())) {
+            removeCustomItem(CUSTOM_TASKS_KEY, ct.id);
+            return false;
+          }
+        }
+        return true;
+      });
+
+      const cleanCustomRoutines = customRoutines.filter((cr) => {
+        if (cr.id.startsWith("temp-")) {
+          if (routinesData.some((dr) => dr.title.trim().toLowerCase() === cr.title.trim().toLowerCase())) {
+            removeCustomItem(CUSTOM_ROUTINES_KEY, cr.id);
+            return false;
+          }
+        }
+        return true;
+      });
+
+      const cleanCustomHabits = customHabits.filter((ch) => {
+        if (ch.id.startsWith("temp-")) {
+          if (habitsData.some((dh) => dh.name.trim().toLowerCase() === ch.name.trim().toLowerCase())) {
+            removeCustomItem(CUSTOM_HABITS_KEY, ch.id);
+            return false;
+          }
+        }
+        return true;
+      });
+
+      // Tasks combine: API tasks take precedence
       const combinedTasksMap = new Map<string, TaskItem>();
+      cleanCustomTasks.forEach((t) => combinedTasksMap.set(t.id, t));
       tasksData.forEach((t) => combinedTasksMap.set(t.id, t));
-      customTasks.forEach((t) => combinedTasksMap.set(t.id, t));
       const filteredTasks = Array.from(combinedTasksMap.values()).filter((t) => !deletedTaskIds.includes(t.id));
 
-      // Routines combine
+      // Routines combine: API routines take precedence
       const combinedRoutinesMap = new Map<string, RoutineItem>();
+      cleanCustomRoutines.forEach((r) => combinedRoutinesMap.set(r.id, r));
       routinesData.forEach((r) => combinedRoutinesMap.set(r.id, r));
-      customRoutines.forEach((r) => combinedRoutinesMap.set(r.id, r));
       const filteredRoutines = Array.from(combinedRoutinesMap.values()).filter((r) => !deletedRoutineIds.includes(r.id));
 
-      // Habits combine
+      // Habits combine: API habits take precedence
       const combinedHabitsMap = new Map<string, HabitItem>();
+      cleanCustomHabits.forEach((h) => combinedHabitsMap.set(h.id, h));
       habitsData.forEach((h) => combinedHabitsMap.set(h.id, h));
-      customHabits.forEach((h) => combinedHabitsMap.set(h.id, h));
       const filteredHabits = Array.from(combinedHabitsMap.values()).filter((h) => !deletedHabitIds.includes(h.id));
 
-      // Notes combine
+      // Notes combine: API notes take precedence
       const combinedNotesMap = new Map<string, NoteItem>();
-      notesData.forEach((n) => combinedNotesMap.set(n.id, n));
       customNotes.forEach((n) => combinedNotesMap.set(n.id, n));
+      notesData.forEach((n) => combinedNotesMap.set(n.id, n));
       const filteredNotes = Array.from(combinedNotesMap.values()).filter((n) => !deletedNoteIds.includes(n.id));
 
       setTasks(filteredTasks);
@@ -218,7 +272,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const created = await api.tasks.create(data);
       setTasks((prev) => prev.map((t) => (t.id === tempId ? created : t)));
-      saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, created);
+      replaceCustomItem<TaskItem>(CUSTOM_TASKS_KEY, tempId, created);
       return created;
     } catch (err) {
       console.warn("[PlannerStore] Background task create synced via local mode");
@@ -246,6 +300,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const deleteTask = async (taskId: string) => {
     addDeletedId(DELETED_TASKS_KEY, taskId);
+    removeCustomItem(CUSTOM_TASKS_KEY, taskId);
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     try {
       await api.tasks.delete(taskId);
@@ -272,7 +327,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const created = await api.routines.create(data);
       setRoutines((prev) => prev.map((r) => (r.id === tempId ? created : r)));
-      saveCustomItem<RoutineItem>(CUSTOM_ROUTINES_KEY, created);
+      replaceCustomItem<RoutineItem>(CUSTOM_ROUTINES_KEY, tempId, created);
       return created;
     } catch (err) {
       console.warn("[PlannerStore] Background routine create synced via local mode");
@@ -303,6 +358,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const deleteRoutine = async (routineId: string) => {
     addDeletedId(DELETED_ROUTINES_KEY, routineId);
+    removeCustomItem(CUSTOM_ROUTINES_KEY, routineId);
     setRoutines((prev) => prev.filter((r) => r.id !== routineId));
     try {
       await api.routines.delete(routineId);
@@ -329,7 +385,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const created = await api.habits.create({ name });
       setHabits((prev) => prev.map((h) => (h.id === tempId ? created : h)));
-      saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, created);
+      replaceCustomItem<HabitItem>(CUSTOM_HABITS_KEY, tempId, created);
       return created;
     } catch (err) {
       console.warn("[PlannerStore] Background habit create synced via local mode");
@@ -360,6 +416,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const deleteHabit = async (habitId: string) => {
     addDeletedId(DELETED_HABITS_KEY, habitId);
+    removeCustomItem(CUSTOM_HABITS_KEY, habitId);
     setHabits((prev) => prev.filter((h) => h.id !== habitId));
     try {
       await api.habits.delete(habitId);
@@ -378,6 +435,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const deleteNote = async (noteId: string) => {
     addDeletedId(DELETED_NOTES_KEY, noteId);
+    removeCustomItem(CUSTOM_NOTES_KEY, noteId);
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
     try {
       await api.notes.delete(noteId);
