@@ -92,14 +92,48 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
     return map;
   }, [routines]);
 
-  const displayedRoutines = useMemo(() => {
-    if (!selectedDateStr) return routines;
-    const target = selectedDateStr.toUpperCase().trim();
-    return routines.filter((r) => {
-      const dayKey = r.dayKey?.toUpperCase().trim();
-      return dayKey === target || dayKey === "ALL";
+  // Multi-Select Tag Filter State
+  const [selectedTagsFilter, setSelectedTagsFilter] = useState<string[]>([]);
+
+  // Compute all unique tags across routines
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    routines.forEach((r) => {
+      parseTags(r.tags).forEach((tag) => tagSet.add(tag.toLowerCase()));
     });
-  }, [routines, selectedDateStr]);
+    return Array.from(tagSet);
+  }, [routines]);
+
+  const toggleTagFilter = (tag: string) => {
+    setSelectedTagsFilter((prev) => {
+      const exists = prev.some((t) => t.toLowerCase() === tag.toLowerCase());
+      if (exists) {
+        return prev.filter((t) => t.toLowerCase() !== tag.toLowerCase());
+      } else {
+        return [...prev, tag];
+      }
+    });
+  };
+
+  const displayedRoutines = useMemo(() => {
+    return routines.filter((r) => {
+      if (selectedDateStr) {
+        const target = selectedDateStr.toUpperCase().trim();
+        const dayKey = r.dayKey?.toUpperCase().trim();
+        if (dayKey !== target && dayKey !== "ALL") return false;
+      }
+
+      if (selectedTagsFilter.length > 0) {
+        const rTags = parseTags(r.tags).map((tag) => tag.toLowerCase());
+        const matchesAll = selectedTagsFilter.every((selected) =>
+          rTags.includes(selected.toLowerCase())
+        );
+        if (!matchesAll) return false;
+      }
+
+      return true;
+    });
+  }, [routines, selectedDateStr, selectedTagsFilter]);
 
   const handleAddSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -220,6 +254,44 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
           );
         })}
       </div>
+
+      {/* Multi-Select Tag Filter Bar (Matching Screenshot Styling & Routine Detail Font Sizing) */}
+      {allTags.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar py-1">
+          <span className="text-xs font-black text-zinc-400 uppercase tracking-wider shrink-0 pr-1 select-none">
+            TAGS:
+          </span>
+          {allTags.map((tag) => {
+            const isSelected = selectedTagsFilter.some(
+              (st) => st.toLowerCase() === tag.toLowerCase()
+            );
+
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleTagFilter(tag)}
+                className={`px-3.5 py-1 rounded-full text-base font-semibold border transition-all shrink-0 cursor-pointer ${
+                  isSelected
+                    ? "border-amber-400 bg-amber-500/25 text-amber-300 ring-1 ring-amber-400/50 scale-105 shadow-md"
+                    : "border-white/15 bg-zinc-900/60 text-zinc-300 hover:border-white/30"
+                }`}
+              >
+                #{tag}
+              </button>
+            );
+          })}
+          {selectedTagsFilter.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedTagsFilter([])}
+              className="text-xs font-semibold text-amber-400 hover:text-amber-300 shrink-0 ml-1 cursor-pointer"
+            >
+              Clear ({selectedTagsFilter.length})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Embedded Routine Items List */}
       <div className="space-y-2 pt-2 border-t border-white/5">

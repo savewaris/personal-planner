@@ -41,7 +41,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
   existingTags = [],
 }) => {
   const [filter, setFilter] = useState<FilterTab>("ALL");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTagsFilter, setSelectedTagsFilter] = useState<string[]>([]);
 
   // Inline Add Task Input State
   const [inputText, setInputText] = useState("");
@@ -72,7 +72,19 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
     [tasks]
   );
 
-  // Filtered Task List based on active tab & tag filter
+  // Toggle multi-select tag filter
+  const toggleTagFilter = (tag: string) => {
+    setSelectedTagsFilter((prev) => {
+      const exists = prev.some((t) => t.toLowerCase() === tag.toLowerCase());
+      if (exists) {
+        return prev.filter((t) => t.toLowerCase() !== tag.toLowerCase());
+      } else {
+        return [...prev, tag];
+      }
+    });
+  };
+
+  // Filtered Task List based on active tab & multi-select tag AND filtering
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       const isDone = t.status === "DONE" || t.completed;
@@ -81,15 +93,18 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
       if (filter === "ACTIVE" && isDone) return false;
       if (filter === "COMPLETED" && !isDone) return false;
 
-      // Tag filter
-      if (selectedTag) {
+      // Multi-select AND Tag filter (must contain ALL selected tags)
+      if (selectedTagsFilter.length > 0) {
         const taskTags = parseTaskTags(t.tags).map((tag) => tag.toLowerCase());
-        if (!taskTags.includes(selectedTag.toLowerCase())) return false;
+        const matchesAll = selectedTagsFilter.every((selected) =>
+          taskTags.includes(selected.toLowerCase())
+        );
+        if (!matchesAll) return false;
       }
 
       return true;
     });
-  }, [tasks, filter, selectedTag]);
+  }, [tasks, filter, selectedTagsFilter]);
 
   const handleAddSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -194,37 +209,37 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
           })}
         </div>
 
-        {selectedTag && (
+        {selectedTagsFilter.length > 0 && (
           <button
-            onClick={() => setSelectedTag(null)}
-            className="text-[11px] text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
+            onClick={() => setSelectedTagsFilter([])}
+            className="text-xs text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
           >
-            Clear #{selectedTag}
+            Clear Tags ({selectedTagsFilter.length})
           </button>
         )}
       </div>
 
-      {/* Tag Pills Filter Bar */}
+      {/* Multi-Select Tag Filter Bar (Matching Screenshot Styling & Task Detail Font Sizing) */}
       {allTags.length > 0 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider shrink-0">
-            Tags:
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar py-1">
+          <span className="text-xs font-black text-zinc-400 uppercase tracking-wider shrink-0 pr-1 select-none">
+            TAGS:
           </span>
           {allTags.map((tag) => {
-            const isSelected = selectedTag?.toLowerCase() === tag.toLowerCase();
-            const style = getTagColorStyle(tag);
+            const isSelected = selectedTagsFilter.some(
+              (st) => st.toLowerCase() === tag.toLowerCase()
+            );
 
             return (
               <button
                 key={tag}
-                onClick={() =>
-                  setSelectedTag(isSelected ? null : tag)
-                }
-                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all shrink-0 cursor-pointer ${
+                type="button"
+                onClick={() => toggleTagFilter(tag)}
+                className={`px-3.5 py-1 rounded-full text-base font-semibold border transition-all shrink-0 cursor-pointer ${
                   isSelected
-                    ? "ring-2 ring-purple-400 scale-105"
-                    : "opacity-75 hover:opacity-100"
-                } ${style.bg} ${style.border} ${style.text}`}
+                    ? "border-amber-400 bg-amber-500/25 text-amber-300 ring-1 ring-amber-400/50 scale-105 shadow-md"
+                    : "border-white/15 bg-zinc-900/60 text-zinc-300 hover:border-white/30"
+                }`}
               >
                 #{tag}
               </button>
@@ -246,8 +261,8 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
           className="py-12 text-center space-y-2 rounded-2xl border border-white/5 bg-zinc-950/40"
         >
           <p className="text-zinc-300 font-semibold text-xs">
-            {selectedTag
-              ? `No tasks found for #${selectedTag}.`
+            {selectedTagsFilter.length > 0
+              ? `No tasks found matching ALL tags: ${selectedTagsFilter.map((t) => `#${t}`).join(", ")}.`
               : filter === "COMPLETED"
               ? "No completed tasks yet."
               : filter === "ACTIVE"
@@ -346,13 +361,19 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                         {/* Display Notion-Style Tag Badges (Read Mode) */}
                         {!isEditingThis &&
                           taskTags.map((tag) => {
-                            const style = getTagColorStyle(tag);
+                            const isSelected = selectedTagsFilter.some(
+                              (st) => st.toLowerCase() === tag.toLowerCase()
+                            );
                             return (
                               <button
                                 key={tag}
                                 type="button"
-                                onClick={() => setSelectedTag(tag)}
-                                className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition-all shrink-0 cursor-pointer ${style.bg} ${style.border} ${style.text} hover:opacity-100`}
+                                onClick={() => toggleTagFilter(tag)}
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all shrink-0 cursor-pointer ${
+                                  isSelected
+                                    ? "border-amber-400 bg-amber-500/25 text-amber-300 ring-1 ring-amber-400/50"
+                                    : "border-white/15 bg-zinc-900/60 text-zinc-300 hover:border-white/30"
+                                }`}
                               >
                                 #{tag}
                               </button>
