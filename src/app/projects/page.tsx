@@ -6,6 +6,8 @@ import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { ProjectItem, ProjectRequirement } from "@/services/api";
 import { NotionTagInput, getTagColorClasses } from "@/components/NotionTagInput";
 
+import { DiagramStudio, DIAGRAM_PRESETS } from "@/components/DiagramStudio";
+
 const REQUIREMENT_PRESETS = [
   {
     name: "🌐 Full-Stack Web App",
@@ -81,6 +83,7 @@ export default function ProjectsPage() {
   const [newScope, setNewScope] = useState("");
   const [newDeliverables, setNewDeliverables] = useState("");
   const [newWorkflowSteps, setNewWorkflowSteps] = useState<string[]>([""]);
+  const [newDiagram, setNewDiagram] = useState("");
   const [newReqs, setNewReqs] = useState<string[]>([""]);
   const [newTechStack, setNewTechStack] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
@@ -90,6 +93,7 @@ export default function ProjectsPage() {
   const [showScopeInput, setShowScopeInput] = useState(false);
   const [showDeliverablesInput, setShowDeliverablesInput] = useState(false);
   const [showWorkflowInput, setShowWorkflowInput] = useState(false);
+  const [showDiagramInput, setShowDiagramInput] = useState(false);
   const [showSummaryInput, setShowSummaryInput] = useState(false);
 
   // Bulk Paste State
@@ -107,6 +111,7 @@ export default function ProjectsPage() {
   const [editingScope, setEditingScope] = useState("");
   const [editingDeliverables, setEditingDeliverables] = useState("");
   const [editingWorkflowSteps, setEditingWorkflowSteps] = useState<string[]>([""]);
+  const [editingDiagram, setEditingDiagram] = useState("");
 
   // Parse JSON or Array helpers
   const parseReqs = (raw: any): ProjectRequirement[] => {
@@ -184,6 +189,7 @@ export default function ProjectsPage() {
       scope: newScope.trim(),
       deliverables: newDeliverables.trim(),
       workflow: JSON.stringify(formattedWorkflow),
+      diagram: newDiagram.trim(),
       requirements: formattedReqs,
       techStack: formattedTech,
       tags: JSON.stringify(newTags),
@@ -195,6 +201,7 @@ export default function ProjectsPage() {
     setNewScope("");
     setNewDeliverables("");
     setNewWorkflowSteps([""]);
+    setNewDiagram("");
     setNewReqs([""]);
     setNewTechStack("");
     setNewTags([]);
@@ -202,6 +209,7 @@ export default function ProjectsPage() {
     setShowScopeInput(false);
     setShowDeliverablesInput(false);
     setShowWorkflowInput(false);
+    setShowDiagramInput(false);
     setShowSummaryInput(false);
     setIsCreateOpen(false);
   };
@@ -226,6 +234,7 @@ export default function ProjectsPage() {
     setEditingDeliverables(project.deliverables || "");
     const existingWorkflow = parseWorkflow(project.workflow);
     setEditingWorkflowSteps(existingWorkflow.length > 0 ? existingWorkflow : [""]);
+    setEditingDiagram(project.diagram || "");
   };
 
   const saveEditing = async (projectId: string) => {
@@ -239,6 +248,7 @@ export default function ProjectsPage() {
       scope: editingScope.trim(),
       deliverables: editingDeliverables.trim(),
       workflow: JSON.stringify(formattedWorkflow),
+      diagram: editingDiagram.trim(),
     });
     setEditingProjectId(null);
   };
@@ -500,6 +510,29 @@ export default function ProjectsPage() {
                         )}
                       </div>
                     ))}
+                  </motion.div>
+                )}
+              </div>
+
+              {/* 📐 System Design & Architecture Diagram */}
+              <div className="md:col-span-2 space-y-2">
+                {!showDiagramInput && !newDiagram ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDiagramInput(true)}
+                    className="w-full p-3 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">📐</span>
+                      <span className="text-lg font-bold">System Architecture Diagram</span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-indigo-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
+                      + Add Diagram Studio
+                    </span>
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                    <DiagramStudio code={newDiagram} onChangeCode={setNewDiagram} isEditable={true} />
                   </motion.div>
                 )}
               </div>
@@ -816,6 +849,11 @@ export default function ProjectsPage() {
                           </div>
 
                           <div className="space-y-2">
+                            <label className="text-xs font-bold text-indigo-300">📐 System Architecture Diagram</label>
+                            <DiagramStudio code={editingDiagram} onChangeCode={setEditingDiagram} isEditable={true} />
+                          </div>
+
+                          <div className="space-y-2">
                             <label className="text-xs font-bold text-purple-300">📝 Overview Summary</label>
                             <textarea
                               rows={2}
@@ -976,6 +1014,31 @@ export default function ProjectsPage() {
                                   </span>
                                   <span className="px-2 py-0.5 rounded-md bg-cyan-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
                                     + Add Workflow
+                                  </span>
+                                </button>
+                              );
+                            })()}
+                            {/* 📐 System Design Diagram */}
+                            {(() => {
+                              const hasDiagram = Boolean(project.diagram && project.diagram.trim());
+
+                              return hasDiagram ? (
+                                <div className="pt-1">
+                                  <DiagramStudio code={project.diagram || ""} isEditable={false} />
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(project)}
+                                  className="w-full p-2.5 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                                >
+                                  <span className="flex items-center gap-1.5">
+                                    <span>📐</span>
+                                    <span>System Architecture Diagram:</span>
+                                    <span className="font-medium text-zinc-400 group-hover:text-indigo-200 italic">Not set yet</span>
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-md bg-indigo-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
+                                    + Add Diagram
                                   </span>
                                 </button>
                               );

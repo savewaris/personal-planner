@@ -55,6 +55,7 @@ export interface ProjectItem {
   scope?: string;
   deliverables?: string;
   workflow?: string;
+  diagram?: string;
   requirements: ProjectRequirement[];
   techStack: string[];
   status?: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
@@ -92,6 +93,7 @@ class ApiService {
       scope?: string;
       deliverables?: string;
       workflow?: string;
+      diagram?: string;
       requirements?: ProjectRequirement[];
       techStack?: string[];
       status?: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
