@@ -21,6 +21,12 @@ export default function ProjectsPage() {
   const [newTechStack, setNewTechStack] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
 
+  // Expandable Form Input Visibility States
+  const [showGoalInput, setShowGoalInput] = useState(false);
+  const [showScopeInput, setShowScopeInput] = useState(false);
+  const [showDeliverablesInput, setShowDeliverablesInput] = useState(false);
+  const [showSummaryInput, setShowSummaryInput] = useState(false);
+
   // Project-Themed Validation State
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -105,6 +111,10 @@ export default function ProjectsPage() {
     setNewReqs([""]);
     setNewTechStack("");
     setNewTags([]);
+    setShowGoalInput(false);
+    setShowScopeInput(false);
+    setShowDeliverablesInput(false);
+    setShowSummaryInput(false);
     setIsCreateOpen(false);
   };
 
@@ -210,7 +220,7 @@ export default function ProjectsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Title Input */}
               <div className="md:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
+                <label className="text-lg font-bold text-white flex items-center gap-1">
                   <span>Project Title</span>
                   <span className="text-rose-400 font-black">*</span>
                 </label>
@@ -231,69 +241,141 @@ export default function ProjectsPage() {
               </div>
 
               {/* 🎯 Project Goal */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                  <span>🎯</span> Project Goal
-                </label>
-                <textarea
-                  rows={2}
-                  value={newGoal}
-                  onChange={(e) => setNewGoal(e.target.value)}
-                  placeholder="Primary objective & target outcome..."
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-amber-400 transition-all font-medium"
-                />
+              <div className="space-y-2">
+                {!showGoalInput && !newGoal ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowGoalInput(true)}
+                    className="w-full p-3 rounded-xl border-2 border-dashed border-amber-400/60 bg-amber-500/10 text-amber-300 hover:text-amber-100 hover:border-amber-300 hover:bg-amber-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">🎯</span>
+                      <span className="text-lg font-bold">Project Goal</span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
+                      + Add Goal
+                    </span>
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
+                    <label className="text-lg font-bold text-amber-300 flex items-center gap-2">
+                      <span>🎯</span> Project Goal
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newGoal}
+                      onChange={(e) => setNewGoal(e.target.value)}
+                      placeholder="Primary objective & target outcome..."
+                      className="w-full bg-zinc-900 border border-amber-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-amber-400 transition-all font-medium"
+                    />
+                  </motion.div>
+                )}
               </div>
 
               {/* 📐 Project Scope */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                  <span>📐</span> Project Scope
-                </label>
-                <textarea
-                  rows={2}
-                  value={newScope}
-                  onChange={(e) => setNewScope(e.target.value)}
-                  placeholder="In-scope features & boundary limits..."
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-indigo-400 transition-all font-medium"
-                />
+              <div className="space-y-2">
+                {!showScopeInput && !newScope ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowScopeInput(true)}
+                    className="w-full p-3 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">📐</span>
+                      <span className="text-lg font-bold">Project Scope</span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-indigo-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
+                      + Add Scope
+                    </span>
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
+                    <label className="text-lg font-bold text-indigo-300 flex items-center gap-2">
+                      <span>📐</span> Project Scope
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newScope}
+                      onChange={(e) => setNewScope(e.target.value)}
+                      placeholder="In-scope features & boundary limits..."
+                      className="w-full bg-zinc-900 border border-indigo-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-indigo-400 transition-all font-medium"
+                    />
+                  </motion.div>
+                )}
               </div>
 
               {/* 📦 Key Deliverables */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                  <span>📦</span> Key Deliverables & Output
-                </label>
-                <textarea
-                  rows={2}
-                  value={newDeliverables}
-                  onChange={(e) => setNewDeliverables(e.target.value)}
-                  placeholder="Expected outputs, milestones & tech specs..."
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-emerald-400 transition-all font-medium"
-                />
+              <div className="space-y-2">
+                {!showDeliverablesInput && !newDeliverables ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeliverablesInput(true)}
+                    className="w-full p-3 rounded-xl border-2 border-dashed border-emerald-400/60 bg-emerald-500/10 text-emerald-300 hover:text-emerald-100 hover:border-emerald-300 hover:bg-emerald-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">📦</span>
+                      <span className="text-lg font-bold">Key Deliverables</span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
+                      + Add Deliverables
+                    </span>
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
+                    <label className="text-lg font-bold text-emerald-300 flex items-center gap-2">
+                      <span>📦</span> Key Deliverables & Output
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newDeliverables}
+                      onChange={(e) => setNewDeliverables(e.target.value)}
+                      placeholder="Expected outputs, milestones & tech specs..."
+                      className="w-full bg-zinc-900 border border-emerald-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-emerald-400 transition-all font-medium"
+                    />
+                  </motion.div>
+                )}
               </div>
 
               {/* 📝 Overview Summary */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-                  <span>📝</span> Overview Summary
-                </label>
-                <textarea
-                  rows={2}
-                  value={newSummary}
-                  onChange={(e) => setNewSummary(e.target.value)}
-                  placeholder="Brief high-level overview..."
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-purple-400 transition-all font-medium"
-                />
+              <div className="space-y-2">
+                {!showSummaryInput && !newSummary ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowSummaryInput(true)}
+                    className="w-full p-3 rounded-xl border-2 border-dashed border-purple-400/60 bg-purple-500/10 text-purple-300 hover:text-purple-100 hover:border-purple-300 hover:bg-purple-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">📝</span>
+                      <span className="text-lg font-bold">Overview Summary</span>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-purple-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
+                      + Add Summary
+                    </span>
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
+                    <label className="text-lg font-bold text-purple-300 flex items-center gap-2">
+                      <span>📝</span> Overview Summary
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newSummary}
+                      onChange={(e) => setNewSummary(e.target.value)}
+                      placeholder="Brief high-level overview..."
+                      className="w-full bg-zinc-900 border border-purple-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-purple-400 transition-all font-medium"
+                    />
+                  </motion.div>
+                )}
               </div>
 
               {/* Requirements Checklist Inputs */}
               <div className="md:col-span-2 space-y-2 pt-2 border-t border-white/5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-zinc-300">Project Requirements Checklist</label>
+                  <label className="text-lg font-bold text-white">Project Requirements Checklist</label>
                   <button
                     type="button"
                     onClick={() => setNewReqs((prev) => [...prev, ""])}
-                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                    className="text-xs font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
                   >
                     + Add Requirement Item
                   </button>
@@ -328,7 +410,7 @@ export default function ProjectsPage() {
 
               {/* Tech Stack Tags */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300">Tech Stack (comma separated)</label>
+                <label className="text-lg font-bold text-white">Tech Stack (comma separated)</label>
                 <input
                   type="text"
                   value={newTechStack}
@@ -340,7 +422,7 @@ export default function ProjectsPage() {
 
               {/* Notion Tags Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300">Notion Tags</label>
+                <label className="text-lg font-bold text-white">Notion Tags</label>
                 <NotionTagInput selectedTags={newTags} onChangeSelectedTags={setNewTags} placeholder="Add tag & press Enter..." />
               </div>
             </div>
