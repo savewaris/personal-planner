@@ -6,6 +6,40 @@ import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { ProjectItem, ProjectRequirement } from "@/services/api";
 import { NotionTagInput, getTagColorClasses } from "@/components/NotionTagInput";
 
+const REQUIREMENT_PRESETS = [
+  {
+    name: "🌐 Full-Stack Web App",
+    items: [
+      "Implement Next.js App Router & TypeScript architecture",
+      "Design dark glassmorphism UI & responsive design system",
+      "Setup Prisma ORM & PostgreSQL / Neon database connection",
+      "Build REST API endpoints with input validation",
+      "Integrate Google OAuth / NextAuth authentication",
+      "Deploy build to Vercel with zero compiler errors",
+    ],
+  },
+  {
+    name: "📱 Mobile App",
+    items: [
+      "Setup cross-platform mobile project architecture",
+      "Build responsive UI layout with dark/light theme switching",
+      "Implement state management (Provider / Riverpod / Zustand)",
+      "Integrate REST / GraphQL backend APIs & offline storage",
+      "Setup push notifications & biometric auth",
+    ],
+  },
+  {
+    name: "🤖 AI / SaaS App",
+    items: [
+      "Setup Next.js frontend with Tailwind CSS & Framer Motion",
+      "Integrate OpenAI / Gemini API with streaming responses",
+      "Setup database user quotas, rate limiting, and analytics",
+      "Implement Stripe subscription billing & webhooks",
+      "Build user dashboard with optimistic UI updates",
+    ],
+  },
+];
+
 export default function ProjectsPage() {
   const { projects, createProject, updateProject, deleteProject } = usePlannerStore();
 
@@ -26,6 +60,10 @@ export default function ProjectsPage() {
   const [showScopeInput, setShowScopeInput] = useState(false);
   const [showDeliverablesInput, setShowDeliverablesInput] = useState(false);
   const [showSummaryInput, setShowSummaryInput] = useState(false);
+
+  // Bulk Paste State
+  const [showBulkPaste, setShowBulkPaste] = useState(false);
+  const [bulkPasteText, setBulkPasteText] = useState("");
 
   // Project-Themed Validation State
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -369,17 +407,85 @@ export default function ProjectsPage() {
               </div>
 
               {/* Requirements Checklist Inputs */}
-              <div className="md:col-span-2 space-y-2 pt-2 border-t border-white/5">
-                <div className="flex items-center justify-between">
-                  <label className="text-lg font-bold text-white">Project Requirements Checklist</label>
-                  <button
-                    type="button"
-                    onClick={() => setNewReqs((prev) => [...prev, ""])}
-                    className="text-xs font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                  >
-                    + Add Requirement Item
-                  </button>
+              <div className="md:col-span-2 space-y-3 pt-2 border-t border-white/5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-lg font-bold text-white flex items-center gap-2">
+                    <span>📋 Project Requirements Checklist</span>
+                  </label>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkPaste(!showBulkPaste)}
+                      className="px-2.5 py-1 rounded-lg bg-zinc-800 border border-white/10 text-amber-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <span>📋</span> Bulk Paste
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setNewReqs((prev) => [...prev, ""])}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                    >
+                      + Add Item
+                    </button>
+                  </div>
                 </div>
+
+                {/* ⚡ Quick Presets Pill Bar */}
+                <div className="flex items-center gap-2 flex-wrap p-2.5 rounded-xl bg-zinc-900/80 border border-white/5">
+                  <span className="text-xs font-extrabold text-zinc-400 shrink-0">⚡ Quick Presets:</span>
+                  {REQUIREMENT_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => {
+                        setNewReqs(preset.items);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 hover:border-indigo-400 hover:bg-indigo-500/20 text-zinc-200 hover:text-indigo-200 text-xs font-bold transition-all cursor-pointer"
+                      title="Click to populate requirements checklist with this preset"
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Bulk Paste Box */}
+                {showBulkPaste && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-2 p-3 rounded-xl bg-zinc-900 border border-amber-400/40">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-amber-300">Paste multi-line requirements (one item per line):</label>
+                      <button type="button" onClick={() => setShowBulkPaste(false)} className="text-xs text-zinc-400 font-bold hover:text-white">✕</button>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={bulkPasteText}
+                      onChange={(e) => setBulkPasteText(e.target.value)}
+                      placeholder="- Requirement line 1&#10;- Requirement line 2&#10;- Requirement line 3"
+                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400 transition-all font-mono"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const lines = bulkPasteText
+                            .split("\n")
+                            .map((line) => line.replace(/^[\s\-\*\d\.\(\)\[\]xX]+/, "").trim())
+                            .filter(Boolean);
+
+                          if (lines.length > 0) {
+                            setNewReqs(lines);
+                            setBulkPasteText("");
+                            setShowBulkPaste(false);
+                          }
+                        }}
+                        className="px-3 py-1 rounded-lg bg-amber-400 text-zinc-950 font-black text-xs cursor-pointer hover:bg-amber-300"
+                      >
+                        Import Lines ✨
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
 
                 {newReqs.map((req, idx) => (
                   <div key={idx} className="flex items-center gap-2">
