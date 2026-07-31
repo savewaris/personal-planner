@@ -4,26 +4,34 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RoutineItem } from "@/services/api";
 import { NotionTagInput, getTagColorStyle } from "./NotionTagInput";
+import { EditItemModal, EditItemData } from "./EditItemModal";
 
-export const WEEK_DAYS = [
-  { key: "MON", label: "Mon", fullName: "Monday" },
-  { key: "TUE", label: "Tue", fullName: "Tuesday" },
-  { key: "WED", label: "Wed", fullName: "Wednesday" },
-  { key: "THU", label: "Thu", fullName: "Thursday" },
-  { key: "FRI", label: "Fri", fullName: "Friday" },
-  { key: "SAT", label: "Sat", fullName: "Saturday" },
-  { key: "SUN", label: "Sun", fullName: "Sunday" },
+interface DayColumn {
+  key: string;
+  label: string;
+}
+
+const WEEK_DAYS: DayColumn[] = [
+  { key: "MON", label: "MON" },
+  { key: "TUE", label: "TUE" },
+  { key: "WED", label: "WED" },
+  { key: "THU", label: "THU" },
+  { key: "FRI", label: "FRI" },
+  { key: "SAT", label: "SAT" },
+  { key: "SUN", label: "SUN" },
 ];
 
-export const TARGET_DAY_OPTIONS = ["ALL", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+interface WeeklyRoutineCalendarProps {
+  routines: RoutineItem[];
+  selectedDateStr?: string | null;
+  onSelectDate: (dayKey: string | null) => void;
+  onToggleRoutine?: (routineId: string) => Promise<void>;
+  onDeleteRoutine?: (routineId: string) => Promise<void>;
+  onAddRoutine?: (title: string, dayKey: string, tags?: string[]) => Promise<void>;
+  onUpdateRoutine?: (routineId: string, updates: { title: string; dayKey: string; tags?: string[] }) => Promise<void>;
+  existingTags?: string[];
+}
 
-export const getTodayDayKey = (): string => {
-  const day = new Date().getDay(); // 0 is Sunday, 1 is Monday...
-  const index = day === 0 ? 6 : day - 1;
-  return WEEK_DAYS[index].key;
-};
-
-// Helper to safely parse tags
 const parseTags = (tagsField?: string | string[] | null): string[] => {
   if (!tagsField) return [];
   if (Array.isArray(tagsField)) return tagsField;
@@ -37,45 +45,35 @@ const parseTags = (tagsField?: string | string[] | null): string[] => {
   }
 };
 
-interface WeeklyRoutineCalendarProps {
-  routines: RoutineItem[];
-  selectedDateStr: string | null; // "MON", "TUE", etc., or null for All Routines
-  onSelectDate: (dayKey: string | null) => void;
-  onAddRoutine?: (title: string, dayKey: string, tags?: string[]) => Promise<void>;
-  onToggleRoutine?: (id: string) => Promise<void>;
-  onDeleteRoutine?: (id: string) => Promise<void>;
-  existingTags?: string[];
-}
-
 export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
   routines,
   selectedDateStr,
   onSelectDate,
-  onAddRoutine,
   onToggleRoutine,
   onDeleteRoutine,
+  onAddRoutine,
+  onUpdateRoutine,
   existingTags = [],
 }) => {
-  const todayKey = useMemo(() => getTodayDayKey(), []);
   const [inputText, setInputText] = useState("");
+  const [targetDayKey, setTargetDayKey] = useState("MON");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [targetDayKey, setTargetDayKey] = useState<string>(selectedDateStr || "ALL");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Keep targetDayKey updated when selectedDateStr changes
-  React.useEffect(() => {
-    if (selectedDateStr) setTargetDayKey(selectedDateStr);
-  }, [selectedDateStr]);
+  // Edit Routine Modal State
+  const [editingRoutine, setEditingRoutine] = useState<EditItemData | null>(null);
 
-  // Compute routine counts per day key (routines with "ALL" contribute to every day)
+  const todayKey = useMemo(() => {
+    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    return days[new Date().getDay()];
+  }, []);
+
   const countsByDay = useMemo(() => {
     const map = new Map<string, { total: number; done: number }>();
     WEEK_DAYS.forEach((d) => map.set(d.key, { total: 0, done: 0 }));
 
     routines.forEach((r) => {
-      if (!r.dayKey) return;
-      const dayKey = r.dayKey.toUpperCase().trim();
-
+      const dayKey = r.dayKey?.toUpperCase().trim();
       if (dayKey === "ALL") {
         WEEK_DAYS.forEach((d) => {
           const current = map.get(d.key) || { total: 0, done: 0 };
@@ -93,7 +91,6 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
     return map;
   }, [routines]);
 
-  // Routines to display in the list below the strip
   const displayedRoutines = useMemo(() => {
     if (!selectedDateStr) return routines;
     const target = selectedDateStr.toUpperCase().trim();
@@ -114,6 +111,12 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
       setSelectedTags([]);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveEdit = async (id: string, updates: { title: string; dayKey: string; tags?: string[] }) => {
+    if (onUpdateRoutine) {
+      await onUpdateRoutine(id, updates);
     }
   };
 
@@ -138,75 +141,47 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
         <button
           type="button"
           onClick={() => onSelectDate(todayKey)}
-          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer"
+          className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-all cursor-pointer shrink-0"
         >
           Today ({todayKey})
         </button>
       </div>
 
-      {/* Show All Routines Button */}
-      <button
-        type="button"
-        onClick={() => onSelectDate(null)}
-        className={`w-full py-2 px-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-between border cursor-pointer ${
-          selectedDateStr === null
-            ? "bg-indigo-500 text-white border-indigo-400 shadow-md"
-            : "bg-zinc-900/60 border-white/10 text-zinc-400 hover:text-zinc-200 hover:border-white/20"
-        }`}
-      >
-        <span className="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-          </svg>
-          Show All Weekly Routines
-        </span>
-        <span className="text-[10px] font-bold opacity-80">{routines.length} routines</span>
-      </button>
-
-      {/* 7-Day Pure Day Name Strip Grid */}
-      <div className="grid grid-cols-7 gap-1.5">
+      {/* 7 Day Names Strip (MON-SUN) */}
+      <div className="grid grid-cols-7 gap-1">
         {WEEK_DAYS.map((day) => {
-          const isToday = day.key === todayKey;
           const isSelected = selectedDateStr === day.key;
+          const isToday = todayKey === day.key;
           const counts = countsByDay.get(day.key) || { total: 0, done: 0 };
-          const hasRoutines = counts.total > 0;
+          const isAllDone = counts.total > 0 && counts.done === counts.total;
 
           return (
             <motion.button
               key={day.key}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
               type="button"
               onClick={() => onSelectDate(isSelected ? null : day.key)}
-              className={`relative flex flex-col items-center justify-between p-2 rounded-xl border transition-all cursor-pointer min-h-[75px] ${
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
                 isSelected
-                  ? "bg-gradient-to-b from-indigo-500/30 to-purple-600/30 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                  ? "bg-indigo-600 border-indigo-400 text-white font-extrabold shadow-lg shadow-indigo-500/30"
                   : isToday
-                  ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20"
-                  : "bg-zinc-900/50 border-white/10 hover:border-white/20 text-zinc-300"
+                  ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-200"
+                  : "bg-zinc-900/60 border-white/10 text-zinc-300 hover:border-white/20"
               }`}
             >
-              {isToday && (
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              )}
+              <span className="text-[10px] font-black uppercase tracking-wider">
+                {day.label}
+              </span>
 
-              <div className="text-center my-auto">
-                <span className="text-xs font-black tracking-wider block uppercase">
-                  {day.key}
-                </span>
-                <span className="text-[10px] font-medium text-zinc-400 block">
-                  {day.label}
-                </span>
-              </div>
-
-              <div className="mt-1">
-                {hasRoutines ? (
+              <div className="mt-1 flex items-center justify-center min-h-[14px]">
+                {counts.total > 0 ? (
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      counts.done === counts.total
+                    className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${
+                      isAllDone
                         ? "bg-emerald-500 text-zinc-950"
                         : isSelected
-                        ? "bg-white text-zinc-950"
+                        ? "bg-white/20 text-white"
                         : "bg-indigo-500/30 text-indigo-200 border border-indigo-500/40"
                     }`}
                   >
@@ -276,7 +251,22 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                       </button>
 
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <span className={`text-xs font-medium truncate ${isDone ? "line-through text-zinc-500" : "text-zinc-200"}`}>
+                        {/* Clickable Routine Title to Edit */}
+                        <span
+                          onClick={() =>
+                            setEditingRoutine({
+                              id: routine.id,
+                              type: "ROUTINE",
+                              title: routine.title,
+                              dayKey: routine.dayKey,
+                              tags: rTags,
+                            })
+                          }
+                          title="Click to edit routine"
+                          className={`text-xs font-medium truncate cursor-pointer hover:text-amber-300 ${
+                            isDone ? "line-through text-zinc-500" : "text-zinc-200"
+                          }`}
+                        >
                           {routine.title}
                         </span>
 
@@ -295,17 +285,38 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                       </div>
                     </div>
 
-                    {onDeleteRoutine && (
+                    {/* Right Actions: Edit Pencil & Delete Buttons */}
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={() => onDeleteRoutine(routine.id)}
-                        className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer shrink-0 ml-2"
+                        onClick={() =>
+                          setEditingRoutine({
+                            id: routine.id,
+                            type: "ROUTINE",
+                            title: routine.title,
+                            dayKey: routine.dayKey,
+                            tags: rTags,
+                          })
+                        }
+                        title="Edit routine details"
+                        className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                        </svg>
+                        ✏️
                       </button>
-                    )}
+
+                      {onDeleteRoutine && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteRoutine(routine.id)}
+                          title="Delete routine"
+                          className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </motion.div>
                 );
               })}
@@ -314,59 +325,67 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
         )}
       </div>
 
-      {/* Dedicated Section Input Box for Weekly Routines */}
+      {/* Dedicated Section Input Box for Routines */}
       {onAddRoutine && (
         <form onSubmit={handleAddSubmit} className="pt-2 border-t border-white/5 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
-              Add Routine to:
-            </span>
+          <div className="flex items-center justify-between text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
+            <span>Add Routine To:</span>
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              {TARGET_DAY_OPTIONS.map((dKey) => (
+              {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN", "ALL"].map((day) => (
                 <button
-                  key={dKey}
+                  key={day}
                   type="button"
-                  onClick={() => setTargetDayKey(dKey)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                    targetDayKey === dKey
-                      ? "bg-indigo-500 text-white"
-                      : "bg-white/5 border border-white/10 text-zinc-400 hover:text-zinc-200"
+                  onClick={() => setTargetDayKey(day)}
+                  className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold transition-all cursor-pointer ${
+                    targetDayKey === day
+                      ? "bg-indigo-500 text-white shadow-sm"
+                      : "bg-zinc-900 border border-white/10 text-zinc-400 hover:text-white"
                   }`}
                 >
-                  {dKey}
+                  {day}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="flex items-center gap-2 bg-zinc-900/80 p-2 rounded-xl border border-white/10 focus-within:border-indigo-500/50 transition-all">
-            <NotionTagInput
-              selectedTags={selectedTags}
-              onChangeSelectedTags={setSelectedTags}
-              existingTags={existingTags}
-            />
-
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder={`Add ${targetDayKey} routine...`}
+              placeholder={`Add routine for ${targetDayKey} (type #tag for Notion tags)...`}
               disabled={isSubmitting}
-              className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500 min-w-0"
+              className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500 min-w-0 px-2"
             />
 
             <button
               type="submit"
               disabled={!inputText.trim() || isSubmitting}
-              className="shrink-0 p-1.5 rounded-lg bg-indigo-500 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-400 transition-all cursor-pointer"
+              className="shrink-0 p-1.5 rounded-lg bg-indigo-600 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-500 transition-all cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a.996.996 0 00-1.41.91v4.99c0 .5.37.92.87.99L14 12l-11.14 1.5c-.5.07-.87.49-.87.99v4.99c0 .65.65 1.13 1.41.92z" />
               </svg>
             </button>
           </div>
+
+          <NotionTagInput
+            selectedTags={selectedTags}
+            onChangeSelectedTags={setSelectedTags}
+            existingTags={existingTags}
+            placeholder="Add Notion tag (e.g. Health, Study)..."
+          />
         </form>
       )}
+
+      {/* Edit Routine Modal */}
+      <EditItemModal
+        isOpen={Boolean(editingRoutine)}
+        onClose={() => setEditingRoutine(null)}
+        itemData={editingRoutine}
+        onSaveRoutine={handleSaveEdit}
+        existingTags={existingTags}
+      />
     </div>
   );
 };

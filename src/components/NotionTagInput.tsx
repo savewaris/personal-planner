@@ -25,6 +25,7 @@ interface NotionTagInputProps {
   selectedTags: string[];
   onChangeSelectedTags: (tags: string[]) => void;
   existingTags?: string[];
+  placeholder?: string;
 }
 
 /**
@@ -37,6 +38,7 @@ export const NotionTagInput: React.FC<NotionTagInputProps> = ({
   selectedTags,
   onChangeSelectedTags,
   existingTags = [],
+  placeholder = "Add tags...",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");

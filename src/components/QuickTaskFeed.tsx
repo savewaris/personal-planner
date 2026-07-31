@@ -4,12 +4,14 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TaskItem } from "./TaskCard";
 import { NotionTagInput, getTagColorStyle } from "./NotionTagInput";
+import { EditItemModal, EditItemData } from "./EditItemModal";
 
 interface QuickTaskFeedProps {
   tasks: TaskItem[];
   onToggleTask: (taskId: string, currentStatus: string) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
   onAddTask?: (title: string, tags?: string[]) => Promise<void>;
+  onUpdateTask?: (taskId: string, updates: { title: string; priority?: string; tags?: string[] }) => Promise<void>;
   isLoading?: boolean;
   existingTags?: string[];
 }
@@ -35,6 +37,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
   onToggleTask,
   onDeleteTask,
   onAddTask,
+  onUpdateTask,
   isLoading = false,
   existingTags = [],
 }) => {
@@ -45,6 +48,9 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
   const [inputText, setInputText] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit Modal State
+  const [editingTask, setEditingTask] = useState<EditItemData | null>(null);
 
   // Compute all unique tags across current tasks
   const allTags = useMemo(() => {
@@ -65,15 +71,16 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
     [tasks]
   );
 
-  // Filter Tasks by Status & Selected Tag
+  // Filtered Task List based on active tab & tag filter
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
-      // 1. Status Filter
       const isDone = t.status === "DONE" || t.completed;
+
+      // Status tab filter
       if (filter === "ACTIVE" && isDone) return false;
       if (filter === "COMPLETED" && !isDone) return false;
 
-      // 2. Tag Filter
+      // Tag filter
       if (selectedTag) {
         const taskTags = parseTaskTags(t.tags).map((tag) => tag.toLowerCase());
         if (!taskTags.includes(selectedTag.toLowerCase())) return false;
@@ -94,6 +101,12 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
       setSelectedTags([]);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveEdit = async (id: string, updates: { title: string; priority?: string; tags?: string[] }) => {
+    if (onUpdateTask) {
+      await onUpdateTask(id, updates);
     }
   };
 
@@ -142,58 +155,51 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
               >
                 {isActive && (
                   <motion.div
-                    layoutId="feedFilterPill"
-                    className="absolute inset-0 bg-indigo-500/20 border border-indigo-500/40 rounded-lg"
+                    layoutId="quickTaskFilterPill"
+                    className="absolute inset-0 bg-white/10 rounded-lg border border-white/20"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
-                <span className="relative z-10 flex items-center gap-1.5 capitalize">
-                  {tab.toLowerCase()}
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                      isActive
-                        ? "bg-indigo-500 text-white"
-                        : "bg-zinc-800 text-zinc-400"
-                    }`}
-                  >
-                    {count}
-                  </span>
+                <span className="relative z-10 flex items-center gap-1">
+                  {tab === "ALL" ? "All" : tab === "ACTIVE" ? "Active" : "Done"}
+                  <span className="text-[10px] opacity-70">({count})</span>
                 </span>
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* Notion-Style Tags Filter Strip */}
-      {allTags.length > 0 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider shrink-0 mr-1">
-            Tags:
-          </span>
+        {selectedTag && (
           <button
             onClick={() => setSelectedTag(null)}
-            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
-              selectedTag === null
-                ? "bg-indigo-500 text-white shadow-sm"
-                : "bg-white/5 border border-white/10 text-zinc-400 hover:text-zinc-200"
-            }`}
+            className="text-[11px] text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
           >
-            All Tags
+            Clear #{selectedTag}
           </button>
+        )}
+      </div>
+
+      {/* Tag Pills Filter Bar */}
+      {allTags.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider shrink-0">
+            Tags:
+          </span>
           {allTags.map((tag) => {
-            const isSelected = selectedTag?.toLowerCase() === tag;
+            const isSelected = selectedTag?.toLowerCase() === tag.toLowerCase();
             const style = getTagColorStyle(tag);
 
             return (
               <button
                 key={tag}
-                onClick={() => setSelectedTag(isSelected ? null : tag)}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all shrink-0 cursor-pointer ${
+                onClick={() =>
+                  setSelectedTag(isSelected ? null : tag)
+                }
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all shrink-0 cursor-pointer ${
                   isSelected
-                    ? "bg-indigo-500 text-white border-indigo-400 shadow-sm"
-                    : `${style.bg} ${style.border} ${style.text} hover:opacity-100`
-                }`}
+                    ? "ring-2 ring-purple-400 scale-105"
+                    : "opacity-75 hover:opacity-100"
+                } ${style.bg} ${style.border} ${style.text}`}
               >
                 #{tag}
               </button>
@@ -202,11 +208,11 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
         </div>
       )}
 
-      {/* Task List Feed */}
+      {/* Task Items List */}
       {isLoading ? (
-        <div className="py-12 text-center text-zinc-500 text-sm">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-          Loading your to-do list...
+        <div className="py-12 text-center text-zinc-500 text-xs">
+          <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          Loading tasks...
         </div>
       ) : filteredTasks.length === 0 ? (
         <motion.div
@@ -279,8 +285,19 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                     </button>
 
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      {/* Clickable Title to Edit */}
                       <span
-                        className={`text-xs font-medium transition-all truncate ${
+                        onClick={() =>
+                          setEditingTask({
+                            id: task.id,
+                            type: "TASK",
+                            title: task.title,
+                            priority: task.priority,
+                            tags: taskTags,
+                          })
+                        }
+                        title="Click to edit task"
+                        className={`text-xs font-medium transition-all truncate cursor-pointer hover:text-amber-300 ${
                           isDone
                             ? "line-through text-zinc-500 font-normal"
                             : "text-zinc-100"
@@ -306,28 +323,47 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                     </div>
                   </div>
 
-                  {/* Right Actions: Delete button */}
-                  <button
-                    type="button"
-                    onClick={() => onDeleteTask(task.id)}
-                    title="Delete task"
-                    className="shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.75}
-                      stroke="currentColor"
+                  {/* Right Actions: Edit Pencil & Delete buttons */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditingTask({
+                          id: task.id,
+                          type: "TASK",
+                          title: task.title,
+                          priority: task.priority,
+                          tags: taskTags,
+                        })
+                      }
+                      title="Edit task details"
+                      className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                      />
-                    </svg>
-                  </button>
+                      ✏️
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onDeleteTask(task.id)}
+                      title="Delete task"
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.75}
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </motion.div>
               );
             })}
@@ -335,7 +371,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
         </div>
       )}
 
-      {/* Dedicated Section Input Box for Quick To-Do Tasks */}
+      {/* Dedicated Section Input Box for Quick Tasks */}
       {onAddTask && (
         <form onSubmit={handleAddSubmit} className="pt-2 border-t border-white/5 space-y-2">
           <div className="flex items-center justify-between text-[11px] font-bold text-purple-400 uppercase tracking-wider">
@@ -343,33 +379,43 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
           </div>
 
           <div className="flex items-center gap-2 bg-zinc-900/80 p-2 rounded-xl border border-white/10 focus-within:border-purple-500/50 transition-all">
-            <NotionTagInput
-              selectedTags={selectedTags}
-              onChangeSelectedTags={setSelectedTags}
-              existingTags={existingTags}
-            />
-
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Add quick to-do task..."
+              placeholder="Add quick task (type #tag for Notion tags)..."
               disabled={isSubmitting}
-              className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500 min-w-0"
+              className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500 min-w-0 px-2"
             />
 
             <button
               type="submit"
               disabled={!inputText.trim() || isSubmitting}
-              className="shrink-0 p-1.5 rounded-lg bg-purple-600 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-500 transition-all cursor-pointer"
+              className="shrink-0 p-1.5 rounded-lg bg-purple-600 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-500 transition-all cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a.996.996 0 00-1.41.91v4.99c0 .5.37.92.87.99L14 12l-11.14 1.5c-.5.07-.87.49-.87.99v4.99c0 .65.65 1.13 1.41.92z" />
               </svg>
             </button>
           </div>
+
+          <NotionTagInput
+            selectedTags={selectedTags}
+            onChangeSelectedTags={setSelectedTags}
+            existingTags={existingTags}
+            placeholder="Add Notion tag (e.g. Work, Health)..."
+          />
         </form>
       )}
+
+      {/* Edit Task Modal */}
+      <EditItemModal
+        isOpen={Boolean(editingTask)}
+        onClose={() => setEditingTask(null)}
+        itemData={editingTask}
+        onSaveTask={handleSaveEdit}
+        existingTags={existingTags}
+      />
     </div>
   );
 };

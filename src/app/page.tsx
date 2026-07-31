@@ -19,12 +19,15 @@ export default function DashboardPage() {
     setActiveContextId,
     isLoading,
     createTask,
+    updateTask,
     updateTaskStatus,
     deleteTask,
     createRoutine,
+    updateRoutine,
     toggleRoutine,
     deleteRoutine,
     createHabit,
+    updateHabit,
     toggleHabit,
     deleteHabit,
     stats,
@@ -184,6 +187,7 @@ export default function DashboardPage() {
                 onToggleRoutine={toggleRoutine}
                 onDeleteRoutine={deleteRoutine}
                 onAddRoutine={handleAddRoutine}
+                onUpdateRoutine={async (id, updates) => { await updateRoutine(id, updates); }}
                 existingTags={existingTags}
               />
             </div>
@@ -195,6 +199,7 @@ export default function DashboardPage() {
                 onToggleTask={updateTaskStatus}
                 onDeleteTask={deleteTask}
                 onAddTask={handleAddTask}
+                onUpdateTask={async (id, updates) => { await updateTask(id, updates); }}
                 isLoading={isLoading}
                 existingTags={existingTags}
               />
@@ -207,6 +212,7 @@ export default function DashboardPage() {
                 onToggleHabit={toggleHabit}
                 onDeleteHabit={deleteHabit}
                 onAddHabit={handleAddHabit}
+                onUpdateHabit={async (id, updates) => { await updateHabit(id, updates); }}
                 isLoading={isLoading}
               />
             </div>
@@ -231,6 +237,7 @@ export default function DashboardPage() {
                     onToggleRoutine={toggleRoutine}
                     onDeleteRoutine={deleteRoutine}
                     onAddRoutine={handleAddRoutine}
+                    onUpdateRoutine={async (id, updates) => { await updateRoutine(id, updates); }}
                     existingTags={existingTags}
                   />
                 </div>
@@ -243,6 +250,7 @@ export default function DashboardPage() {
                     onToggleTask={updateTaskStatus}
                     onDeleteTask={deleteTask}
                     onAddTask={handleAddTask}
+                    onUpdateTask={async (id, updates) => { await updateTask(id, updates); }}
                     isLoading={isLoading}
                     existingTags={existingTags}
                   />
@@ -256,6 +264,7 @@ export default function DashboardPage() {
                     onToggleHabit={toggleHabit}
                     onDeleteHabit={deleteHabit}
                     onAddHabit={handleAddHabit}
+                    onUpdateHabit={async (id, updates) => { await updateHabit(id, updates); }}
                     isLoading={isLoading}
                   />
                 </div>

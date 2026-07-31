@@ -17,16 +17,19 @@ interface PlannerStoreContextType {
 
   // Task Mutations
   createTask: (data: Parameters<typeof api.tasks.create>[0]) => Promise<TaskItem>;
+  updateTask: (taskId: string, updates: { title?: string; priority?: string; tags?: string[] | string | null }) => Promise<void>;
   updateTaskStatus: (taskId: string, newStatus: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
 
   // Routine Mutations
   createRoutine: (data: { title: string; dayKey: string; tags?: string[] }) => Promise<RoutineItem>;
+  updateRoutine: (routineId: string, updates: { title?: string; dayKey?: string; tags?: string[] | string | null }) => Promise<void>;
   toggleRoutine: (routineId: string) => Promise<void>;
   deleteRoutine: (routineId: string) => Promise<void>;
 
   // Habit Mutations
   createHabit: (name: string) => Promise<HabitItem>;
+  updateHabit: (habitId: string, updates: { name: string }) => Promise<void>;
   toggleHabit: (habitId: string) => Promise<void>;
   deleteHabit: (habitId: string) => Promise<void>;
 
@@ -298,6 +301,28 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const updateTask = async (taskId: string, updates: { title?: string; priority?: string; tags?: string[] | string | null }) => {
+    const formattedUpdates = {
+      ...updates,
+      tags: updates.tags ? (typeof updates.tags === "string" ? updates.tags : JSON.stringify(updates.tags)) : null,
+    };
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const updated = { ...t, ...formattedUpdates };
+          saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, updated);
+          return updated;
+        }
+        return t;
+      })
+    );
+    try {
+      await api.tasks.update(taskId, updates as any);
+    } catch (err) {
+      console.error("[PlannerStore] updateTask error:", err);
+    }
+  };
+
   const deleteTask = async (taskId: string) => {
     addDeletedId(DELETED_TASKS_KEY, taskId);
     removeCustomItem(CUSTOM_TASKS_KEY, taskId);
@@ -356,6 +381,28 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const updateRoutine = async (routineId: string, updates: { title?: string; dayKey?: string; tags?: string[] | string | null }) => {
+    const formattedUpdates = {
+      ...updates,
+      tags: updates.tags ? (typeof updates.tags === "string" ? updates.tags : JSON.stringify(updates.tags)) : null,
+    };
+    setRoutines((prev) =>
+      prev.map((r) => {
+        if (r.id === routineId) {
+          const updated = { ...r, ...formattedUpdates };
+          saveCustomItem<RoutineItem>(CUSTOM_ROUTINES_KEY, updated);
+          return updated;
+        }
+        return r;
+      })
+    );
+    try {
+      await api.routines.update(routineId, updates as any);
+    } catch (err) {
+      console.error("[PlannerStore] updateRoutine error:", err);
+    }
+  };
+
   const deleteRoutine = async (routineId: string) => {
     addDeletedId(DELETED_ROUTINES_KEY, routineId);
     removeCustomItem(CUSTOM_ROUTINES_KEY, routineId);
@@ -411,6 +458,24 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       await api.habits.toggleLog(habitId);
     } catch (err) {
       console.error("[PlannerStore] Toggle habit error:", err);
+    }
+  };
+
+  const updateHabit = async (habitId: string, updates: { name: string }) => {
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id === habitId) {
+          const updated = { ...h, name: updates.name };
+          saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, updated);
+          return updated;
+        }
+        return h;
+      })
+    );
+    try {
+      await api.habits.update(habitId, updates);
+    } catch (err) {
+      console.error("[PlannerStore] updateHabit error:", err);
     }
   };
 
@@ -504,12 +569,15 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isLoading,
         refetchAll,
         createTask,
+        updateTask,
         updateTaskStatus,
         deleteTask,
         createRoutine,
+        updateRoutine,
         toggleRoutine,
         deleteRoutine,
         createHabit,
+        updateHabit,
         toggleHabit,
         deleteHabit,
         createNote,
