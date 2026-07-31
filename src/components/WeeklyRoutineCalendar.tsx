@@ -62,6 +62,7 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
   // Direct Inline Edit State
   const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string>("");
+  const [editingTags, setEditingTags] = useState<string[]>([]);
 
   const todayKey = useMemo(() => {
     const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -117,11 +118,13 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
   const startEditing = (routine: RoutineItem) => {
     setEditingRoutineId(routine.id);
     setEditingText(routine.title);
+    setEditingTags(parseTags(routine.tags));
   };
 
   const cancelEditing = () => {
     setEditingRoutineId(null);
     setEditingText("");
+    setEditingTags([]);
   };
 
   const saveEditing = async (routineId: string) => {
@@ -134,11 +137,12 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
       await onUpdateRoutine(routineId, {
         title: editingText.trim(),
         dayKey: targetRoutine.dayKey,
-        tags: parseTags(targetRoutine.tags),
+        tags: editingTags,
       });
     }
     setEditingRoutineId(null);
     setEditingText("");
+    setEditingTags([]);
   };
 
   return (
@@ -249,7 +253,7 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                    className={`flex flex-col gap-2 p-2.5 rounded-xl border transition-all ${
                       isEditingThis
                         ? "bg-zinc-950 border-amber-400/80 shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/50"
                         : isDone
@@ -257,119 +261,135 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                         : "bg-zinc-900/60 border-white/10 hover:border-indigo-500/30"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                      <button
-                        type="button"
-                        onClick={() => onToggleRoutine?.(routine.id)}
-                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                          isDone
-                            ? "bg-emerald-500 border-emerald-400 text-zinc-950"
-                            : "border-white/20 hover:border-indigo-400 bg-white/5"
-                        }`}
-                      >
-                        {isDone && (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                          </svg>
-                        )}
-                      </button>
+                    <div className="flex items-center justify-between min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                        <button
+                          type="button"
+                          onClick={() => onToggleRoutine?.(routine.id)}
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                            isDone
+                              ? "bg-emerald-500 border-emerald-400 text-zinc-950"
+                              : "border-white/20 hover:border-indigo-400 bg-white/5"
+                          }`}
+                        >
+                          {isDone && (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          )}
+                        </button>
 
-                      <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                        {isEditingThis ? (
-                          /* Direct Inline Input Box */
-                          <input
-                            type="text"
-                            value={editingText}
-                            onChange={(e) => setEditingText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEditing(routine.id);
-                              if (e.key === "Escape") cancelEditing();
-                            }}
-                            onBlur={() => saveEditing(routine.id)}
-                            autoFocus
-                            className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
-                          />
-                        ) : (
-                          /* Clickable Routine Title to Edit Inline */
-                          <span
-                            onClick={() => startEditing(routine)}
-                            title="Click to edit routine title inline"
-                            className={`text-xs font-medium truncate cursor-pointer hover:text-amber-300 ${
-                              isDone ? "line-through text-zinc-500" : "text-zinc-200"
-                            }`}
-                          >
-                            {routine.title}
-                          </span>
-                        )}
-
-                        {!isEditingThis && (
-                          <>
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
-                              {routine.dayKey}
+                        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                          {isEditingThis ? (
+                            /* Direct Inline Input Box */
+                            <input
+                              type="text"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEditing(routine.id);
+                                if (e.key === "Escape") cancelEditing();
+                              }}
+                              autoFocus
+                              placeholder="Edit routine title..."
+                              className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
+                            />
+                          ) : (
+                            /* Clickable Routine Title to Edit Inline */
+                            <span
+                              onClick={() => startEditing(routine)}
+                              title="Click to edit routine title inline"
+                              className={`text-xs font-medium truncate cursor-pointer hover:text-amber-300 ${
+                                isDone ? "line-through text-zinc-500" : "text-zinc-200"
+                              }`}
+                            >
+                              {routine.title}
                             </span>
+                          )}
 
-                            {rTags.map((tag) => {
-                              const style = getTagColorStyle(tag);
-                              return (
-                                <span key={tag} className={`px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${style.bg} ${style.border} ${style.text} shrink-0`}>
-                                  #{tag}
-                                </span>
-                              );
-                            })}
+                          {!isEditingThis && (
+                            <>
+                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                                {routine.dayKey}
+                              </span>
+
+                              {rTags.map((tag) => {
+                                const style = getTagColorStyle(tag);
+                                return (
+                                  <span key={tag} className={`px-1.5 py-0.2 rounded-full text-[9px] font-semibold border ${style.bg} ${style.border} ${style.text} shrink-0`}>
+                                    #{tag}
+                                  </span>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right Actions: Inline Edit Controls or Default Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isEditingThis ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => saveEditing(routine.id)}
+                              title="Save inline edit (Enter)"
+                              className="p-1 px-2 rounded-lg bg-emerald-500 text-zinc-950 font-bold text-[11px] hover:bg-emerald-400 transition-all cursor-pointer shadow-sm"
+                            >
+                              ✓ Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditing}
+                              title="Cancel edit (Esc)"
+                              className="p-1 px-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-xs"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEditing(routine)}
+                              title="Edit routine inline"
+                              className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
+                            >
+                              ✏️
+                            </button>
+
+                            {onDeleteRoutine && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteRoutine(routine.id)}
+                                title="Delete routine"
+                                className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                </svg>
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
                     </div>
 
-                    {/* Right Actions: Inline Edit Controls or Default Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isEditingThis ? (
-                        <>
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => saveEditing(routine.id)}
-                            title="Save inline edit (Enter)"
-                            className="p-1 px-2 rounded-lg bg-emerald-500 text-zinc-950 font-bold text-[11px] hover:bg-emerald-400 transition-all cursor-pointer shadow-sm"
-                          >
-                            ✓ Save
-                          </button>
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={cancelEditing}
-                            title="Cancel edit (Esc)"
-                            className="p-1 px-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-xs"
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => startEditing(routine)}
-                            title="Edit routine title inline"
-                            className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
-                          >
-                            ✏️
-                          </button>
+                    {/* Inline Tag Manager Row (Shown while editing) */}
+                    {isEditingThis && (
+                      <div className="pt-2 border-t border-amber-500/20 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+                          <span>Edit Tags:</span>
+                        </div>
 
-                          {onDeleteRoutine && (
-                            <button
-                              type="button"
-                              onClick={() => onDeleteRoutine(routine.id)}
-                              title="Delete routine"
-                              className="p-1 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                              </svg>
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+                        <NotionTagInput
+                          selectedTags={editingTags}
+                          onChangeSelectedTags={setEditingTags}
+                          existingTags={existingTags}
+                          placeholder="Add/modify tags for this routine..."
+                        />
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}
