@@ -6,7 +6,6 @@ import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { WeeklyRoutineCalendar } from "@/components/WeeklyRoutineCalendar";
 import { QuickTaskFeed } from "@/components/QuickTaskFeed";
 import { HabitTrackerFeed } from "@/components/HabitTrackerFeed";
-import { ContextSwitcher } from "@/components/ContextSwitcher";
 
 type SectionFocus = "ALL" | "ROUTINES" | "TASKS" | "HABITS";
 
@@ -15,8 +14,6 @@ export default function DashboardPage() {
     tasks,
     routines,
     habits,
-    activeContextId,
-    setActiveContextId,
     isLoading,
     createTask,
     updateTask,
@@ -73,7 +70,7 @@ export default function DashboardPage() {
 
   // Wrappers for creation
   const handleAddTask = async (title: string, tags?: string[]) => {
-    await createTask({ title, tags, contextId: activeContextId || undefined });
+    await createTask({ title, tags });
   };
 
   const handleAddRoutine = async (title: string, dayKey: string, tags?: string[]) => {
@@ -86,7 +83,7 @@ export default function DashboardPage() {
 
   return (
     <main className="flex-1 py-6 px-4 sm:px-6 lg:px-10 max-w-full mx-auto w-full space-y-5 pb-12">
-      {/* Compact Header: Title + Context Filter Side-by-Side */}
+      {/* Compact Header: Title + Stats Badge */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -104,23 +101,8 @@ export default function DashboardPage() {
           </span>
         </div>
 
-        {/* Right: Context Filter Side-by-Side + Stats Badge */}
+        {/* Right: Stats Badge */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-zinc-950/60 px-3 py-1.5 rounded-xl border border-white/10">
-            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">
-              Context:
-            </span>
-            <ContextSwitcher variant="pills" />
-            {activeContextId && (
-              <button
-                onClick={() => setActiveContextId(null)}
-                className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer ml-1"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
           <div className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-950/60 px-3 py-1.5 rounded-xl border border-white/10 shrink-0">
             <span>Tasks: <strong className="text-indigo-400">{stats.totalTasks}</strong></span>
             <span className="text-zinc-600">•</span>

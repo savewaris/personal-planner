@@ -3,15 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { TaskCalendarView } from "@/components/TaskCalendarView";
-import { ContextSwitcher } from "@/components/ContextSwitcher";
 import { CommandPalette } from "@/components/CommandPalette";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
-import { useContextSwitcher } from "@/context/ContextSwitcherContext";
 
 export default function CalendarPage() {
   const { tasks, updateTaskStatus, deleteTask } = usePlannerStore();
-  const { activeContext } = useContextSwitcher();
   const [isCmdOpen, setIsCmdOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
@@ -42,14 +39,8 @@ export default function CalendarPage() {
             Schedule <span className="gradient-text">Calendar</span>
           </h1>
           <p className="text-sm text-zinc-400">
-            {activeContext
-              ? `Calendar schedule for ${activeContext.name}.`
-              : "Overview of all scheduled tasks across your workspaces."}
+            Overview of all scheduled tasks across your workspaces.
           </p>
-        </div>
-
-        <div className="shrink-0">
-          <ContextSwitcher variant="pills" />
         </div>
       </motion.div>
 

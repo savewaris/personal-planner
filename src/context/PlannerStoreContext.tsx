@@ -247,7 +247,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setIsLoading(false);
     }
-  }, [activeContextId]);
+  }, []);
 
   useEffect(() => {
     refetchAll();
@@ -264,7 +264,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       priority: data.priority || "MEDIUM",
       dueDate: data.dueDate,
       tags: data.tags ? (typeof data.tags === "string" ? data.tags : JSON.stringify(data.tags)) : null,
-      contextId: data.contextId || activeContextId || "",
+      contextId: data.contextId || "",
       completed: false,
     };
 

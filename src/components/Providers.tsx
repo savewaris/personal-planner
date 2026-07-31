@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { ContextSwitcherProvider } from "@/context/ContextSwitcherContext";
 import { PlannerStoreProvider } from "@/context/PlannerStoreContext";
 
 export interface ProvidersProps {
@@ -11,14 +10,12 @@ export interface ProvidersProps {
 /**
  * Global App Providers
  * 
- * Encloses the app with ContextSwitcherProvider and PlannerStoreProvider.
+ * Encloses the app with PlannerStoreProvider.
  */
 export function Providers({ children }: ProvidersProps) {
   return (
-    <ContextSwitcherProvider>
-      <PlannerStoreProvider>
-        {children}
-      </PlannerStoreProvider>
-    </ContextSwitcherProvider>
+    <PlannerStoreProvider>
+      {children}
+    </PlannerStoreProvider>
   );
 }

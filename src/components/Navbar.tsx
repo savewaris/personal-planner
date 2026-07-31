@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ContextSwitcher } from "./ContextSwitcher";
 
 interface NavbarProps {
   onOpenCommandPalette?: () => void;
@@ -26,11 +25,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
             Planner
           </span>
         </Link>
-
-        {/* Workspace Context Switcher (Right) */}
-        <div className="flex items-center gap-3">
-          <ContextSwitcher variant="dropdown" />
-        </div>
       </div>
     </header>
   );

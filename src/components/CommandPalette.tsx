@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useContextSwitcher } from "@/context/ContextSwitcherContext";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -17,7 +16,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onOpenTaskModal,
   onOpenHabitModal,
 }) => {
-  const { contexts, setActiveContextId, activeContextId } = useContextSwitcher();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -36,7 +34,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         id: "cmd_add_task",
         category: "Actions",
         title: "Create New Task",
-        subtitle: "Add a task to current workspace context",
+        subtitle: "Add a new task",
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -62,34 +60,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           if (onOpenHabitModal) onOpenHabitModal();
         },
       },
-      {
-        id: "cmd_all_contexts",
-        category: "Contexts",
-        title: "Switch to All Contexts",
-        subtitle: "Show tasks across all workspaces",
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-zinc-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25A2.25 2.25 0 0 1 13.5 8.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-          </svg>
-        ),
-        action: () => {
-          setActiveContextId(null);
-          onClose();
-        },
-      },
-      ...contexts.map((ctx) => ({
-        id: `cmd_ctx_${ctx.id}`,
-        category: "Contexts",
-        title: `Switch to ${ctx.name}`,
-        subtitle: activeContextId === ctx.id ? "Currently active context" : `Filter tasks for ${ctx.name}`,
-        icon: (
-          <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: ctx.color || "#3b82f6" }} />
-        ),
-        action: () => {
-          setActiveContextId(ctx.id);
-          onClose();
-        },
-      })),
     ];
 
     if (!query.trim()) return list;
@@ -101,7 +71,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         cmd.subtitle.toLowerCase().includes(q) ||
         cmd.category.toLowerCase().includes(q)
     );
-  }, [query, contexts, activeContextId, setActiveContextId, onClose, onOpenTaskModal, onOpenHabitModal]);
+  }, [query, onClose, onOpenTaskModal, onOpenHabitModal]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(

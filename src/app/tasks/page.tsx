@@ -2,14 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ContextSwitcher } from "@/components/ContextSwitcher";
 import { TaskList } from "@/components/TaskList";
 import { CommandPalette } from "@/components/CommandPalette";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
-import { useContextSwitcher } from "@/context/ContextSwitcherContext";
 
 export default function TasksPage() {
-  const { activeContext } = useContextSwitcher();
   const [isCmdOpen, setIsCmdOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
@@ -40,14 +37,8 @@ export default function TasksPage() {
             Task <span className="gradient-text">Hub</span>
           </h1>
           <p className="text-sm text-zinc-400">
-            {activeContext
-              ? `Manage and organize tasks for ${activeContext.name}.`
-              : "All tasks across all workspace contexts."}
+            All tasks across all workspaces.
           </p>
-        </div>
-
-        <div className="shrink-0">
-          <ContextSwitcher variant="pills" />
         </div>
       </motion.div>
 
