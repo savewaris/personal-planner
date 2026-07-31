@@ -299,7 +299,7 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                             <span
                               onClick={() => startEditing(routine)}
                               title="Click to edit routine title inline"
-                              className={`text-base font-medium truncate cursor-pointer hover:text-amber-300 ${
+                              className={`text-base font-medium transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
                                 isDone ? "line-through text-zinc-500" : "text-zinc-200"
                               }`}
                             >

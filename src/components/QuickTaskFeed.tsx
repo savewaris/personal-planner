@@ -333,7 +333,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                           <span
                             onClick={() => startEditing(task)}
                             title="Click to edit task title inline"
-                            className={`text-base font-medium transition-all truncate cursor-pointer hover:text-amber-300 ${
+                            className={`text-base font-medium transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
                               isDone
                                 ? "line-through text-zinc-500 font-normal"
                                 : "text-zinc-100"

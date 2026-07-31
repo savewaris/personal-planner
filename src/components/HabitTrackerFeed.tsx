@@ -518,7 +518,7 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
                         <span
                           onClick={() => startEditing(habit)}
                           title="Click to edit habit name inline"
-                          className={`text-base font-medium transition-all truncate cursor-pointer hover:text-amber-300 ${
+                          className={`text-base font-medium transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
                             isDone
                               ? "line-through text-zinc-400 font-normal"
                               : "text-zinc-100"
