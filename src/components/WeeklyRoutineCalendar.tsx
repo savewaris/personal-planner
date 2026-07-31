@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RoutineItem } from "@/services/api";
-import { NotionTagInput, getTagColorStyle } from "./NotionTagInput";
+import { NotionTagInput, getTagColorStyle, getTagColorClasses } from "./NotionTagInput";
 
 interface DayColumn {
   key: string;
@@ -265,17 +265,14 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
             const isSelected = selectedTagsFilter.some(
               (st) => st.toLowerCase() === tag.toLowerCase()
             );
+            const colorClasses = getTagColorClasses(tag, isSelected);
 
             return (
               <button
                 key={tag}
                 type="button"
                 onClick={() => toggleTagFilter(tag)}
-                className={`px-3.5 py-1 rounded-full text-base font-semibold border transition-all shrink-0 cursor-pointer ${
-                  isSelected
-                    ? "border-amber-400 bg-amber-500/25 text-amber-300 ring-1 ring-amber-400/50 scale-105 shadow-md"
-                    : "border-white/15 bg-zinc-900/60 text-zinc-300 hover:border-white/30"
-                }`}
+                className={`px-3.5 py-1 rounded-full text-base font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
               >
                 #{tag}
               </button>
@@ -386,11 +383,19 @@ export const WeeklyRoutineCalendar: React.FC<WeeklyRoutineCalendarProps> = ({
                               </span>
 
                               {rTags.map((tag) => {
-                                const style = getTagColorStyle(tag);
+                                const isSelected = selectedTagsFilter.some(
+                                  (st) => st.toLowerCase() === tag.toLowerCase()
+                                );
+                                const colorClasses = getTagColorClasses(tag, isSelected);
                                 return (
-                                  <span key={tag} className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${style.bg} ${style.border} ${style.text} shrink-0`}>
+                                  <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => toggleTagFilter(tag)}
+                                    className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
+                                  >
                                     #{tag}
-                                  </span>
+                                  </button>
                                 );
                               })}
                             </>

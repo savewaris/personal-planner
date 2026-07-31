@@ -4,12 +4,42 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const NOTION_TAG_COLORS = [
-  { name: "indigo", bg: "bg-indigo-500/15", border: "border-indigo-500/30", text: "text-indigo-300", badge: "bg-indigo-500" },
-  { name: "purple", bg: "bg-purple-500/15", border: "border-purple-500/30", text: "text-purple-300", badge: "bg-purple-500" },
-  { name: "emerald", bg: "bg-emerald-500/15", border: "border-emerald-400/30", text: "text-emerald-300", badge: "bg-emerald-500" },
-  { name: "amber", bg: "bg-amber-500/15", border: "border-amber-400/30", text: "text-amber-300", badge: "bg-amber-500" },
-  { name: "rose", bg: "bg-rose-500/15", border: "border-rose-400/30", text: "text-rose-300", badge: "bg-rose-500" },
-  { name: "sky", bg: "bg-sky-500/15", border: "border-sky-400/30", text: "text-sky-300", badge: "bg-sky-500" },
+  {
+    name: "amber", // Light Orange / Gold
+    defaultClasses: "border-amber-500/40 bg-amber-500/15 text-amber-300 hover:bg-amber-500/35 hover:border-amber-400 hover:text-amber-100 hover:shadow-amber-500/25",
+    selectedClasses: "border-amber-400 bg-amber-500/40 text-amber-100 ring-1 ring-amber-400/60 shadow-lg shadow-amber-500/35 scale-105",
+    bg: "bg-amber-500/15", border: "border-amber-400/30", text: "text-amber-300", badge: "bg-amber-500",
+  },
+  {
+    name: "indigo",
+    defaultClasses: "border-indigo-500/40 bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/35 hover:border-indigo-400 hover:text-indigo-100 hover:shadow-indigo-500/25",
+    selectedClasses: "border-indigo-400 bg-indigo-500/40 text-indigo-100 ring-1 ring-indigo-400/60 shadow-lg shadow-indigo-500/35 scale-105",
+    bg: "bg-indigo-500/15", border: "border-indigo-500/30", text: "text-indigo-300", badge: "bg-indigo-500",
+  },
+  {
+    name: "purple",
+    defaultClasses: "border-purple-500/40 bg-purple-500/15 text-purple-300 hover:bg-purple-500/35 hover:border-purple-400 hover:text-purple-100 hover:shadow-purple-500/25",
+    selectedClasses: "border-purple-400 bg-purple-500/40 text-purple-100 ring-1 ring-purple-400/60 shadow-lg shadow-purple-500/35 scale-105",
+    bg: "bg-purple-500/15", border: "border-purple-500/30", text: "text-purple-300", badge: "bg-purple-500",
+  },
+  {
+    name: "emerald",
+    defaultClasses: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/35 hover:border-emerald-400 hover:text-emerald-100 hover:shadow-emerald-500/25",
+    selectedClasses: "border-emerald-400 bg-emerald-500/40 text-emerald-100 ring-1 ring-emerald-400/60 shadow-lg shadow-emerald-500/35 scale-105",
+    bg: "bg-emerald-500/15", border: "border-emerald-400/30", text: "text-emerald-300", badge: "bg-emerald-500",
+  },
+  {
+    name: "rose",
+    defaultClasses: "border-rose-500/40 bg-rose-500/15 text-rose-300 hover:bg-rose-500/35 hover:border-rose-400 hover:text-rose-100 hover:shadow-rose-500/25",
+    selectedClasses: "border-rose-400 bg-rose-500/40 text-rose-100 ring-1 ring-rose-400/60 shadow-lg shadow-rose-500/35 scale-105",
+    bg: "bg-rose-500/15", border: "border-rose-400/30", text: "text-rose-300", badge: "bg-rose-500",
+  },
+  {
+    name: "sky",
+    defaultClasses: "border-sky-500/40 bg-sky-500/15 text-sky-300 hover:bg-sky-500/35 hover:border-sky-400 hover:text-sky-100 hover:shadow-sky-500/25",
+    selectedClasses: "border-sky-400 bg-sky-500/40 text-sky-100 ring-1 ring-sky-400/60 shadow-lg shadow-sky-500/35 scale-105",
+    bg: "bg-sky-500/15", border: "border-sky-400/30", text: "text-sky-300", badge: "bg-sky-500",
+  },
 ];
 
 export const getTagColorStyle = (tagName: string) => {
@@ -19,6 +49,11 @@ export const getTagColorStyle = (tagName: string) => {
   }
   const index = Math.abs(hash) % NOTION_TAG_COLORS.length;
   return NOTION_TAG_COLORS[index];
+};
+
+export const getTagColorClasses = (tagName: string, isSelected: boolean = false) => {
+  const style = getTagColorStyle(tagName);
+  return isSelected ? style.selectedClasses : style.defaultClasses;
 };
 
 interface NotionTagInputProps {
