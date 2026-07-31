@@ -51,9 +51,12 @@ export interface ProjectItem {
   id: string;
   title: string;
   description: string;
+  goal?: string;
+  scope?: string;
+  deliverables?: string;
   requirements: ProjectRequirement[];
   techStack: string[];
-  status: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
+  status?: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
   tags?: string | null;
   createdAt?: string;
   updatedAt?: string;

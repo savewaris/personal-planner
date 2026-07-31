@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, requirements, techStack, status, tags } = body;
+    const { title, description, goal, scope, deliverables, requirements, techStack, status, tags } = body;
 
     if (!title || typeof title !== "string") {
       return NextResponse.json(
@@ -30,6 +30,9 @@ export async function POST(request: Request) {
         data: {
           title: title.trim(),
           description: description?.trim() || "",
+          goal: goal?.trim() || "",
+          scope: scope?.trim() || "",
+          deliverables: deliverables?.trim() || "",
           requirements: JSON.stringify(requirements || []),
           techStack: JSON.stringify(techStack || []),
           status: status || "PLANNING",
@@ -43,6 +46,9 @@ export async function POST(request: Request) {
         id: `proj-${Date.now()}`,
         title: title.trim(),
         description: description?.trim() || "",
+        goal: goal?.trim() || "",
+        scope: scope?.trim() || "",
+        deliverables: deliverables?.trim() || "",
         requirements: requirements || [],
         techStack: techStack || [],
         status: status || "PLANNING",

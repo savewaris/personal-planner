@@ -13,18 +13,24 @@ export default function ProjectsPage() {
 
   // New Project Form State
   const [newTitle, setNewTitle] = useState("");
-  const [newDescription, setNewDescription] = useState("");
+  const [newSummary, setNewSummary] = useState("");
+  const [newGoal, setNewGoal] = useState("");
+  const [newScope, setNewScope] = useState("");
+  const [newDeliverables, setNewDeliverables] = useState("");
   const [newReqs, setNewReqs] = useState<string[]>([""]);
   const [newTechStack, setNewTechStack] = useState("");
   const [newTags, setNewTags] = useState<string[]>([]);
 
-  // Project-Themed Validation State (replaces default browser popup)
+  // Project-Themed Validation State
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Editing State
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
+  const [editingSummary, setEditingSummary] = useState("");
+  const [editingGoal, setEditingGoal] = useState("");
+  const [editingScope, setEditingScope] = useState("");
+  const [editingDeliverables, setEditingDeliverables] = useState("");
 
   // Parse JSON or Array helpers
   const parseReqs = (raw: any): ProjectRequirement[] => {
@@ -60,7 +66,7 @@ export default function ProjectsPage() {
     }
   };
 
-  // Handle Project Creation with Custom Project-Themed Validation Prompt
+  // Handle Project Creation
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -82,14 +88,20 @@ export default function ProjectsPage() {
 
     await createProject({
       title: newTitle.trim(),
-      description: newDescription.trim(),
+      description: newSummary.trim(),
+      goal: newGoal.trim(),
+      scope: newScope.trim(),
+      deliverables: newDeliverables.trim(),
       requirements: formattedReqs,
       techStack: formattedTech,
       tags: JSON.stringify(newTags),
     });
 
     setNewTitle("");
-    setNewDescription("");
+    setNewSummary("");
+    setNewGoal("");
+    setNewScope("");
+    setNewDeliverables("");
     setNewReqs([""]);
     setNewTechStack("");
     setNewTags([]);
@@ -110,14 +122,20 @@ export default function ProjectsPage() {
   const startEditing = (project: ProjectItem) => {
     setEditingProjectId(project.id);
     setEditingTitle(project.title);
-    setEditingDescription(project.description);
+    setEditingSummary(project.description || "");
+    setEditingGoal(project.goal || "");
+    setEditingScope(project.scope || "");
+    setEditingDeliverables(project.deliverables || "");
   };
 
   const saveEditing = async (projectId: string) => {
     if (!editingTitle.trim()) return;
     await updateProject(projectId, {
       title: editingTitle.trim(),
-      description: editingDescription.trim(),
+      description: editingSummary.trim(),
+      goal: editingGoal.trim(),
+      scope: editingScope.trim(),
+      deliverables: editingDeliverables.trim(),
     });
     setEditingProjectId(null);
   };
@@ -153,7 +171,7 @@ export default function ProjectsPage() {
           }}
           className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-extrabold text-sm transition-all cursor-pointer shadow-lg shadow-indigo-500/25 flex items-center gap-2 shrink-0"
         >
-          <span>{isCreateOpen ? "✕ Close" : "+ New Project"}</span>
+          <span>{isCreateOpen ? "✕ Close" : "+ New Project Spec"}</span>
         </button>
       </div>
 
@@ -165,14 +183,14 @@ export default function ProjectsPage() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             onSubmit={handleCreateProject}
-            noValidate // Disables browser native white validation popup
+            noValidate
             className="glass-card p-5 rounded-2xl border border-indigo-500/30 space-y-4 overflow-hidden bg-zinc-950/90 shadow-2xl relative"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-                <span>✨</span> Create New Project
+                <span>✨</span> Create New Project Specification
               </h2>
-              <span className="text-xs text-zinc-400 font-semibold">Store requirements & specs</span>
+              <span className="text-xs text-zinc-400 font-semibold">Structured Goal, Scope & Deliverables</span>
             </div>
 
             {/* Project-Themed Custom Validation Prompt Banner */}
@@ -212,20 +230,64 @@ export default function ProjectsPage() {
                 />
               </div>
 
-              {/* Description */}
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300">Project Description</label>
+              {/* 🎯 Project Goal */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <span>🎯</span> Project Goal
+                </label>
                 <textarea
                   rows={2}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Describe your project goal, scope, and key deliverables..."
+                  value={newGoal}
+                  onChange={(e) => setNewGoal(e.target.value)}
+                  placeholder="Primary objective & target outcome..."
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-amber-400 transition-all font-medium"
+                />
+              </div>
+
+              {/* 📐 Project Scope */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                  <span>📐</span> Project Scope
+                </label>
+                <textarea
+                  rows={2}
+                  value={newScope}
+                  onChange={(e) => setNewScope(e.target.value)}
+                  placeholder="In-scope features & boundary limits..."
                   className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-indigo-400 transition-all font-medium"
                 />
               </div>
 
+              {/* 📦 Key Deliverables */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                  <span>📦</span> Key Deliverables & Output
+                </label>
+                <textarea
+                  rows={2}
+                  value={newDeliverables}
+                  onChange={(e) => setNewDeliverables(e.target.value)}
+                  placeholder="Expected outputs, milestones & tech specs..."
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-emerald-400 transition-all font-medium"
+                />
+              </div>
+
+              {/* 📝 Overview Summary */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                  <span>📝</span> Overview Summary
+                </label>
+                <textarea
+                  rows={2}
+                  value={newSummary}
+                  onChange={(e) => setNewSummary(e.target.value)}
+                  placeholder="Brief high-level overview..."
+                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-purple-400 transition-all font-medium"
+                />
+              </div>
+
               {/* Requirements Checklist Inputs */}
-              <div className="md:col-span-2 space-y-2">
+              <div className="md:col-span-2 space-y-2 pt-2 border-t border-white/5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-zinc-300">Project Requirements Checklist</label>
                   <button
@@ -305,13 +367,13 @@ export default function ProjectsPage() {
         )}
       </AnimatePresence>
 
-      {/* Projects Feed (Clean display with no filters) */}
+      {/* Projects Feed */}
       {projects.length === 0 ? (
         <div className="glass-card p-12 rounded-2xl border border-white/10 text-center space-y-3 bg-zinc-950/60">
           <div className="text-4xl">🚀</div>
           <h3 className="text-xl font-bold text-white">No Projects Stored</h3>
           <p className="text-sm text-zinc-400 max-w-md mx-auto">
-            Create your first project specification to store requirements, description, and tech stack!
+            Create your first project specification to store Goal, Scope, Deliverables, requirements, and tech stack!
           </p>
           <button
             type="button"
@@ -346,37 +408,71 @@ export default function ProjectsPage() {
                       : "border-white/10 hover:border-indigo-500/40 bg-zinc-900/70 shadow-lg"
                   }`}
                 >
-                  {/* Card Header */}
+                  {/* Card Header & Structured Specs */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       {isEditingThis ? (
-                        <div className="flex flex-col gap-2 w-full">
+                        <div className="flex flex-col gap-3 w-full">
                           <input
                             type="text"
                             value={editingTitle}
                             onChange={(e) => setEditingTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEditing(project.id);
-                              if (e.key === "Escape") cancelEditing();
-                            }}
                             autoFocus
                             placeholder="Edit project title..."
                             className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1.5 text-lg text-white outline-none font-bold"
                           />
-                          <textarea
-                            rows={2}
-                            value={editingDescription}
-                            onChange={(e) => setEditingDescription(e.target.value)}
-                            placeholder="Edit description..."
-                            className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1.5 text-base text-white outline-none font-medium"
-                          />
+
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-amber-300">🎯 Goal</label>
+                            <textarea
+                              rows={2}
+                              value={editingGoal}
+                              onChange={(e) => setEditingGoal(e.target.value)}
+                              placeholder="Edit goal..."
+                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-indigo-300">📐 Scope</label>
+                            <textarea
+                              rows={2}
+                              value={editingScope}
+                              onChange={(e) => setEditingScope(e.target.value)}
+                              placeholder="Edit scope..."
+                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-emerald-300">📦 Deliverables</label>
+                            <textarea
+                              rows={2}
+                              value={editingDeliverables}
+                              onChange={(e) => setEditingDeliverables(e.target.value)}
+                              placeholder="Edit deliverables..."
+                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-purple-300">📝 Overview Summary</label>
+                            <textarea
+                              rows={2}
+                              value={editingSummary}
+                              onChange={(e) => setEditingSummary(e.target.value)}
+                              placeholder="Edit summary..."
+                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
+                            />
+                          </div>
+
                           <div className="flex items-center justify-end gap-2 pt-1">
                             <button
                               type="button"
                               onClick={() => saveEditing(project.id)}
                               className="px-3 py-1.5 rounded-xl bg-emerald-500 text-zinc-950 font-extrabold text-xs cursor-pointer"
                             >
-                              ✓ Save
+                              ✓ Save Spec
                             </button>
                             <button
                               type="button"
@@ -388,19 +484,57 @@ export default function ProjectsPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-1 flex-1">
+                        <div className="space-y-2 flex-1">
                           <h3
                             onClick={() => startEditing(project)}
-                            title="Click to edit project inline"
+                            title="Click to edit project spec inline"
                             className="text-lg font-bold text-white hover:text-amber-300 cursor-pointer transition-colors break-words leading-snug"
                           >
                             {project.title}
                           </h3>
+
+                          {/* Overview Summary */}
                           {project.description && (
                             <p className="text-base font-medium text-zinc-300 break-words leading-relaxed">
                               {project.description}
                             </p>
                           )}
+
+                          {/* Structured Badges: Goal, Scope, Deliverables */}
+                          <div className="grid grid-cols-1 gap-2 pt-1">
+                            {project.goal && (
+                              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-0.5">
+                                <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1">
+                                  <span>🎯</span> Goal
+                                </span>
+                                <p className="text-sm font-medium text-amber-100 break-words leading-snug">
+                                  {project.goal}
+                                </p>
+                              </div>
+                            )}
+
+                            {project.scope && (
+                              <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-0.5">
+                                <span className="text-xs font-extrabold text-indigo-300 flex items-center gap-1">
+                                  <span>📐</span> Scope
+                                </span>
+                                <p className="text-sm font-medium text-indigo-100 break-words leading-snug">
+                                  {project.scope}
+                                </p>
+                              </div>
+                            )}
+
+                            {project.deliverables && (
+                              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-0.5">
+                                <span className="text-xs font-extrabold text-emerald-300 flex items-center gap-1">
+                                  <span>📦</span> Key Deliverables
+                                </span>
+                                <p className="text-sm font-medium text-emerald-100 break-words leading-snug">
+                                  {project.deliverables}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
 
@@ -409,7 +543,7 @@ export default function ProjectsPage() {
                           <button
                             type="button"
                             onClick={() => startEditing(project)}
-                            title="Edit project"
+                            title="Edit project spec"
                             className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 transition-colors cursor-pointer"
                           >
                             ✏️
