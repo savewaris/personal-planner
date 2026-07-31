@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const DIAGRAM_PRESETS = [
   {
@@ -53,11 +53,11 @@ export const DIAGRAM_PRESETS = [
 ];
 
 const QUICK_NODES = [
-  { label: "📱 Client App", code: 'Client["📱 Client App (Browser / Mobile)"]' },
+  { label: "📱 Client App", code: 'Client["📱 Client App"]' },
   { label: "⚡ Web App", code: 'WebApp["⚡ Next.js Web App"]' },
-  { label: "🌐 API Gateway", code: 'API["🌐 REST / GraphQL API Gateway"]' },
+  { label: "🌐 API Gateway", code: 'API["🌐 REST API Gateway"]' },
   { label: "🗄️ Database", code: 'DB[("🗄️ PostgreSQL Database")]' },
-  { label: "📦 Microservice", code: 'Service["📦 Background Worker Service"]' },
+  { label: "📦 Service", code: 'Service["📦 Worker Service"]' },
   { label: "⚡ Redis Cache", code: 'Cache[("⚡ Redis Cache")]' },
 ];
 
@@ -75,12 +75,17 @@ export const DiagramStudio: React.FC<DiagramStudioProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgContent, setSvgContent] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"visual" | "gui" | "code">(isEditable ? "gui" : "visual");
+  const [showCodeEditor, setShowCodeEditor] = useState<boolean>(false);
 
   // Visual GUI Builder Helper States
   const [fromNode, setFromNode] = useState<string>("Client");
   const [toNode, setToNode] = useState<string>("WebApp");
   const [arrowLabel, setArrowLabel] = useState<string>("HTTPS / REST");
+
+  // Inline Canvas Node Rename Popover State
+  const [editingNodeText, setEditingNodeText] = useState<string | null>(null);
+  const [editingNodeOriginal, setEditingNodeOriginal] = useState<string | null>(null);
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     mermaid.initialize({
@@ -100,6 +105,7 @@ export const DiagramStudio: React.FC<DiagramStudioProps> = ({
     });
   }, []);
 
+  // Render Mermaid SVG
   useEffect(() => {
     let isMounted = true;
 
@@ -131,7 +137,113 @@ export const DiagramStudio: React.FC<DiagramStudioProps> = ({
     };
   }, [code]);
 
-  // Append a visual node definition
+  // Make SVG Canvas Nodes Draggable & Double-Click Editable
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const svgEl = containerRef.current.querySelector("svg");
+    if (!svgEl) return;
+
+    const nodes = svgEl.querySelectorAll(".node, .cluster, .actor");
+    let selectedEl: SVGGElement | null = null;
+    let offset = { x: 0, y: 0 };
+    let initialTransform = { x: 0, y: 0 };
+
+    const getMousePosition = (evt: MouseEvent) => {
+      const CTM = svgEl.getScreenCTM();
+      if (!CTM) return { x: evt.clientX, y: evt.clientY };
+      return {
+        x: (evt.clientX - CTM.e) / CTM.a,
+        y: (evt.clientY - CTM.f) / CTM.d,
+      };
+    };
+
+    const onMouseDown = (evt: MouseEvent) => {
+      const target = (evt.target as HTMLElement).closest(".node, .cluster, .actor") as SVGGElement;
+      if (!target) return;
+
+      selectedEl = target;
+      selectedEl.style.cursor = "grabbing";
+
+      const mousePos = getMousePosition(evt);
+      const transform = selectedEl.getAttribute("transform") || "";
+      const match = /translate\(([^,\s]+)[,\s]+([^,\s]+)\)/.exec(transform);
+
+      if (match) {
+        initialTransform = { x: parseFloat(match[1]), y: parseFloat(match[2]) };
+      } else {
+        initialTransform = { x: 0, y: 0 };
+      }
+
+      offset = {
+        x: mousePos.x - initialTransform.x,
+        y: mousePos.y - initialTransform.y,
+      };
+    };
+
+    const onMouseMove = (evt: MouseEvent) => {
+      if (!selectedEl) return;
+      evt.preventDefault();
+      const mousePos = getMousePosition(evt);
+      const newX = mousePos.x - offset.x;
+      const newY = mousePos.y - offset.y;
+      selectedEl.setAttribute("transform", `translate(${newX}, ${newY})`);
+    };
+
+    const onMouseUp = () => {
+      if (selectedEl) {
+        selectedEl.style.cursor = "pointer";
+        selectedEl = null;
+      }
+    };
+
+    // Double-Click Inline Rename Popover on Canvas
+    const onDblClick = (evt: MouseEvent) => {
+      if (!isEditable || !onChangeCode) return;
+      const target = (evt.target as HTMLElement).closest(".node, .cluster, .actor") as SVGGElement;
+      if (!target) return;
+
+      const textEl = target.querySelector("text, span");
+      const labelText = textEl?.textContent || target.id;
+
+      const rect = target.getBoundingClientRect();
+      setPopoverPos({ x: rect.left, y: rect.top - 40 });
+      setEditingNodeOriginal(labelText);
+      setEditingNodeText(labelText);
+    };
+
+    nodes.forEach((node) => {
+      const gNode = node as SVGGElement;
+      gNode.style.cursor = "pointer";
+      gNode.addEventListener("mousedown", onMouseDown as any);
+      gNode.addEventListener("dblclick", onDblClick as any);
+    });
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+
+    return () => {
+      nodes.forEach((node) => {
+        const gNode = node as SVGGElement;
+        gNode.removeEventListener("mousedown", onMouseDown as any);
+        gNode.removeEventListener("dblclick", onDblClick as any);
+      });
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [svgContent, isEditable, onChangeCode]);
+
+  // Apply Inline Node Text Edit to Diagram Code
+  const applyInlineNodeRename = () => {
+    if (!onChangeCode || !editingNodeOriginal || !editingNodeText) {
+      setPopoverPos(null);
+      return;
+    }
+    const updated = code.replace(editingNodeOriginal, editingNodeText);
+    onChangeCode(updated);
+    setPopoverPos(null);
+  };
+
+  // Append Quick Component Box
   const addQuickNode = (nodeCode: string) => {
     if (!onChangeCode) return;
     let current = code && code.trim() ? code.trim() : "graph TD";
@@ -142,7 +254,7 @@ export const DiagramStudio: React.FC<DiagramStudioProps> = ({
     onChangeCode(updated);
   };
 
-  // Connect two nodes with an arrow
+  // Connect Two Nodes Visually
   const connectNodes = () => {
     if (!onChangeCode || !fromNode.trim() || !toNode.trim()) return;
     let current = code && code.trim() ? code.trim() : "graph TD";
@@ -153,187 +265,193 @@ export const DiagramStudio: React.FC<DiagramStudioProps> = ({
     const connectionLine = `  ${fromNode.trim()} -->${labelPart} ${toNode.trim()}`;
     const updated = `${current}\n${connectionLine}`;
     onChangeCode(updated);
-    setActiveTab("visual");
   };
 
   return (
-    <div className="space-y-3 rounded-2xl bg-zinc-950/90 border border-white/15 p-4 shadow-2xl">
-      {/* Header & Tabs */}
+    <div className="space-y-4 rounded-2xl bg-zinc-950/90 border border-white/15 p-4 shadow-2xl relative">
+      {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-base font-bold shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-black shadow-lg">
             📐
           </div>
           <div>
-            <h4 className="text-base font-bold text-white leading-tight">System & Architecture Diagram</h4>
-            <p className="text-[11px] text-zinc-400 font-semibold">Visual Drag/Click Canvas & Mermaid Syntax</p>
+            <h4 className="text-base font-bold text-white leading-tight">System & Architecture Diagram Studio</h4>
+            <p className="text-xs text-zinc-400 font-semibold">
+              70% Visual Canvas (Drag & Double-Click Edit) + 30% Visual GUI Builder
+            </p>
           </div>
         </div>
 
-        {/* Tab Controls */}
-        <div className="flex items-center gap-1.5 p-1 bg-zinc-900 rounded-xl border border-white/10">
+        {/* Code Editor Toggle Button */}
+        {isEditable && (
           <button
             type="button"
-            onClick={() => setActiveTab("visual")}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "visual"
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
-                : "text-zinc-400 hover:text-white"
+            onClick={() => setShowCodeEditor(!showCodeEditor)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer border ${
+              showCodeEditor
+                ? "bg-indigo-500 text-white border-indigo-400 shadow-md"
+                : "bg-zinc-900 text-zinc-300 border-white/10 hover:border-indigo-400 hover:text-white"
             }`}
           >
-            🎨 Visual Canvas
+            {showCodeEditor ? "🎨 Hide Code Editor" : "💻 Edit Raw Syntax"}
           </button>
-          {isEditable && (
-            <>
-              <button
-                type="button"
-                onClick={() => setActiveTab("gui")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "gui"
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                🛠️ Visual GUI Builder
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("code")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "code"
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                💻 Code Editor
-              </button>
-            </>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* ⚡ Quick Architecture Presets */}
-      {isEditable && onChangeCode && (
-        <div className="flex items-center gap-1.5 flex-wrap p-2.5 rounded-xl bg-zinc-900/90 border border-white/5">
-          <span className="text-xs font-extrabold text-zinc-400 shrink-0">⚡ 1-Click Architecture Presets:</span>
-          {DIAGRAM_PRESETS.map((preset) => (
-            <button
-              key={preset.name}
-              type="button"
-              onClick={() => {
-                onChangeCode(preset.code);
-                setActiveTab("visual");
-              }}
-              className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 hover:border-indigo-400 hover:bg-indigo-500/20 text-zinc-200 hover:text-indigo-200 text-xs font-bold transition-all cursor-pointer"
-            >
-              {preset.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* 🛠️ Visual GUI Builder Tab */}
-      {activeTab === "gui" && isEditable && onChangeCode && (
-        <div className="space-y-4 p-4 rounded-xl bg-zinc-900/80 border border-indigo-500/30">
-          {/* Section 1: Quick Add Visual Nodes */}
-          <div className="space-y-2">
-            <label className="text-xs font-extrabold text-indigo-300 flex items-center gap-1">
-              <span>+ Add Visual Component Boxes:</span>
-            </label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {QUICK_NODES.map((node) => (
-                <button
-                  key={node.label}
-                  type="button"
-                  onClick={() => addQuickNode(node.code)}
-                  className="px-3 py-1.5 rounded-xl bg-zinc-800 border border-white/10 hover:border-indigo-400 hover:bg-indigo-500/20 text-white text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
-                >
-                  <span>{node.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Section 2: Visual Arrow Connection Builder */}
-          <div className="space-y-2 pt-3 border-t border-white/10">
-            <label className="text-xs font-extrabold text-emerald-300 flex items-center gap-1">
-              <span>🔌 Connect Visual Nodes with Arrows:</span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>
-                <span className="text-[11px] font-bold text-zinc-400">From Box ID:</span>
-                <input
-                  type="text"
-                  value={fromNode}
-                  onChange={(e) => setFromNode(e.target.value)}
-                  placeholder="e.g. Client"
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-400 font-bold"
-                />
-              </div>
-
-              <div>
-                <span className="text-[11px] font-bold text-zinc-400">Arrow Label (Optional):</span>
-                <input
-                  type="text"
-                  value={arrowLabel}
-                  onChange={(e) => setArrowLabel(e.target.value)}
-                  placeholder="e.g. HTTPS / REST"
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-400 font-medium"
-                />
-              </div>
-
-              <div>
-                <span className="text-[11px] font-bold text-zinc-400">To Box ID:</span>
-                <input
-                  type="text"
-                  value={toNode}
-                  onChange={(e) => setToNode(e.target.value)}
-                  placeholder="e.g. WebApp"
-                  className="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-400 font-bold"
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={connectNodes}
-              className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-zinc-950 font-extrabold text-xs cursor-pointer shadow-md hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center justify-center gap-1.5"
-            >
-              <span>🔌 Draw Arrow Connection</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 🎨 Visual Canvas View */}
-      {activeTab === "visual" && (
-        <div className="min-h-[180px] flex items-center justify-center p-4 rounded-xl bg-zinc-900/60 border border-white/5 overflow-x-auto shadow-inner">
-          {error ? (
-            <div className="text-xs text-rose-400 font-mono p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl">
-              ⚠️ Syntax Error: {error}
-            </div>
-          ) : svgContent ? (
-            <div
-              ref={containerRef}
-              className="w-full flex justify-center svg-container"
-              dangerouslySetInnerHTML={{ __html: svgContent }}
+      {/* Raw Syntax Code Editor Drawer */}
+      <AnimatePresence>
+        {showCodeEditor && isEditable && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+            <textarea
+              rows={6}
+              value={code}
+              onChange={(e) => onChangeCode && onChangeCode(e.target.value)}
+              placeholder="Write Mermaid diagram syntax (e.g. graph TD, sequenceDiagram, erDiagram)..."
+              className="w-full bg-zinc-900 border border-indigo-400/60 rounded-xl p-3 text-xs font-mono text-cyan-300 outline-none focus:border-indigo-400 transition-all shadow-inner"
             />
-          ) : (
-            <span className="text-xs text-zinc-500 italic">No diagram rendered yet. Select a preset or use the Visual GUI Builder!</span>
-          )}
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* 💻 Code Syntax Editor Tab */}
-      {activeTab === "code" && isEditable && (
-        <div className="space-y-1.5">
-          <textarea
-            rows={8}
-            value={code}
-            onChange={(e) => onChangeCode && onChangeCode(e.target.value)}
-            placeholder="Write Mermaid diagram syntax (e.g. graph TD, sequenceDiagram, erDiagram)..."
-            className="w-full bg-zinc-900 border border-white/10 rounded-xl p-3 text-xs font-mono text-cyan-300 outline-none focus:border-indigo-400 transition-all"
+      {/* 📐 70% / 30% Split Studio Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
+        {/* 70% LEFT COLUMN: Draggable Visual Vector Canvas */}
+        <div className={`${isEditable ? "lg:col-span-7" : "lg:col-span-10"} relative`}>
+          <div className="w-full min-h-[380px] max-h-[500px] flex items-center justify-center p-4 rounded-2xl bg-zinc-900/80 border border-white/10 overflow-auto shadow-inner relative group">
+            {/* Draggable & Double-Click Hint */}
+            {isEditable && (
+              <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-zinc-950/90 border border-indigo-500/30 text-[11px] font-extrabold text-indigo-300 pointer-events-none shadow-md z-10 flex items-center gap-1.5">
+                <span>🖱️ Click & Drag Nodes</span>
+                <span>•</span>
+                <span>✏️ Double-Click Node to Rename Text</span>
+              </div>
+            )}
+
+            {error ? (
+              <div className="text-xs text-rose-400 font-mono p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl">
+                ⚠️ Syntax Error: {error}
+              </div>
+            ) : svgContent ? (
+              <div
+                ref={containerRef}
+                className="w-full flex justify-center svg-container select-none"
+                dangerouslySetInnerHTML={{ __html: svgContent }}
+              />
+            ) : (
+              <span className="text-xs text-zinc-500 italic">No diagram rendered yet. Select a preset or use the Visual GUI Builder!</span>
+            )}
+          </div>
+        </div>
+
+        {/* 30% RIGHT COLUMN: Visual GUI Builder Sidebar */}
+        {isEditable && onChangeCode && (
+          <div className="lg:col-span-3 space-y-4 p-4 rounded-2xl bg-zinc-900/90 border border-indigo-500/30 shadow-xl flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="border-b border-white/10 pb-2">
+                <h5 className="text-xs font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🛠️ Visual GUI Builder</span>
+                </h5>
+                <p className="text-[11px] text-zinc-400 font-medium">Build architecture visually</p>
+              </div>
+
+              {/* 1-Click Architecture Presets */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-extrabold text-zinc-300">⚡ Presets:</span>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {DIAGRAM_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => onChangeCode(preset.code)}
+                      className="w-full p-2 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-400 hover:bg-indigo-500/20 text-zinc-200 hover:text-indigo-200 text-xs font-bold transition-all cursor-pointer text-left"
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* + Add Component Boxes */}
+              <div className="space-y-1.5 pt-2 border-t border-white/10">
+                <span className="text-[11px] font-extrabold text-indigo-300">+ Add Visual Boxes:</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {QUICK_NODES.map((node) => (
+                    <button
+                      key={node.label}
+                      type="button"
+                      onClick={() => addQuickNode(node.code)}
+                      className="p-1.5 rounded-lg bg-zinc-800 border border-white/10 hover:border-indigo-400 hover:bg-indigo-500/20 text-white text-[11px] font-bold transition-all cursor-pointer text-left truncate"
+                    >
+                      {node.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 🔌 Arrow Connection Builder */}
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <span className="text-[11px] font-extrabold text-emerald-300">🔌 Connect Nodes:</span>
+                <div className="space-y-1.5">
+                  <input
+                    type="text"
+                    value={fromNode}
+                    onChange={(e) => setFromNode(e.target.value)}
+                    placeholder="From Box ID (e.g. Client)"
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-indigo-400 font-bold"
+                  />
+                  <input
+                    type="text"
+                    value={arrowLabel}
+                    onChange={(e) => setArrowLabel(e.target.value)}
+                    placeholder="Arrow Label (e.g. HTTPS REST)"
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-indigo-400 font-medium"
+                  />
+                  <input
+                    type="text"
+                    value={toNode}
+                    onChange={(e) => setToNode(e.target.value)}
+                    placeholder="To Box ID (e.g. WebApp)"
+                    className="w-full bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-indigo-400 font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={connectNodes}
+                    className="w-full py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs cursor-pointer shadow-md transition-all"
+                  >
+                    🔌 Draw Arrow
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Popover for Double-Click Node Text Editing on Canvas */}
+      {popoverPos && (
+        <div
+          style={{ top: popoverPos.y, left: popoverPos.x }}
+          className="fixed z-50 p-2.5 rounded-xl bg-zinc-950 border border-amber-400 shadow-2xl space-y-2 text-xs"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold text-amber-300">✏️ Edit Node Text Label:</span>
+            <button type="button" onClick={() => setPopoverPos(null)} className="text-zinc-400 hover:text-white font-bold">✕</button>
+          </div>
+          <input
+            type="text"
+            value={editingNodeText || ""}
+            onChange={(e) => setEditingNodeText(e.target.value)}
+            autoFocus
+            className="w-full bg-zinc-900 border border-amber-400/60 rounded-lg px-2.5 py-1 text-xs text-white outline-none font-bold"
           />
+          <button
+            type="button"
+            onClick={applyInlineNodeRename}
+            className="w-full py-1 rounded-lg bg-amber-400 text-zinc-950 font-black text-xs cursor-pointer hover:bg-amber-300"
+          >
+            ✓ Apply Rename
+          </button>
         </div>
       )}
     </div>
