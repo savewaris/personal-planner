@@ -174,7 +174,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
         </div>
       </div>
 
-      {/* Filter Bar: Status Tabs */}
+      {/* Filter Bar: Status Tabs (text-base level) */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-xl border border-white/10">
           {(["ALL", "ACTIVE", "COMPLETED"] as FilterTab[]).map((tab) => {
@@ -190,7 +190,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`relative px-3 py-1.5 rounded-lg text-base font-semibold transition-all cursor-pointer ${
                   isActive ? "text-white" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -203,7 +203,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                 )}
                 <span className="relative z-10 flex items-center gap-1">
                   {tab === "ALL" ? "All" : tab === "ACTIVE" ? "Active" : "Done"}
-                  <span className="text-[10px] opacity-70">({count})</span>
+                  <span className="text-xs opacity-70">({count})</span>
                 </span>
               </button>
             );
@@ -220,7 +220,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
         )}
       </div>
 
-      {/* Multi-Select Tag Filter Bar (Matching Screenshot Styling & Task Detail Font Sizing) */}
+      {/* Multi-Select Tag Filter Bar (text-sm badge level) */}
       {allTags.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar py-1">
           <span className="text-xs font-black text-zinc-400 uppercase tracking-wider shrink-0 pr-1 select-none">
@@ -237,7 +237,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                 key={tag}
                 type="button"
                 onClick={() => toggleTagFilter(tag)}
-                className={`px-3.5 py-1 rounded-full text-base font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
+                className={`px-3 py-1 rounded-full text-sm font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
               >
                 #{tag}
               </button>
@@ -339,14 +339,14 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                             }}
                             autoFocus
                             placeholder="Edit task title..."
-                            className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-base text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
+                            className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-lg text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-bold"
                           />
                         ) : (
-                          /* Clickable Title to Edit Inline */
+                          /* Clickable Title to Edit Inline (h3 / item title level) */
                           <span
                             onClick={() => startEditing(task)}
                             title="Click to edit task title inline"
-                            className={`text-base font-medium transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
+                            className={`text-lg font-bold transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
                               isDone
                                 ? "line-through text-zinc-500 font-normal"
                                 : "text-zinc-100"
@@ -356,7 +356,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                           </span>
                         )}
 
-                        {/* Display Notion-Style Tag Badges (Read Mode) */}
+                        {/* Display Notion-Style Tag Badges (text-sm badge level) */}
                         {!isEditingThis &&
                           taskTags.map((tag) => {
                             const isSelected = selectedTagsFilter.some(
@@ -368,7 +368,7 @@ export const QuickTaskFeed: React.FC<QuickTaskFeedProps> = ({
                                 key={tag}
                                 type="button"
                                 onClick={() => toggleTagFilter(tag)}
-                                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
+                                className={`px-2.5 py-0.5 rounded-full text-sm font-semibold border transition-all shrink-0 cursor-pointer ${colorClasses}`}
                               >
                                 #{tag}
                               </button>

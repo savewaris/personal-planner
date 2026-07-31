@@ -511,14 +511,14 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
                           }}
                           onBlur={() => saveEditing(habit.id)}
                           autoFocus
-                          className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-base text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
+                          className="flex-1 bg-zinc-900 border border-amber-400/80 rounded-lg px-2.5 py-1 text-lg text-white outline-none focus:ring-1 focus:ring-amber-400 transition-all font-bold"
                         />
                       ) : (
-                        /* Clickable Habit Name to Edit Inline */
+                        /* Clickable Habit Name to Edit Inline (h3 / item title level) */
                         <span
                           onClick={() => startEditing(habit)}
                           title="Click to edit habit name inline"
-                          className={`text-base font-medium transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
+                          className={`text-lg font-bold transition-all break-words whitespace-normal leading-snug cursor-pointer hover:text-amber-300 ${
                             isDone
                               ? "line-through text-zinc-400 font-normal"
                               : "text-zinc-100"
@@ -528,9 +528,9 @@ export const HabitTrackerFeed: React.FC<HabitTrackerFeedProps> = ({
                         </span>
                       )}
 
-                      {/* Streak Badge */}
+                      {/* Streak Badge (text-sm badge level) */}
                       {!isEditingThis && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0 flex items-center gap-1">
+                        <span className="px-2.5 py-0.5 rounded-full text-sm font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0 flex items-center gap-1">
                           <span>🔥</span> {habit.streak} d
                         </span>
                       )}
