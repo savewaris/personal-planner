@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { ProjectItem, ProjectRequirement } from "@/services/api";
-import { SystemWorkflowStudio, SYSTEM_WORKFLOW_PRESETS } from "@/components/SystemWorkflowStudio";
+
+const DRAWIO_URL = "https://app.diagrams.net/";
 
 export default function ProjectsPage() {
   const { projects, createProject, updateProject, deleteProject } = usePlannerStore();
@@ -14,7 +15,7 @@ export default function ProjectsPage() {
   // New Project Form State
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newWorkflow, setNewWorkflow] = useState<string>(SYSTEM_WORKFLOW_PRESETS[0].code);
+  const [newWorkflowLink, setNewWorkflowLink] = useState("");
   const [newReqs, setNewReqs] = useState<string[]>([""]);
 
   // Bulk Line Paste State
@@ -28,7 +29,7 @@ export default function ProjectsPage() {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
-  const [editingWorkflow, setEditingWorkflow] = useState<string>("");
+  const [editingWorkflowLink, setEditingWorkflowLink] = useState("");
 
   // Parse Requirements Helper
   const parseReqs = (raw: any): ProjectRequirement[] => {
@@ -38,17 +39,6 @@ export default function ProjectsPage() {
       return JSON.parse(raw);
     } catch {
       return [];
-    }
-  };
-
-  // Parse Workflow Helper
-  const parseWorkflow = (raw: any): string[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return typeof raw === "string" && raw.trim() ? [raw] : [];
     }
   };
 
@@ -85,13 +75,13 @@ export default function ProjectsPage() {
     await createProject({
       title: newTitle.trim(),
       description: newDescription.trim(),
-      workflow: newWorkflow.trim(),
+      workflow: newWorkflowLink.trim(),
       requirements: formattedReqs,
     });
 
     setNewTitle("");
     setNewDescription("");
-    setNewWorkflow(SYSTEM_WORKFLOW_PRESETS[0].code);
+    setNewWorkflowLink("");
     setNewReqs([""]);
     setIsCreateOpen(false);
   };
@@ -134,7 +124,7 @@ export default function ProjectsPage() {
     setEditingProjectId(project.id);
     setEditingTitle(project.title);
     setEditingDescription(project.description || "");
-    setEditingWorkflow(project.workflow || "");
+    setEditingWorkflowLink(project.workflow || "");
   };
 
   const saveEditing = async (projectId: string) => {
@@ -143,7 +133,7 @@ export default function ProjectsPage() {
     await updateProject(projectId, {
       title: editingTitle.trim(),
       description: editingDescription.trim(),
-      workflow: editingWorkflow.trim(),
+      workflow: editingWorkflowLink.trim(),
     });
     setEditingProjectId(null);
   };
@@ -167,7 +157,7 @@ export default function ProjectsPage() {
                 {projects.length}
               </span>
             </h1>
-            <p className="text-sm text-zinc-400 font-medium">Store project descriptions, workflow timelines, and requirements checklists</p>
+            <p className="text-sm text-zinc-400 font-medium">Store project descriptions, flowchart links, and requirements checklists</p>
           </div>
         </div>
 
@@ -254,13 +244,33 @@ export default function ProjectsPage() {
                   />
                 </div>
 
-                {/* ⚙️ System & App Execution Workflow */}
+                {/* 🔗 External Flowchart Link (Draw.io) */}
                 <div className="space-y-2 pt-2 border-t border-white/10">
-                  <SystemWorkflowStudio
-                    code={newWorkflow}
-                    onChangeCode={setNewWorkflow}
-                    isEditable={true}
+                  <div className="flex items-center justify-between">
+                    <label className="text-base font-bold text-cyan-300 flex items-center gap-1.5">
+                      <span>🔗</span>
+                      <span>External Flowchart Link</span>
+                    </label>
+                    <a
+                      href={DRAWIO_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-zinc-950 font-black text-xs transition-all shadow-md flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>🎨 Open Draw.io Editor (Free & Unlimited)</span>
+                      <span>↗</span>
+                    </a>
+                  </div>
+                  <input
+                    type="url"
+                    value={newWorkflowLink}
+                    onChange={(e) => setNewWorkflowLink(e.target.value)}
+                    placeholder="Paste flowchart URL (e.g. https://app.diagrams.net/?url=...)"
+                    className="w-full bg-zinc-900 border border-white/10 focus:border-cyan-400 rounded-xl px-4 py-2 text-sm text-white outline-none font-medium"
                   />
+                  <p className="text-[11px] text-zinc-400 font-medium">
+                    💡 <strong>Draw.io (app.diagrams.net)</strong> is 100% free and unlimited. Create your flowchart, copy the link or file URL, and paste it above!
+                  </p>
                 </div>
 
                 {/* 📋 Requirements Checklist */}
@@ -372,14 +382,13 @@ export default function ProjectsPage() {
           <span className="text-4xl">📁</span>
           <h3 className="text-lg font-bold text-white">No projects created yet</h3>
           <p className="text-sm text-zinc-400 max-w-md mx-auto">
-            Click "+ Create Project" above to add your first project description, workflow steps, and requirements checklist.
+            Click "+ Create Project" above to add your first project description, flowchart link, and requirements checklist.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map((project) => {
             const reqs = parseReqs(project.requirements);
-            const workflowSteps = parseWorkflow(project.workflow);
             const completedCount = reqs.filter((r) => r.completed).length;
             const progressPct = reqs.length > 0 ? Math.round((completedCount / reqs.length) * 100) : 0;
             const isEditingThis = editingProjectId === project.id;
@@ -413,12 +422,25 @@ export default function ProjectsPage() {
                       />
                     </div>
 
-                    {/* Workflow Editing */}
-                    <div className="space-y-2">
-                      <SystemWorkflowStudio
-                        code={editingWorkflow}
-                        onChangeCode={setEditingWorkflow}
-                        isEditable={true}
+                    {/* Flowchart Link Editing */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-cyan-300">🔗 External Flowchart Link (Draw.io)</label>
+                        <a
+                          href={DRAWIO_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-bold text-orange-400 hover:text-orange-300"
+                        >
+                          Open Draw.io ↗
+                        </a>
+                      </div>
+                      <input
+                        type="url"
+                        value={editingWorkflowLink}
+                        onChange={(e) => setEditingWorkflowLink(e.target.value)}
+                        placeholder="Paste flowchart URL..."
+                        className="w-full bg-zinc-900 border border-cyan-500/40 rounded-xl px-3 py-1 text-sm text-white outline-none font-medium"
                       />
                     </div>
 
@@ -477,11 +499,37 @@ export default function ProjectsPage() {
                       </p>
                     )}
 
-                    {/* ⚙️ System & App Execution Workflow */}
-                    {project.workflow && project.workflow.trim() && (
-                      <div className="pt-1">
-                        <SystemWorkflowStudio code={project.workflow} isEditable={false} />
-                      </div>
+                    {/* 🔗 External Flowchart Diagram Action */}
+                    {project.workflow && project.workflow.trim() ? (
+                      <a
+                        href={project.workflow}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full p-3 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500/25 text-cyan-300 font-black text-xs transition-all shadow-md flex items-center justify-between group cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-base">📐</span>
+                          <span>Open Flowchart Diagram</span>
+                        </span>
+                        <span className="px-2.5 py-1 rounded-lg bg-cyan-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
+                          Open Link ↗
+                        </span>
+                      </a>
+                    ) : (
+                      <a
+                        href={DRAWIO_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full p-3 rounded-2xl border-2 border-dashed border-orange-400/50 bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 hover:text-orange-200 font-black text-xs transition-all flex items-center justify-between group cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-base">🎨</span>
+                          <span>Create Flowchart on Draw.io (Free & Unlimited)</span>
+                        </span>
+                        <span className="px-2.5 py-1 rounded-lg bg-orange-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
+                          Launch Editor ↗
+                        </span>
+                      </a>
                     )}
 
                     {/* Requirements Checklist & Progress Bar */}
