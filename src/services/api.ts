@@ -51,15 +51,7 @@ export interface ProjectItem {
   id: string;
   title: string;
   description: string;
-  goal?: string;
-  scope?: string;
-  deliverables?: string;
-  workflow?: string;
-  diagram?: string;
   requirements: ProjectRequirement[];
-  techStack: string[];
-  status?: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
-  tags?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -89,15 +81,7 @@ class ApiService {
     create: (data: {
       title: string;
       description?: string;
-      goal?: string;
-      scope?: string;
-      deliverables?: string;
-      workflow?: string;
-      diagram?: string;
       requirements?: ProjectRequirement[];
-      techStack?: string[];
-      status?: "PLANNING" | "IN_PROGRESS" | "COMPLETED";
-      tags?: string;
     }): Promise<ProjectItem> =>
       this.fetchJson("/api/projects", {
         method: "POST",

@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, goal, scope, deliverables, workflow, diagram, requirements, techStack, status, tags } = body;
+    const { title, description, requirements } = body;
 
     if (!title || typeof title !== "string") {
       return NextResponse.json(
@@ -30,15 +30,7 @@ export async function POST(request: Request) {
         data: {
           title: title.trim(),
           description: description?.trim() || "",
-          goal: goal?.trim() || "",
-          scope: scope?.trim() || "",
-          deliverables: deliverables?.trim() || "",
-          workflow: workflow ? (typeof workflow === "string" ? workflow : JSON.stringify(workflow)) : "",
-          diagram: diagram?.trim() || "",
           requirements: JSON.stringify(requirements || []),
-          techStack: JSON.stringify(techStack || []),
-          status: status || "PLANNING",
-          tags: tags ? (Array.isArray(tags) ? JSON.stringify(tags) : tags) : null,
         },
       });
       return NextResponse.json(created, { status: 201 });
@@ -48,15 +40,7 @@ export async function POST(request: Request) {
         id: `proj-${Date.now()}`,
         title: title.trim(),
         description: description?.trim() || "",
-        goal: goal?.trim() || "",
-        scope: scope?.trim() || "",
-        deliverables: deliverables?.trim() || "",
-        workflow: workflow || "",
-        diagram: diagram?.trim() || "",
         requirements: requirements || [],
-        techStack: techStack || [],
-        status: status || "PLANNING",
-        tags: tags || null,
         createdAt: new Date().toISOString(),
       };
       return NextResponse.json(synthetic, { status: 201 });

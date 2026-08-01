@@ -15,22 +15,8 @@ export async function PATCH(
         data: {
           ...(body.title !== undefined && { title: body.title }),
           ...(body.description !== undefined && { description: body.description }),
-          ...(body.goal !== undefined && { goal: body.goal }),
-          ...(body.scope !== undefined && { scope: body.scope }),
-          ...(body.deliverables !== undefined && { deliverables: body.deliverables }),
-          ...(body.workflow !== undefined && {
-            workflow: typeof body.workflow === "string" ? body.workflow : JSON.stringify(body.workflow),
-          }),
-          ...(body.diagram !== undefined && { diagram: body.diagram }),
           ...(body.requirements !== undefined && {
             requirements: typeof body.requirements === "string" ? body.requirements : JSON.stringify(body.requirements),
-          }),
-          ...(body.techStack !== undefined && {
-            techStack: typeof body.techStack === "string" ? body.techStack : JSON.stringify(body.techStack),
-          }),
-          ...(body.status !== undefined && { status: body.status }),
-          ...(body.tags !== undefined && {
-            tags: typeof body.tags === "string" ? body.tags : JSON.stringify(body.tags),
           }),
         },
       });

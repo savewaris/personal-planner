@@ -1,75 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { ProjectItem, ProjectRequirement } from "@/services/api";
-import { NotionTagInput, getTagColorClasses } from "@/components/NotionTagInput";
-
-import { DiagramStudio, DIAGRAM_PRESETS } from "@/components/DiagramStudio";
-
-const REQUIREMENT_PRESETS = [
-  {
-    name: "🌐 Full-Stack Web App",
-    items: [
-      "Implement Next.js App Router & TypeScript architecture",
-      "Design dark glassmorphism UI & responsive design system",
-      "Setup Prisma ORM & PostgreSQL / Neon database connection",
-      "Build REST API endpoints with input validation",
-      "Integrate Google OAuth / NextAuth authentication",
-      "Deploy build to Vercel with zero compiler errors",
-    ],
-  },
-  {
-    name: "📱 Mobile App",
-    items: [
-      "Setup cross-platform mobile project architecture",
-      "Build responsive UI layout with dark/light theme switching",
-      "Implement state management (Provider / Riverpod / Zustand)",
-      "Integrate REST / GraphQL backend APIs & offline storage",
-      "Setup push notifications & biometric auth",
-    ],
-  },
-  {
-    name: "🤖 AI / SaaS App",
-    items: [
-      "Setup Next.js frontend with Tailwind CSS & Framer Motion",
-      "Integrate OpenAI / Gemini API with streaming responses",
-      "Setup database user quotas, rate limiting, and analytics",
-      "Implement Stripe subscription billing & webhooks",
-      "Build user dashboard with optimistic UI updates",
-    ],
-  },
-];
-
-const WORKFLOW_PRESETS = [
-  {
-    name: "🔄 Standard Dev Workflow",
-    steps: [
-      "Step 1: Architectural Plan & Requirements Specification",
-      "Step 2: Database Schema Design & API Endpoint Setup",
-      "Step 3: Dark Glassmorphic Frontend Component Build",
-      "Step 4: Integration Testing & Verification",
-      "Step 5: Production Build & Vercel Deployment",
-    ],
-  },
-  {
-    name: "🚀 Rapid Prototype",
-    steps: [
-      "Step 1: Wireframe Mockup & Core Layout",
-      "Step 2: Component Scaffolding & State Management",
-      "Step 3: Demo Data Validation & User Feedback",
-    ],
-  },
-  {
-    name: "🔬 AI / Data Pipeline",
-    steps: [
-      "Step 1: Data Ingestion & Preprocessing Pipeline",
-      "Step 2: Prompt Engineering & Model Tuning",
-      "Step 3: API Gateway & UI Integration",
-    ],
-  },
-];
 
 export default function ProjectsPage() {
   const { projects, createProject, updateProject, deleteProject } = usePlannerStore();
@@ -78,139 +12,71 @@ export default function ProjectsPage() {
 
   // New Project Form State
   const [newTitle, setNewTitle] = useState("");
-  const [newSummary, setNewSummary] = useState("");
-  const [newGoal, setNewGoal] = useState("");
-  const [newScope, setNewScope] = useState("");
-  const [newDeliverables, setNewDeliverables] = useState("");
-  const [newWorkflowSteps, setNewWorkflowSteps] = useState<string[]>([""]);
-  const [newDiagram, setNewDiagram] = useState("");
+  const [newDescription, setNewDescription] = useState("");
   const [newReqs, setNewReqs] = useState<string[]>([""]);
-  const [newTechStack, setNewTechStack] = useState("");
-  const [newTags, setNewTags] = useState<string[]>([]);
 
-  // Expandable Form Input Visibility States
-  const [showGoalInput, setShowGoalInput] = useState(false);
-  const [showScopeInput, setShowScopeInput] = useState(false);
-  const [showDeliverablesInput, setShowDeliverablesInput] = useState(false);
-  const [showWorkflowInput, setShowWorkflowInput] = useState(false);
-  const [showDiagramInput, setShowDiagramInput] = useState(false);
-  const [showSummaryInput, setShowSummaryInput] = useState(false);
-
-  // Bulk Paste State
+  // Bulk Line Paste State
   const [showBulkPaste, setShowBulkPaste] = useState(false);
   const [bulkPasteText, setBulkPasteText] = useState("");
 
-  // Project-Themed Validation State
+  // Validation State
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Editing State
+  // Inline Card Editing State
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [editingSummary, setEditingSummary] = useState("");
-  const [editingGoal, setEditingGoal] = useState("");
-  const [editingScope, setEditingScope] = useState("");
-  const [editingDeliverables, setEditingDeliverables] = useState("");
-  const [editingWorkflowSteps, setEditingWorkflowSteps] = useState<string[]>([""]);
-  const [editingDiagram, setEditingDiagram] = useState("");
+  const [editingDescription, setEditingDescription] = useState("");
 
-  // Parse JSON or Array helpers
+  // Parse Requirements Helper
   const parseReqs = (raw: any): ProjectRequirement[] => {
     if (!raw) return [];
     if (Array.isArray(raw)) return raw;
     try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      return JSON.parse(raw);
     } catch {
       return [];
     }
   };
 
-  const parseTech = (raw: any): string[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return typeof raw === "string" ? raw.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  // Handle Bulk Paste Lines
+  const handleApplyBulkPaste = () => {
+    if (!bulkPasteText.trim()) return;
+    const lines = bulkPasteText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length > 0) {
+      const existingFiltered = newReqs.filter((r) => r.trim());
+      setNewReqs([...existingFiltered, ...lines]);
     }
+    setBulkPasteText("");
+    setShowBulkPaste(false);
   };
 
-  const parseTags = (raw: any): string[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return typeof raw === "string" ? raw.split(",").map((s) => s.trim()).filter(Boolean) : [];
-    }
-  };
-
-  const parseWorkflow = (raw: any): string[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return typeof raw === "string" ? raw.split("\n").map((s) => s.trim()).filter(Boolean) : [];
-    }
-  };
-
-  // Handle Project Creation
+  // Handle Create Project
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newTitle.trim()) {
-      setValidationError("Please fill out the Project Title field.");
+      setValidationError("Project title is required!");
       return;
     }
-
     setValidationError(null);
 
     const formattedReqs: ProjectRequirement[] = newReqs
       .filter((r) => r.trim())
       .map((r, idx) => ({ id: `req-${Date.now()}-${idx}`, text: r.trim(), completed: false }));
 
-    const formattedWorkflow = newWorkflowSteps
-      .filter((s) => s.trim())
-      .map((s) => s.trim());
-
-    const formattedTech = newTechStack
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-
     await createProject({
       title: newTitle.trim(),
-      description: newSummary.trim(),
-      goal: newGoal.trim(),
-      scope: newScope.trim(),
-      deliverables: newDeliverables.trim(),
-      workflow: JSON.stringify(formattedWorkflow),
-      diagram: newDiagram.trim(),
+      description: newDescription.trim(),
       requirements: formattedReqs,
-      techStack: formattedTech,
-      tags: JSON.stringify(newTags),
     });
 
     setNewTitle("");
-    setNewSummary("");
-    setNewGoal("");
-    setNewScope("");
-    setNewDeliverables("");
-    setNewWorkflowSteps([""]);
-    setNewDiagram("");
+    setNewDescription("");
     setNewReqs([""]);
-    setNewTechStack("");
-    setNewTags([]);
-    setShowGoalInput(false);
-    setShowScopeInput(false);
-    setShowDeliverablesInput(false);
-    setShowWorkflowInput(false);
-    setShowDiagramInput(false);
-    setShowSummaryInput(false);
     setIsCreateOpen(false);
   };
 
@@ -224,31 +90,41 @@ export default function ProjectsPage() {
     });
   };
 
-  // Start Editing Inline
+  // Add Requirement to Existing Project
+  const addRequirementToProject = async (project: ProjectItem, text: string) => {
+    if (!text.trim()) return;
+    const currentReqs = parseReqs(project.requirements);
+    const newReq: ProjectRequirement = {
+      id: `req-${Date.now()}`,
+      text: text.trim(),
+      completed: false,
+    };
+    await updateProject(project.id, {
+      requirements: [...currentReqs, newReq],
+    });
+  };
+
+  // Delete Requirement from Existing Project
+  const deleteRequirementFromProject = async (project: ProjectItem, reqId: string) => {
+    const currentReqs = parseReqs(project.requirements);
+    const updatedReqs = currentReqs.filter((r) => r.id !== reqId);
+    await updateProject(project.id, {
+      requirements: updatedReqs,
+    });
+  };
+
+  // Inline Editing
   const startEditing = (project: ProjectItem) => {
     setEditingProjectId(project.id);
     setEditingTitle(project.title);
-    setEditingSummary(project.description || "");
-    setEditingGoal(project.goal || "");
-    setEditingScope(project.scope || "");
-    setEditingDeliverables(project.deliverables || "");
-    const existingWorkflow = parseWorkflow(project.workflow);
-    setEditingWorkflowSteps(existingWorkflow.length > 0 ? existingWorkflow : [""]);
-    setEditingDiagram(project.diagram || "");
+    setEditingDescription(project.description || "");
   };
 
   const saveEditing = async (projectId: string) => {
     if (!editingTitle.trim()) return;
-    const formattedWorkflow = editingWorkflowSteps.filter((s) => s.trim()).map((s) => s.trim());
-
     await updateProject(projectId, {
       title: editingTitle.trim(),
-      description: editingSummary.trim(),
-      goal: editingGoal.trim(),
-      scope: editingScope.trim(),
-      deliverables: editingDeliverables.trim(),
-      workflow: JSON.stringify(formattedWorkflow),
-      diagram: editingDiagram.trim(),
+      description: editingDescription.trim(),
     });
     setEditingProjectId(null);
   };
@@ -259,908 +135,393 @@ export default function ProjectsPage() {
 
   return (
     <main className="flex-1 py-6 px-4 sm:px-6 lg:px-10 max-w-full mx-auto w-full space-y-6 pb-12">
-      {/* Level 1 Header: Projects Hub Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 glass-card p-5 rounded-2xl border border-white/15 shadow-2xl bg-gradient-to-r from-zinc-950/90 via-zinc-900/80 to-zinc-950/90 backdrop-blur-2xl">
+      {/* Header Level 1: Projects Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 glass-card p-6 rounded-2xl border border-white/15 shadow-2xl bg-gradient-to-r from-zinc-950/90 via-zinc-900/80 to-zinc-950/90 backdrop-blur-2xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-black shadow-lg">
-            🚀
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-black shadow-lg">
+            📁
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">
-              Projects Hub
+            <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+              <span>Projects</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                {projects.length}
+              </span>
             </h1>
-            <p className="text-xs font-semibold text-zinc-400">
-              Build, track requirements, and store project specifications
-            </p>
+            <p className="text-sm text-zinc-400 font-medium">Store project descriptions and track requirements checklist</p>
           </div>
         </div>
 
-        {/* Action Button */}
         <button
           type="button"
           onClick={() => {
-            setIsCreateOpen(!isCreateOpen);
+            setIsCreateOpen(true);
             setValidationError(null);
           }}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-extrabold text-sm transition-all cursor-pointer shadow-lg shadow-indigo-500/25 flex items-center gap-2 shrink-0"
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-extrabold text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-2"
         >
-          <span>{isCreateOpen ? "✕ Close" : "+ New Project Spec"}</span>
+          <span>+ Create Project</span>
         </button>
       </div>
 
-      {/* New Project Form Drawer */}
+      {/* Creation Drawer Modal */}
       <AnimatePresence>
         {isCreateOpen && (
-          <motion.form
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            onSubmit={handleCreateProject}
-            noValidate
-            className="glass-card p-5 rounded-2xl border border-indigo-500/30 space-y-4 overflow-hidden bg-zinc-950/90 shadow-2xl relative"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
           >
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-                <span>✨</span> Create New Project Specification
-              </h2>
-              <span className="text-xs text-zinc-400 font-semibold">Structured Goal, Scope & Deliverables</span>
-            </div>
-
-            {/* Project-Themed Custom Validation Prompt Banner */}
-            {validationError && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2.5 p-3 rounded-xl border border-rose-500/50 bg-rose-500/15 text-rose-300 text-xs font-extrabold shadow-lg shadow-rose-500/10"
-              >
-                <span className="w-5 h-5 rounded-lg bg-rose-500 text-zinc-950 flex items-center justify-center font-black text-xs shrink-0">
-                  !
-                </span>
-                <span>{validationError}</span>
-              </motion.div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Title Input */}
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="text-lg font-bold text-white flex items-center gap-1">
-                  <span>Project Title</span>
-                  <span className="text-rose-400 font-black">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => {
-                    setNewTitle(e.target.value);
-                    if (e.target.value.trim()) setValidationError(null);
-                  }}
-                  placeholder="e.g., Personal Planner Pro Max"
-                  className={`w-full bg-zinc-900 border rounded-xl px-3.5 py-2 text-base text-white outline-none transition-all font-semibold ${
-                    validationError
-                      ? "border-rose-500 ring-2 ring-rose-500/50 shadow-lg shadow-rose-500/20"
-                      : "border-white/10 focus:border-indigo-400"
-                  }`}
-                />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-2xl bg-zinc-950 border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 my-8"
+            >
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl">✨</span>
+                  <h2 className="text-xl font-black text-white">Create New Project</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
 
-              {/* 🎯 Project Goal */}
-              <div className="space-y-2">
-                {!showGoalInput && !newGoal ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowGoalInput(true)}
-                    className="w-full p-3 rounded-xl border-2 border-dashed border-amber-400/60 bg-amber-500/10 text-amber-300 hover:text-amber-100 hover:border-amber-300 hover:bg-amber-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-lg">🎯</span>
-                      <span className="text-lg font-bold">Project Goal</span>
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-amber-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
-                      + Add Goal
-                    </span>
-                  </button>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
-                    <label className="text-lg font-bold text-amber-300 flex items-center gap-2">
-                      <span>🎯</span> Project Goal
+              {/* Validation Alert */}
+              {validationError && (
+                <div className="flex items-center gap-2 p-3 rounded-xl border border-rose-500/50 bg-rose-500/15 text-rose-300 text-sm font-bold">
+                  <span>⚠️</span>
+                  <span>{validationError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleCreateProject} className="space-y-4">
+                {/* 📌 Project Title */}
+                <div className="space-y-1.5">
+                  <label className="text-base font-bold text-white flex items-center gap-1">
+                    <span>Project Title</span>
+                    <span className="text-rose-400 font-black">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newTitle}
+                    onChange={(e) => {
+                      setNewTitle(e.target.value);
+                      if (e.target.value.trim()) setValidationError(null);
+                    }}
+                    placeholder="e.g., Personal Planner App"
+                    className="w-full bg-zinc-900 border border-white/10 focus:border-indigo-400 rounded-xl px-4 py-2.5 text-base text-white outline-none transition-all font-semibold"
+                  />
+                </div>
+
+                {/* 📝 Project Description */}
+                <div className="space-y-1.5">
+                  <label className="text-base font-bold text-indigo-300 flex items-center gap-1.5">
+                    <span>📝</span>
+                    <span>Project Description / Overview</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    placeholder="Enter project requirements overview, goals, or notes..."
+                    className="w-full bg-zinc-900 border border-white/10 focus:border-indigo-400 rounded-xl p-4 text-sm text-white outline-none transition-all font-medium"
+                  />
+                </div>
+
+                {/* 📋 Requirements Checklist */}
+                <div className="space-y-3 pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <label className="text-base font-bold text-emerald-300 flex items-center gap-1.5">
+                      <span>📋</span>
+                      <span>Requirements Checklist</span>
                     </label>
-                    <textarea
-                      rows={2}
-                      value={newGoal}
-                      onChange={(e) => setNewGoal(e.target.value)}
-                      placeholder="Primary objective & target outcome..."
-                      className="w-full bg-zinc-900 border border-amber-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-amber-400 transition-all font-medium"
-                    />
-                  </motion.div>
-                )}
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkPaste(!showBulkPaste)}
+                      className="text-xs font-extrabold text-cyan-400 hover:text-cyan-200 transition-colors cursor-pointer"
+                    >
+                      {showBulkPaste ? "✕ Close Bulk Paste" : "📋 Bulk Line Paste"}
+                    </button>
+                  </div>
 
-              {/* 📐 Project Scope */}
-              <div className="space-y-2">
-                {!showScopeInput && !newScope ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowScopeInput(true)}
-                    className="w-full p-3 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-lg">📐</span>
-                      <span className="text-lg font-bold">Project Scope</span>
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-indigo-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
-                      + Add Scope
-                    </span>
-                  </button>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
-                    <label className="text-lg font-bold text-indigo-300 flex items-center gap-2">
-                      <span>📐</span> Project Scope
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={newScope}
-                      onChange={(e) => setNewScope(e.target.value)}
-                      placeholder="In-scope features & boundary limits..."
-                      className="w-full bg-zinc-900 border border-indigo-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-indigo-400 transition-all font-medium"
-                    />
-                  </motion.div>
-                )}
-              </div>
-
-              {/* 📦 Key Deliverables */}
-              <div className="space-y-2">
-                {!showDeliverablesInput && !newDeliverables ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowDeliverablesInput(true)}
-                    className="w-full p-3 rounded-xl border-2 border-dashed border-emerald-400/60 bg-emerald-500/10 text-emerald-300 hover:text-emerald-100 hover:border-emerald-300 hover:bg-emerald-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-lg">📦</span>
-                      <span className="text-lg font-bold">Key Deliverables</span>
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-emerald-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
-                      + Add Deliverables
-                    </span>
-                  </button>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
-                    <label className="text-lg font-bold text-emerald-300 flex items-center gap-2">
-                      <span>📦</span> Key Deliverables & Output
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={newDeliverables}
-                      onChange={(e) => setNewDeliverables(e.target.value)}
-                      placeholder="Expected outputs, milestones & tech specs..."
-                      className="w-full bg-zinc-900 border border-emerald-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-emerald-400 transition-all font-medium"
-                    />
-                  </motion.div>
-                )}
-              </div>
-
-              {/* 🔄 Project Workflow Timeline */}
-              <div className="space-y-2">
-                {!showWorkflowInput && newWorkflowSteps.every((s) => !s.trim()) ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowWorkflowInput(true)}
-                    className="w-full p-3 rounded-xl border-2 border-dashed border-cyan-400/60 bg-cyan-500/10 text-cyan-300 hover:text-cyan-100 hover:border-cyan-300 hover:bg-cyan-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-lg">🔄</span>
-                      <span className="text-lg font-bold">Project Workflow</span>
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-cyan-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
-                      + Add Workflow
-                    </span>
-                  </button>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-lg font-bold text-cyan-300 flex items-center gap-2">
-                        <span>🔄</span> Project Workflow Timeline
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setNewWorkflowSteps((prev) => [...prev, ""])}
-                        className="text-xs font-extrabold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                  {/* Bulk Line Paste Drawer */}
+                  <AnimatePresence>
+                    {showBulkPaste && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 space-y-2 overflow-hidden"
                       >
-                        + Add Step
-                      </button>
-                    </div>
-
-                    {/* Workflow Presets */}
-                    <div className="flex items-center gap-1.5 flex-wrap p-2 rounded-xl bg-zinc-900 border border-white/5">
-                      <span className="text-[11px] font-extrabold text-zinc-400 shrink-0">⚡ Presets:</span>
-                      {WORKFLOW_PRESETS.map((preset) => (
+                        <span className="text-xs font-bold text-cyan-300">Paste multiple lines below (each line = 1 requirement item):</span>
+                        <textarea
+                          rows={4}
+                          value={bulkPasteText}
+                          onChange={(e) => setBulkPasteText(e.target.value)}
+                          placeholder={"Line 1 requirement...\nLine 2 requirement...\nLine 3 requirement..."}
+                          className="w-full bg-zinc-900 border border-cyan-500/40 rounded-xl p-3 text-xs text-white outline-none font-medium"
+                        />
                         <button
-                          key={preset.name}
                           type="button"
-                          onClick={() => setNewWorkflowSteps(preset.steps)}
-                          className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 hover:border-cyan-400 text-zinc-300 hover:text-cyan-200 text-xs font-semibold cursor-pointer"
+                          onClick={handleApplyBulkPaste}
+                          className="px-3 py-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-zinc-950 font-black text-xs cursor-pointer shadow-md"
                         >
-                          {preset.name}
+                          ✓ Add Lines to Checklist
                         </button>
-                      ))}
-                    </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                    {newWorkflowSteps.map((step, idx) => (
+                  {/* Requirements List Inputs */}
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {newReqs.map((req, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <span className="text-xs font-extrabold text-cyan-400 shrink-0">Step {idx + 1}:</span>
+                        <span className="text-xs font-bold text-emerald-400 w-5 shrink-0">{idx + 1}.</span>
                         <input
                           type="text"
-                          value={step}
+                          value={req}
                           onChange={(e) => {
-                            const updated = [...newWorkflowSteps];
+                            const updated = [...newReqs];
                             updated[idx] = e.target.value;
-                            setNewWorkflowSteps(updated);
+                            setNewReqs(updated);
                           }}
-                          placeholder={`Step ${idx + 1} detail...`}
-                          className="flex-1 bg-zinc-900 border border-cyan-400/40 rounded-xl px-3 py-1.5 text-base text-white outline-none focus:border-cyan-400 font-medium"
+                          placeholder={`Requirement ${idx + 1}...`}
+                          className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-emerald-400 font-medium"
                         />
-                        {newWorkflowSteps.length > 1 && (
+                        {newReqs.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => setNewWorkflowSteps((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-zinc-500 hover:text-rose-400 text-xs font-bold px-1.5"
+                            onClick={() => setNewReqs(newReqs.filter((_, i) => i !== idx))}
+                            className="text-zinc-500 hover:text-rose-400 text-sm font-bold px-2 cursor-pointer"
                           >
                             ✕
                           </button>
                         )}
                       </div>
                     ))}
-                  </motion.div>
-                )}
-              </div>
+                  </div>
 
-              {/* 📐 System Design & Architecture Diagram */}
-              <div className="md:col-span-2 space-y-2">
-                {!showDiagramInput && !newDiagram ? (
                   <button
                     type="button"
-                    onClick={() => setShowDiagramInput(true)}
-                    className="w-full p-3 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                    onClick={() => setNewReqs([...newReqs, ""])}
+                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="text-lg">📐</span>
-                      <span className="text-lg font-bold">System Architecture Diagram</span>
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-indigo-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
-                      + Add Diagram Studio
-                    </span>
+                    <span>+ Add Requirement Item</span>
                   </button>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-                    <DiagramStudio code={newDiagram} onChangeCode={setNewDiagram} isEditable={true} />
-                  </motion.div>
-                )}
-              </div>
+                </div>
 
-              {/* 📝 Overview Summary */}
-              <div className="space-y-2">
-                {!showSummaryInput && !newSummary ? (
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
                   <button
                     type="button"
-                    onClick={() => setShowSummaryInput(true)}
-                    className="w-full p-3 rounded-xl border-2 border-dashed border-purple-400/60 bg-purple-500/10 text-purple-300 hover:text-purple-100 hover:border-purple-300 hover:bg-purple-500/20 text-sm font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="px-4 py-2 rounded-xl text-zinc-400 font-bold text-sm hover:text-white cursor-pointer"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="text-lg">📝</span>
-                      <span className="text-lg font-bold">Overview Summary</span>
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-purple-400 text-zinc-950 font-black text-xs group-hover:scale-105 transition-transform">
-                      + Add Summary
-                    </span>
+                    Cancel
                   </button>
-                ) : (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
-                    <label className="text-lg font-bold text-purple-300 flex items-center gap-2">
-                      <span>📝</span> Overview Summary
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={newSummary}
-                      onChange={(e) => setNewSummary(e.target.value)}
-                      placeholder="Brief high-level overview..."
-                      className="w-full bg-zinc-900 border border-purple-400/60 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-purple-400 transition-all font-medium"
-                    />
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Requirements Checklist Inputs */}
-              <div className="md:col-span-2 space-y-3 pt-2 border-t border-white/5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <label className="text-lg font-bold text-white flex items-center gap-2">
-                    <span>📋 Project Requirements Checklist</span>
-                  </label>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setShowBulkPaste(!showBulkPaste)}
-                      className="px-2.5 py-1 rounded-lg bg-zinc-800 border border-white/10 text-amber-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                    >
-                      <span>📋</span> Bulk Paste
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setNewReqs((prev) => [...prev, ""])}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
-                    >
-                      + Add Item
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black text-sm shadow-lg cursor-pointer"
+                  >
+                    Create Project
+                  </button>
                 </div>
-
-                {/* ⚡ Quick Presets Pill Bar */}
-                <div className="flex items-center gap-2 flex-wrap p-2.5 rounded-xl bg-zinc-900/80 border border-white/5">
-                  <span className="text-xs font-extrabold text-zinc-400 shrink-0">⚡ Quick Presets:</span>
-                  {REQUIREMENT_PRESETS.map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => {
-                        setNewReqs(preset.items);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 hover:border-indigo-400 hover:bg-indigo-500/20 text-zinc-200 hover:text-indigo-200 text-xs font-bold transition-all cursor-pointer"
-                      title="Click to populate requirements checklist with this preset"
-                    >
-                      {preset.name}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Bulk Paste Box */}
-                {showBulkPaste && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-2 p-3 rounded-xl bg-zinc-900 border border-amber-400/40">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-amber-300">Paste multi-line requirements (one item per line):</label>
-                      <button type="button" onClick={() => setShowBulkPaste(false)} className="text-xs text-zinc-400 font-bold hover:text-white">✕</button>
-                    </div>
-                    <textarea
-                      rows={4}
-                      value={bulkPasteText}
-                      onChange={(e) => setBulkPasteText(e.target.value)}
-                      placeholder="- Requirement line 1&#10;- Requirement line 2&#10;- Requirement line 3"
-                      className="w-full bg-zinc-950 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-amber-400 transition-all font-mono"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const lines = bulkPasteText
-                            .split("\n")
-                            .map((line) => line.replace(/^[\s\-\*\d\.\(\)\[\]xX]+/, "").trim())
-                            .filter(Boolean);
-
-                          if (lines.length > 0) {
-                            setNewReqs(lines);
-                            setBulkPasteText("");
-                            setShowBulkPaste(false);
-                          }
-                        }}
-                        className="px-3 py-1 rounded-lg bg-amber-400 text-zinc-950 font-black text-xs cursor-pointer hover:bg-amber-300"
-                      >
-                        Import Lines ✨
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {newReqs.map((req, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-zinc-500 shrink-0">{idx + 1}.</span>
-                    <input
-                      type="text"
-                      value={req}
-                      onChange={(e) => {
-                        const updated = [...newReqs];
-                        updated[idx] = e.target.value;
-                        setNewReqs(updated);
-                      }}
-                      placeholder={`Requirement #${idx + 1} (e.g. Implement Next.js App Router)`}
-                      className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-1.5 text-base text-white outline-none focus:border-indigo-400 transition-all font-medium"
-                    />
-                    {newReqs.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setNewReqs((prev) => prev.filter((_, i) => i !== idx))}
-                        className="text-zinc-500 hover:text-rose-400 text-xs px-2 py-1 cursor-pointer font-bold"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Tech Stack Tags */}
-              <div className="space-y-1.5">
-                <label className="text-lg font-bold text-white">Tech Stack (comma separated)</label>
-                <input
-                  type="text"
-                  value={newTechStack}
-                  onChange={(e) => setNewTechStack(e.target.value)}
-                  placeholder="React, Next.js, Prisma, TailwindCSS, Neon"
-                  className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2 text-base text-white outline-none focus:border-indigo-400 transition-all font-medium"
-                />
-              </div>
-
-              {/* Notion Tags Input */}
-              <div className="space-y-1.5">
-                <label className="text-lg font-bold text-white">Notion Tags</label>
-                <NotionTagInput selectedTags={newTags} onChangeSelectedTags={setNewTags} placeholder="Add tag & press Enter..." />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateOpen(false);
-                  setValidationError(null);
-                }}
-                className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white font-bold text-sm transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-extrabold text-sm hover:bg-emerald-400 transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
-              >
-                Save Project Spec ✨
-              </button>
-            </div>
-          </motion.form>
+              </form>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Projects Feed */}
+      {/* Projects Grid Display */}
       {projects.length === 0 ? (
-        <div className="glass-card p-12 rounded-2xl border border-white/10 text-center space-y-3 bg-zinc-950/60">
-          <div className="text-4xl">🚀</div>
-          <h3 className="text-xl font-bold text-white">No Projects Stored</h3>
+        <div className="p-12 text-center rounded-3xl bg-zinc-950/60 border border-white/10 space-y-3">
+          <span className="text-4xl">📁</span>
+          <h3 className="text-lg font-bold text-white">No projects created yet</h3>
           <p className="text-sm text-zinc-400 max-w-md mx-auto">
-            Create your first project specification to store Goal, Scope, Deliverables, requirements, and tech stack!
+            Click "+ Create Project" above to add your first project description and requirements checklist.
           </p>
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-extrabold text-sm transition-all cursor-pointer inline-flex items-center gap-2"
-          >
-            + Create Project Spec
-          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <AnimatePresence mode="popLayout">
-            {projects.map((project) => {
-              const reqs = parseReqs(project.requirements);
-              const tech = parseTech(project.techStack);
-              const tags = parseTags(project.tags);
-              const isEditingThis = editingProjectId === project.id;
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {projects.map((project) => {
+            const reqs = parseReqs(project.requirements);
+            const completedCount = reqs.filter((r) => r.completed).length;
+            const progressPct = reqs.length > 0 ? Math.round((completedCount / reqs.length) * 100) : 0;
+            const isEditingThis = editingProjectId === project.id;
 
-              const hasGoal = Boolean(project.goal && project.goal.trim());
-              const hasScope = Boolean(project.scope && project.scope.trim());
-              const hasDeliverables = Boolean(project.deliverables && project.deliverables.trim());
-
-              const completedReqs = reqs.filter((r) => r.completed).length;
-              const progressPct = reqs.length > 0 ? Math.round((completedReqs / reqs.length) * 100) : 0;
-
-              return (
-                <motion.div
-                  key={project.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className={`glass-card p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 ${
-                    isEditingThis
-                      ? "border-amber-400/80 bg-zinc-950 shadow-2xl ring-1 ring-amber-400/50"
-                      : "border-white/10 hover:border-indigo-500/40 bg-zinc-900/70 shadow-lg"
-                  }`}
-                >
-                  {/* Card Header & Structured Specs */}
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      {isEditingThis ? (
-                        <div className="flex flex-col gap-3 w-full">
-                          <input
-                            type="text"
-                            value={editingTitle}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            autoFocus
-                            placeholder="Edit project title..."
-                            className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1.5 text-lg text-white outline-none font-bold"
-                          />
-
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-amber-300">🎯 Goal</label>
-                            <textarea
-                              rows={2}
-                              value={editingGoal}
-                              onChange={(e) => setEditingGoal(e.target.value)}
-                              placeholder="Edit goal..."
-                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-indigo-300">📐 Scope</label>
-                            <textarea
-                              rows={2}
-                              value={editingScope}
-                              onChange={(e) => setEditingScope(e.target.value)}
-                              placeholder="Edit scope..."
-                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-emerald-300">📦 Deliverables</label>
-                            <textarea
-                              rows={2}
-                              value={editingDeliverables}
-                              onChange={(e) => setEditingDeliverables(e.target.value)}
-                              placeholder="Edit deliverables..."
-                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold text-cyan-300">🔄 Workflow Steps</label>
-                              <button
-                                type="button"
-                                onClick={() => setEditingWorkflowSteps((prev) => [...prev, ""])}
-                                className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300"
-                              >
-                                + Add Step
-                              </button>
-                            </div>
-                            {editingWorkflowSteps.map((step, idx) => (
-                              <div key={idx} className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold text-cyan-400 shrink-0">{idx + 1}.</span>
-                                <input
-                                  type="text"
-                                  value={step}
-                                  onChange={(e) => {
-                                    const updated = [...editingWorkflowSteps];
-                                    updated[idx] = e.target.value;
-                                    setEditingWorkflowSteps(updated);
-                                  }}
-                                  placeholder={`Step ${idx + 1}...`}
-                                  className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-2.5 py-1 text-sm text-white outline-none font-medium"
-                                />
-                                {editingWorkflowSteps.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingWorkflowSteps((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="text-zinc-500 hover:text-rose-400 text-xs font-bold px-1"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-indigo-300">📐 System Architecture Diagram</label>
-                            <DiagramStudio code={editingDiagram} onChangeCode={setEditingDiagram} isEditable={true} />
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-purple-300">📝 Overview Summary</label>
-                            <textarea
-                              rows={2}
-                              value={editingSummary}
-                              onChange={(e) => setEditingSummary(e.target.value)}
-                              placeholder="Edit summary..."
-                              className="w-full bg-zinc-900 border border-amber-400/80 rounded-xl px-3 py-1 text-base text-white outline-none font-medium"
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-end gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => saveEditing(project.id)}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-500 text-zinc-950 font-extrabold text-xs cursor-pointer"
-                            >
-                              ✓ Save Spec
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEditing}
-                              className="px-2.5 py-1.5 rounded-xl text-zinc-400 font-bold text-xs cursor-pointer"
-                            >
-                              ✕ Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 flex-1">
-                          <h3
-                            onClick={() => startEditing(project)}
-                            title="Click to edit project spec inline"
-                            className="text-lg font-bold text-white hover:text-amber-300 cursor-pointer transition-colors break-words leading-snug"
-                          >
-                            {project.title}
-                          </h3>
-
-                          {/* Overview Summary */}
-                          {project.description && (
-                            <p className="text-base font-medium text-zinc-300 break-words leading-relaxed">
-                              {project.description}
-                            </p>
-                          )}
-
-                          {/* Structured Badges: Goal, Scope, Deliverables */}
-                          <div className="grid grid-cols-1 gap-2 pt-1">
-                            {hasGoal ? (
-                              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-0.5">
-                                <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1">
-                                  <span>🎯</span> Goal
-                                </span>
-                                <p className="text-sm font-medium text-amber-100 break-words leading-snug">
-                                  {project.goal}
-                                </p>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => startEditing(project)}
-                                className="w-full p-2.5 rounded-xl border-2 border-dashed border-amber-400/60 bg-amber-500/10 text-amber-300 hover:text-amber-100 hover:border-amber-300 hover:bg-amber-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  <span>🎯</span>
-                                  <span>Project Goal:</span>
-                                  <span className="font-medium text-zinc-400 group-hover:text-amber-200 italic">Not set yet</span>
-                                </span>
-                                <span className="px-2 py-0.5 rounded-md bg-amber-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
-                                  + Add Goal
-                                </span>
-                              </button>
-                            )}
-
-                            {hasScope ? (
-                              <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-0.5">
-                                <span className="text-xs font-extrabold text-indigo-300 flex items-center gap-1">
-                                  <span>📐</span> Scope
-                                </span>
-                                <p className="text-sm font-medium text-indigo-100 break-words leading-snug">
-                                  {project.scope}
-                                </p>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => startEditing(project)}
-                                className="w-full p-2.5 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  <span>📐</span>
-                                  <span>Project Scope:</span>
-                                  <span className="font-medium text-zinc-400 group-hover:text-indigo-200 italic">Not set yet</span>
-                                </span>
-                                <span className="px-2 py-0.5 rounded-md bg-indigo-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
-                                  + Add Scope
-                                </span>
-                              </button>
-                            )}
-
-                            {hasDeliverables ? (
-                              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-0.5">
-                                <span className="text-xs font-extrabold text-emerald-300 flex items-center gap-1">
-                                  <span>📦</span> Key Deliverables
-                                </span>
-                                <p className="text-sm font-medium text-emerald-100 break-words leading-snug">
-                                  {project.deliverables}
-                                </p>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => startEditing(project)}
-                                className="w-full p-2.5 rounded-xl border-2 border-dashed border-emerald-400/60 bg-emerald-500/10 text-emerald-300 hover:text-emerald-100 hover:border-emerald-300 hover:bg-emerald-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  <span>📦</span>
-                                  <span>Deliverables:</span>
-                                  <span className="font-medium text-zinc-400 group-hover:text-emerald-200 italic">Not set yet</span>
-                                </span>
-                                <span className="px-2 py-0.5 rounded-md bg-emerald-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
-                                  + Add Deliverables
-                                </span>
-                              </button>
-                            )}
-
-                            {/* 🔄 Workflow Timeline */}
-                            {(() => {
-                              const workflowSteps = parseWorkflow(project.workflow);
-                              const hasWorkflow = workflowSteps.length > 0;
-
-                              return hasWorkflow ? (
-                                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/25 space-y-2">
-                                  <span className="text-xs font-extrabold text-cyan-300 flex items-center gap-1">
-                                    <span>🔄</span> Project Workflow Timeline
-                                  </span>
-                                  <div className="space-y-2 pt-1 border-l-2 border-cyan-400/40 ml-1.5">
-                                    {workflowSteps.map((step, idx) => (
-                                      <div key={idx} className="flex items-start gap-2 pl-3 relative">
-                                        <span className="w-5 h-5 rounded-full bg-cyan-400 text-zinc-950 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5 shadow-md">
-                                          {idx + 1}
-                                        </span>
-                                        <span className="text-sm font-semibold text-cyan-100 break-words leading-snug">
-                                          {step}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => startEditing(project)}
-                                  className="w-full p-2.5 rounded-xl border-2 border-dashed border-cyan-400/60 bg-cyan-500/10 text-cyan-300 hover:text-cyan-100 hover:border-cyan-300 hover:bg-cyan-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                                >
-                                  <span className="flex items-center gap-1.5">
-                                    <span>🔄</span>
-                                    <span>Project Workflow:</span>
-                                    <span className="font-medium text-zinc-400 group-hover:text-cyan-200 italic">Not set yet</span>
-                                  </span>
-                                  <span className="px-2 py-0.5 rounded-md bg-cyan-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
-                                    + Add Workflow
-                                  </span>
-                                </button>
-                              );
-                            })()}
-                            {/* 📐 System Design Diagram */}
-                            {(() => {
-                              const hasDiagram = Boolean(project.diagram && project.diagram.trim());
-
-                              return hasDiagram ? (
-                                <div className="pt-1">
-                                  <DiagramStudio code={project.diagram || ""} isEditable={false} />
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => startEditing(project)}
-                                  className="w-full p-2.5 rounded-xl border-2 border-dashed border-indigo-400/60 bg-indigo-500/10 text-indigo-300 hover:text-indigo-100 hover:border-indigo-300 hover:bg-indigo-500/20 text-xs font-black transition-all text-left flex items-center justify-between cursor-pointer shadow-sm group"
-                                >
-                                  <span className="flex items-center gap-1.5">
-                                    <span>📐</span>
-                                    <span>System Architecture Diagram:</span>
-                                    <span className="font-medium text-zinc-400 group-hover:text-indigo-200 italic">Not set yet</span>
-                                  </span>
-                                  <span className="px-2 py-0.5 rounded-md bg-indigo-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
-                                    + Add Diagram
-                                  </span>
-                                </button>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      )}
-
-                      {!isEditingThis && (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => startEditing(project)}
-                            title="Edit project spec"
-                            className="p-1 rounded-lg text-zinc-500 hover:text-amber-300 transition-colors cursor-pointer"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteProject(project.id)}
-                            title="Delete project"
-                            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
+            return (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-3xl bg-zinc-950/90 border border-white/15 p-6 shadow-xl space-y-5 flex flex-col justify-between"
+              >
+                {isEditingThis ? (
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-zinc-400">Project Title</label>
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        className="w-full bg-zinc-900 border border-indigo-400 rounded-xl px-3.5 py-2 text-base text-white outline-none font-bold"
+                      />
                     </div>
 
-                    {/* Requirements Progress Bar & Checklist */}
-                    {reqs.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-white/5">
-                        <div className="flex items-center justify-between text-xs font-bold text-zinc-400">
-                          <span>Requirements Spec Checklist</span>
-                          <span className="text-amber-400">{completedReqs}/{reqs.length} ({progressPct}%)</span>
-                        </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-zinc-400">Description / Overview</label>
+                      <textarea
+                        rows={4}
+                        value={editingDescription}
+                        onChange={(e) => setEditingDescription(e.target.value)}
+                        className="w-full bg-zinc-900 border border-indigo-400 rounded-xl p-3 text-sm text-white outline-none font-medium"
+                      />
+                    </div>
 
-                        {/* Progress Bar */}
-                        <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-white/5">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelEditing}
+                        className="px-3 py-1.5 rounded-xl text-zinc-400 text-xs font-bold hover:text-white cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => saveEditing(project.id)}
+                        className="px-4 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-extrabold text-xs cursor-pointer shadow-md"
+                      >
+                        ✓ Save Changes
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Project Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-black text-lg flex items-center justify-center shrink-0">
+                          📌
+                        </div>
+                        <h2 className="text-xl font-extrabold text-white leading-snug">{project.title}</h2>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => startEditing(project)}
+                          title="Edit Title & Description"
+                          className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteProject(project.id)}
+                          title="Delete Project"
+                          className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    {project.description && (
+                      <p className="text-sm text-zinc-300 leading-relaxed bg-zinc-900/60 border border-white/5 p-4 rounded-2xl whitespace-pre-wrap font-medium">
+                        {project.description}
+                      </p>
+                    )}
+
+                    {/* Requirements Checklist & Progress Bar */}
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-extrabold text-emerald-300 flex items-center gap-1.5">
+                          <span>📋</span>
+                          <span>Requirements Checklist</span>
+                        </span>
+                        <span className="font-bold text-zinc-400">
+                          {completedCount} of {reqs.length} ({progressPct}%)
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      {reqs.length > 0 && (
+                        <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden border border-white/5">
                           <div
-                            className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-300"
                             style={{ width: `${progressPct}%` }}
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
                           />
                         </div>
+                      )}
 
-                        {/* Checklist items */}
-                        <div className="space-y-1.5 pt-1">
-                          {reqs.map((req) => (
-                            <div
-                              key={req.id}
+                      {/* Checklist Items */}
+                      <div className="space-y-2">
+                        {reqs.map((req) => (
+                          <div
+                            key={req.id}
+                            className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 hover:border-white/10 transition-colors group"
+                          >
+                            <button
+                              type="button"
                               onClick={() => toggleRequirement(project, req.id)}
-                              className="flex items-center gap-2.5 text-base font-semibold cursor-pointer group hover:text-white transition-colors"
+                              className="flex items-center gap-2.5 text-left flex-1 cursor-pointer"
                             >
-                              <div
-                                className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center transition-all shrink-0 ${
+                              <span
+                                className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition-all ${
                                   req.completed
                                     ? "bg-emerald-500 border-emerald-400 text-zinc-950"
-                                    : "border-white/20 bg-white/5 group-hover:border-indigo-400"
+                                    : "border-zinc-700 bg-zinc-950 text-transparent group-hover:border-zinc-500"
                                 }`}
                               >
-                                {req.completed && (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                  </svg>
-                                )}
-                              </div>
+                                ✓
+                              </span>
                               <span
-                                className={`flex-1 break-words leading-snug ${
-                                  req.completed ? "line-through text-zinc-500 font-normal" : "text-zinc-200"
+                                className={`text-sm font-semibold transition-all ${
+                                  req.completed ? "line-through text-zinc-500" : "text-zinc-200"
                                 }`}
                               >
                                 {req.text}
                               </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                            </button>
 
-                  {/* Card Footer: Tech Stack & Notion Tags */}
-                  <div className="pt-3 border-t border-white/5 space-y-2">
-                    {/* Tech Stack Pills */}
-                    {tech.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-bold text-zinc-500 shrink-0">Tech:</span>
-                        {tech.map((t, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 rounded-md text-xs font-semibold bg-zinc-800 border border-white/10 text-zinc-300"
-                          >
-                            {t}
-                          </span>
+                            <button
+                              type="button"
+                              onClick={() => deleteRequirementFromProject(project, req.id)}
+                              className="text-zinc-600 hover:text-rose-400 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         ))}
                       </div>
-                    )}
 
-                    {/* Notion Tags */}
-                    {tags.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {tags.map((t) => {
-                          const colorClasses = getTagColorClasses(t, false);
-
-                          return (
-                            <span
-                              key={t}
-                              className={`px-2.5 py-0.5 rounded-full text-sm font-semibold border shrink-0 ${colorClasses}`}
-                            >
-                              #{t}
-                            </span>
-                          );
-                        })}
+                      {/* Quick Add Requirement Input */}
+                      <div className="pt-1">
+                        <input
+                          type="text"
+                          placeholder="+ Add new requirement (Press Enter)..."
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                              addRequirementToProject(project, e.currentTarget.value);
+                              e.currentTarget.value = "";
+                            }
+                          }}
+                          className="w-full bg-zinc-900 border border-white/10 focus:border-emerald-400 rounded-xl px-3.5 py-2 text-xs text-white outline-none font-medium"
+                        />
                       </div>
-                    )}
+                    </div>
                   </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </main>

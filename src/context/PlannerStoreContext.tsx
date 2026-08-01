@@ -539,9 +539,6 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       title: data.title,
       description: data.description || "",
       requirements: data.requirements || [],
-      techStack: data.techStack || [],
-      status: data.status || "PLANNING",
-      tags: data.tags || null,
       createdAt: new Date().toISOString(),
     };
 
