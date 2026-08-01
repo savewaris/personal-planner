@@ -394,19 +394,22 @@ export default function ProjectsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
           {projects.map((project) => {
             const reqs = parseReqs(project.requirements);
             const completedCount = reqs.filter((r) => r.completed).length;
             const progressPct = reqs.length > 0 ? Math.round((completedCount / reqs.length) * 100) : 0;
             const isEditingThis = editingProjectId === project.id;
+            const hasDescription = Boolean(project.description && project.description.trim());
+            const hasFlowchart = Boolean(project.workflow && project.workflow.trim());
+            const hasRequirements = reqs.length > 0;
 
             return (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-3xl bg-zinc-950/90 border border-white/15 p-6 shadow-xl space-y-5 flex flex-col justify-between"
+                className="rounded-3xl bg-zinc-950/90 border border-white/15 p-5 shadow-xl space-y-4 flex flex-col justify-between"
               >
                 {isEditingThis ? (
                   <div className="space-y-4">
@@ -470,153 +473,140 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {/* Project Header */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-black text-lg flex items-center justify-center shrink-0">
-                          📌
+                  <div className="space-y-3 flex-1 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      {/* Project Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-black text-sm flex items-center justify-center shrink-0 mt-0.5">
+                            📌
+                          </div>
+                          <h2 className="text-base font-black text-white leading-snug break-words">{project.title}</h2>
                         </div>
-                        <h2 className="text-xl font-extrabold text-white leading-snug">{project.title}</h2>
-                      </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => startEditing(project)}
-                          title="Edit Project"
-                          className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteProject(project.id)}
-                          title="Delete Project"
-                          className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    {project.description && (
-                      <p className="text-sm text-zinc-300 leading-relaxed bg-zinc-900/60 border border-white/5 p-4 rounded-2xl whitespace-pre-wrap font-medium">
-                        {project.description}
-                      </p>
-                    )}
-
-                    {/* 🔗 External Flowchart Diagram Action */}
-                    {project.workflow && project.workflow.trim() ? (
-                      <a
-                        href={project.workflow}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full p-3 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500/25 text-cyan-300 font-black text-xs transition-all shadow-md flex items-center justify-between group cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-base">📐</span>
-                          <span>Open Flowchart Diagram</span>
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-cyan-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
-                          Open Link ↗
-                        </span>
-                      </a>
-                    ) : (
-                      <a
-                        href={DRAWIO_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full p-3 rounded-2xl border-2 border-dashed border-orange-400/50 bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 hover:text-orange-200 font-black text-xs transition-all flex items-center justify-between group cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-base">🎨</span>
-                          <span>Create Flowchart on Draw.io (Free & Unlimited)</span>
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-orange-400 text-zinc-950 font-black text-[11px] group-hover:scale-105 transition-transform">
-                          Launch Editor ↗
-                        </span>
-                      </a>
-                    )}
-
-                    {/* Requirements Checklist & Progress Bar */}
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-extrabold text-emerald-300 flex items-center gap-1.5">
-                          <span>📋</span>
-                          <span>Requirements Checklist</span>
-                        </span>
-                        <span className="font-bold text-zinc-400">
-                          {completedCount} of {reqs.length} ({progressPct}%)
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      {reqs.length > 0 && (
-                        <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden border border-white/5">
-                          <div
-                            style={{ width: `${progressPct}%` }}
-                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
-                          />
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => startEditing(project)}
+                            title="Edit Project"
+                            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-xs"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteProject(project.id)}
+                            title="Delete Project"
+                            className="p-1 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer text-xs"
+                          >
+                            🗑️
+                          </button>
                         </div>
+                      </div>
+
+                      {/* Strict Conditional: Description */}
+                      {hasDescription && (
+                        <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-900/60 border border-white/5 p-3 rounded-xl whitespace-pre-wrap font-medium">
+                          {project.description}
+                        </p>
                       )}
 
-                      {/* Checklist Items */}
-                      <div className="space-y-2">
-                        {reqs.map((req) => (
-                          <div
-                            key={req.id}
-                            className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 hover:border-white/10 transition-colors group"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => toggleRequirement(project, req.id)}
-                              className="flex items-center gap-2.5 text-left flex-1 cursor-pointer"
-                            >
-                              <span
-                                className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition-all ${
-                                  req.completed
-                                    ? "bg-emerald-500 border-emerald-400 text-zinc-950"
-                                    : "border-zinc-700 bg-zinc-950 text-transparent group-hover:border-zinc-500"
-                                }`}
-                              >
-                                ✓
-                              </span>
-                              <span
-                                className={`text-sm font-semibold transition-all ${
-                                  req.completed ? "line-through text-zinc-500" : "text-zinc-200"
-                                }`}
-                              >
-                                {req.text}
-                              </span>
-                            </button>
+                      {/* Strict Conditional: Flowchart Link */}
+                      {hasFlowchart && (
+                        <a
+                          href={project.workflow}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full p-2.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500/25 text-cyan-300 font-black text-xs transition-all shadow-md flex items-center justify-between group cursor-pointer"
+                        >
+                          <span className="flex items-center gap-1.5 truncate">
+                            <span>📐</span>
+                            <span className="truncate">Flowchart Diagram</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-cyan-400 text-zinc-950 font-black text-[10px] group-hover:scale-105 transition-transform shrink-0">
+                            Open ↗
+                          </span>
+                        </a>
+                      )}
 
-                            <button
-                              type="button"
-                              onClick={() => deleteRequirementFromProject(project, req.id)}
-                              className="text-zinc-600 hover:text-rose-400 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
-                            >
-                              ✕
-                            </button>
+                      {/* Strict Conditional: Requirements Checklist */}
+                      {hasRequirements && (
+                        <div className="space-y-2 pt-1 border-t border-white/5">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-extrabold text-emerald-300 flex items-center gap-1">
+                              <span>📋</span>
+                              <span>Requirements</span>
+                            </span>
+                            <span className="font-bold text-zinc-400">
+                              {completedCount}/{reqs.length} ({progressPct}%)
+                            </span>
                           </div>
-                        ))}
-                      </div>
 
-                      {/* Quick Add Requirement Input */}
-                      <div className="pt-1">
-                        <input
-                          type="text"
-                          placeholder="+ Add new requirement (Press Enter)..."
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                              addRequirementToProject(project, e.currentTarget.value);
-                              e.currentTarget.value = "";
-                            }
-                          }}
-                          className="w-full bg-zinc-900 border border-white/10 focus:border-emerald-400 rounded-xl px-3.5 py-2 text-xs text-white outline-none font-medium"
-                        />
-                      </div>
+                          {/* Progress Bar */}
+                          <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden border border-white/5">
+                            <div
+                              style={{ width: `${progressPct}%` }}
+                              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
+                            />
+                          </div>
+
+                          {/* Checklist Items */}
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                            {reqs.map((req) => (
+                              <div
+                                key={req.id}
+                                className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-zinc-900/80 border border-white/5 hover:border-white/10 transition-colors group"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRequirement(project, req.id)}
+                                  className="flex items-center gap-2 text-left flex-1 cursor-pointer min-w-0"
+                                >
+                                  <span
+                                    className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] font-black transition-all shrink-0 ${
+                                      req.completed
+                                        ? "bg-emerald-500 border-emerald-400 text-zinc-950"
+                                        : "border-zinc-700 bg-zinc-950 text-transparent group-hover:border-zinc-500"
+                                    }`}
+                                  >
+                                    ✓
+                                  </span>
+                                  <span
+                                    className={`text-xs font-semibold transition-all truncate ${
+                                      req.completed ? "line-through text-zinc-500" : "text-zinc-200"
+                                    }`}
+                                  >
+                                    {req.text}
+                                  </span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => deleteRequirementFromProject(project, req.id)}
+                                  className="text-zinc-600 hover:text-rose-400 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer shrink-0"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick Add Requirement Input (Always available at bottom of card) */}
+                    <div className="pt-1 border-t border-white/5">
+                      <input
+                        type="text"
+                        placeholder="+ Requirement (Enter)..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                            addRequirementToProject(project, e.currentTarget.value);
+                            e.currentTarget.value = "";
+                          }
+                        }}
+                        className="w-full bg-zinc-900/90 border border-white/10 focus:border-emerald-400 rounded-lg px-2.5 py-1 text-[11px] text-white outline-none font-medium"
+                      />
                     </div>
                   </div>
                 )}
