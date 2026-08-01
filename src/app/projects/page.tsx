@@ -11,8 +11,18 @@ const getEmbedUrl = (rawUrl: string) => {
   if (!rawUrl) return "";
   let url = rawUrl.trim();
 
-  // If URL has a fragment hash (#R...), query parameters MUST be placed BEFORE the hash.
-  // Appending query strings after #R corrupts Base64 string decoding (atob).
+  // 1. Fix double-hash corruption if present (e.g. #R#G -> #G)
+  url = url.replace("#R#G", "#G");
+  url = url.replace("#R#", "#");
+
+  // 2. Use viewer.diagrams.net for iframe cross-origin permission
+  if (url.includes("app.diagrams.net")) {
+    url = url.replace("app.diagrams.net", "viewer.diagrams.net");
+  } else if (url.includes("draw.io")) {
+    url = url.replace("draw.io", "viewer.diagrams.net");
+  }
+
+  // 3. Ensure query parameters are placed BEFORE the fragment hash
   if (url.includes("#")) {
     const parts = url.split("#");
     const baseUrl = parts[0];
