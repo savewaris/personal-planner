@@ -31,6 +31,10 @@ export default function ProjectsPage() {
   const [editingDescription, setEditingDescription] = useState("");
   const [editingWorkflowLink, setEditingWorkflowLink] = useState("");
 
+  // Hover Preview Popover State
+  const [hoveredFlowchartUrl, setHoveredFlowchartUrl] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
   // Parse Requirements Helper
   const parseReqs = (raw: any): ProjectRequirement[] => {
     if (!raw) return [];
@@ -517,6 +521,14 @@ export default function ProjectsPage() {
                           href={project.workflow}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onMouseEnter={(e) => {
+                            setHoveredFlowchartUrl(project.workflow || "");
+                            setMousePos({ x: e.clientX, y: e.clientY });
+                          }}
+                          onMouseMove={(e) => {
+                            setMousePos({ x: e.clientX, y: e.clientY });
+                          }}
+                          onMouseLeave={() => setHoveredFlowchartUrl(null)}
                           className="w-full p-2.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 hover:border-cyan-400 hover:bg-cyan-500/25 text-cyan-300 font-black text-xs transition-all shadow-md flex items-center justify-between group cursor-pointer"
                         >
                           <span className="flex items-center gap-1.5 truncate">
@@ -615,6 +627,37 @@ export default function ProjectsPage() {
           })}
         </div>
       )}
+
+      {/* 📐 Top-Right of Mouse Cursor Flowchart Hover Preview Popover */}
+      <AnimatePresence>
+        {hoveredFlowchartUrl && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 5 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 5 }}
+            style={{
+              left: mousePos.x + 15,
+              top: mousePos.y - 75,
+            }}
+            className="fixed z-50 p-3.5 rounded-2xl bg-zinc-950/95 border border-cyan-400/80 shadow-2xl space-y-2 pointer-events-none backdrop-blur-xl max-w-xs"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">📐</span>
+              <div>
+                <span className="text-xs font-black text-cyan-300 block leading-tight">Flowchart Diagram Preview</span>
+                <span className="text-[10px] text-zinc-400 font-semibold block">External Editor Link</span>
+              </div>
+            </div>
+            <div className="p-2 rounded-xl bg-zinc-900 border border-white/10 font-mono text-[11px] text-cyan-200 truncate">
+              {hoveredFlowchartUrl}
+            </div>
+            <div className="flex items-center justify-between text-[10px] font-extrabold text-cyan-400">
+              <span>Click button to open in 1-click</span>
+              <span>↗</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
