@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { ProjectItem, ProjectRequirement } from "@/services/api";
+import { SystemWorkflowStudio, SYSTEM_WORKFLOW_PRESETS } from "@/components/SystemWorkflowStudio";
 
 export default function ProjectsPage() {
   const { projects, createProject, updateProject, deleteProject } = usePlannerStore();
@@ -13,7 +14,7 @@ export default function ProjectsPage() {
   // New Project Form State
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newWorkflowSteps, setNewWorkflowSteps] = useState<string[]>([""]);
+  const [newWorkflow, setNewWorkflow] = useState<string>(SYSTEM_WORKFLOW_PRESETS[0].code);
   const [newReqs, setNewReqs] = useState<string[]>([""]);
 
   // Bulk Line Paste State
@@ -27,7 +28,7 @@ export default function ProjectsPage() {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
-  const [editingWorkflowSteps, setEditingWorkflowSteps] = useState<string[]>([""]);
+  const [editingWorkflow, setEditingWorkflow] = useState<string>("");
 
   // Parse Requirements Helper
   const parseReqs = (raw: any): ProjectRequirement[] => {
@@ -88,13 +89,13 @@ export default function ProjectsPage() {
     await createProject({
       title: newTitle.trim(),
       description: newDescription.trim(),
-      workflow: JSON.stringify(formattedWorkflow),
+      workflow: newWorkflow.trim(),
       requirements: formattedReqs,
     });
 
     setNewTitle("");
     setNewDescription("");
-    setNewWorkflowSteps([""]);
+    setNewWorkflow(SYSTEM_WORKFLOW_PRESETS[0].code);
     setNewReqs([""]);
     setIsCreateOpen(false);
   };
@@ -137,18 +138,16 @@ export default function ProjectsPage() {
     setEditingProjectId(project.id);
     setEditingTitle(project.title);
     setEditingDescription(project.description || "");
-    const wf = parseWorkflow(project.workflow);
-    setEditingWorkflowSteps(wf.length > 0 ? wf : [""]);
+    setEditingWorkflow(project.workflow || "");
   };
 
   const saveEditing = async (projectId: string) => {
     if (!editingTitle.trim()) return;
-    const formattedWorkflow = editingWorkflowSteps.filter((s) => s.trim()).map((s) => s.trim());
 
     await updateProject(projectId, {
       title: editingTitle.trim(),
       description: editingDescription.trim(),
-      workflow: JSON.stringify(formattedWorkflow),
+      workflow: editingWorkflow.trim(),
     });
     setEditingProjectId(null);
   };
@@ -259,48 +258,13 @@ export default function ProjectsPage() {
                   />
                 </div>
 
-                {/* 🔄 Project Workflow Timeline */}
-                <div className="space-y-3 pt-2 border-t border-white/10">
-                  <label className="text-base font-bold text-cyan-300 flex items-center gap-1.5">
-                    <span>🔄</span>
-                    <span>Project Workflow Timeline</span>
-                  </label>
-                  <div className="space-y-2">
-                    {newWorkflowSteps.map((step, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-cyan-400 text-zinc-950 font-black text-xs flex items-center justify-center shrink-0">
-                          {idx + 1}
-                        </span>
-                        <input
-                          type="text"
-                          value={step}
-                          onChange={(e) => {
-                            const updated = [...newWorkflowSteps];
-                            updated[idx] = e.target.value;
-                            setNewWorkflowSteps(updated);
-                          }}
-                          placeholder={`Step ${idx + 1}: (e.g., Setup Architecture & DB)...`}
-                          className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-cyan-400 font-medium"
-                        />
-                        {newWorkflowSteps.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setNewWorkflowSteps(newWorkflowSteps.filter((_, i) => i !== idx))}
-                            className="text-zinc-500 hover:text-rose-400 text-sm font-bold px-2 cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setNewWorkflowSteps([...newWorkflowSteps, ""])}
-                    className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>+ Add Workflow Step</span>
-                  </button>
+                {/* ⚙️ System & App Execution Workflow */}
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  <SystemWorkflowStudio
+                    code={newWorkflow}
+                    onChangeCode={setNewWorkflow}
+                    isEditable={true}
+                  />
                 </div>
 
                 {/* 📋 Requirements Checklist */}
@@ -455,40 +419,11 @@ export default function ProjectsPage() {
 
                     {/* Workflow Editing */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-cyan-300">🔄 Workflow Steps</label>
-                      {editingWorkflowSteps.map((step, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-cyan-400 text-zinc-950 font-black text-xs flex items-center justify-center shrink-0">
-                            {idx + 1}
-                          </span>
-                          <input
-                            type="text"
-                            value={step}
-                            onChange={(e) => {
-                              const updated = [...editingWorkflowSteps];
-                              updated[idx] = e.target.value;
-                              setEditingWorkflowSteps(updated);
-                            }}
-                            className="w-full bg-zinc-900 border border-cyan-500/40 rounded-xl px-3 py-1 text-sm text-white outline-none font-medium"
-                          />
-                          {editingWorkflowSteps.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingWorkflowSteps(editingWorkflowSteps.filter((_, i) => i !== idx))}
-                              className="text-zinc-500 hover:text-rose-400 text-xs font-bold px-1"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setEditingWorkflowSteps([...editingWorkflowSteps, ""])}
-                        className="text-xs font-bold text-cyan-400 hover:text-cyan-300"
-                      >
-                        + Add Step
-                      </button>
+                      <SystemWorkflowStudio
+                        code={editingWorkflow}
+                        onChangeCode={setEditingWorkflow}
+                        isEditable={true}
+                      />
                     </div>
 
                     <div className="flex items-center justify-end gap-2 pt-2">
@@ -546,25 +481,10 @@ export default function ProjectsPage() {
                       </p>
                     )}
 
-                    {/* 🔄 Workflow Steps Timeline */}
-                    {workflowSteps.length > 0 && (
-                      <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 space-y-2">
-                        <span className="text-xs font-extrabold text-cyan-300 flex items-center gap-1.5">
-                          <span>🔄</span>
-                          <span>Project Workflow Timeline</span>
-                        </span>
-                        <div className="space-y-2 pt-1 border-l-2 border-cyan-400/40 ml-2">
-                          {workflowSteps.map((step, idx) => (
-                            <div key={idx} className="flex items-start gap-2.5 pl-3 relative">
-                              <span className="w-5 h-5 rounded-full bg-cyan-400 text-zinc-950 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5 shadow-md">
-                                {idx + 1}
-                              </span>
-                              <span className="text-sm font-semibold text-cyan-100 break-words leading-snug">
-                                {step}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                    {/* ⚙️ System & App Execution Workflow */}
+                    {project.workflow && project.workflow.trim() && (
+                      <div className="pt-1">
+                        <SystemWorkflowStudio code={project.workflow} isEditable={false} />
                       </div>
                     )}
 
