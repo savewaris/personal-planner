@@ -9,13 +9,20 @@ const DRAWIO_URL = "https://app.diagrams.net/";
 
 const getEmbedUrl = (rawUrl: string) => {
   if (!rawUrl) return "";
-  if (rawUrl.includes("app.diagrams.net") || rawUrl.includes("draw.io")) {
-    if (rawUrl.includes("lightbox=1")) return rawUrl;
-    return rawUrl.includes("?")
-      ? `${rawUrl}&lightbox=1`
-      : `${rawUrl}?lightbox=1`;
+  let url = rawUrl.trim();
+
+  // app.diagrams.net blocks iframe embedding (X-Frame-Options: SAMEORIGIN).
+  // viewer.diagrams.net is the official iframe viewer host for Draw.io diagrams!
+  if (url.includes("app.diagrams.net")) {
+    url = url.replace("app.diagrams.net", "viewer.diagrams.net");
+  } else if (url.includes("draw.io")) {
+    url = url.replace("draw.io", "viewer.diagrams.net");
   }
-  return rawUrl;
+
+  if (!url.includes("lightbox=1") && !url.includes("embed=1")) {
+    url = url.includes("?") ? `${url}&lightbox=1` : `${url}?lightbox=1`;
+  }
+  return url;
 };
 
 export default function ProjectsPage() {
