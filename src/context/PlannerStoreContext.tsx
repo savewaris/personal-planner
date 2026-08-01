@@ -225,6 +225,16 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return true;
       });
 
+      const cleanCustomProjects = customProjects.filter((cp) => {
+        if (cp.id.startsWith("temp-")) {
+          if (projectsData.some((dp) => dp.title.trim().toLowerCase() === cp.title.trim().toLowerCase())) {
+            removeCustomItem(CUSTOM_PROJECTS_KEY, cp.id);
+            return false;
+          }
+        }
+        return true;
+      });
+
       // Tasks combine: API tasks take precedence
       const combinedTasksMap = new Map<string, TaskItem>();
       cleanCustomTasks.forEach((t) => combinedTasksMap.set(t.id, t));
@@ -249,11 +259,18 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       notesData.forEach((n) => combinedNotesMap.set(n.id, n));
       const filteredNotes = Array.from(combinedNotesMap.values()).filter((n) => !deletedNoteIds.includes(n.id));
 
+      // Projects combine: API projects take precedence
+      const combinedProjectsMap = new Map<string, ProjectItem>();
+      cleanCustomProjects.forEach((p) => combinedProjectsMap.set(p.id, p));
+      projectsData.forEach((p) => combinedProjectsMap.set(p.id, p));
+      const filteredProjects = Array.from(combinedProjectsMap.values()).filter((p) => !deletedProjectIds.includes(p.id));
+
       setTasks(filteredTasks);
       setRoutines(filteredRoutines);
       setHabits(filteredHabits);
       setContexts(contextsData);
       setNotes(filteredNotes);
+      setProjects(filteredProjects);
     } catch (err) {
       console.error("[PlannerStore] Refetch failed:", err);
     } finally {

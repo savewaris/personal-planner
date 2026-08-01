@@ -6,7 +6,13 @@ export async function GET() {
     const projects = await (prisma as any).project.findMany({
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(projects);
+
+    const parsedProjects = (projects || []).map((p: any) => ({
+      ...p,
+      requirements: typeof p.requirements === "string" ? (p.requirements ? JSON.parse(p.requirements) : []) : (p.requirements || []),
+    }));
+
+    return NextResponse.json(parsedProjects);
   } catch (error) {
     console.error("GET /api/projects error:", error);
     return NextResponse.json([], { status: 200 });
