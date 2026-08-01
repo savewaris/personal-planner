@@ -46,6 +46,7 @@ export default function ProjectsPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isStudioOpen, setIsStudioOpen] = useState(true);
 
   // Auto-select first project on load if none selected
   useEffect(() => {
@@ -431,8 +432,8 @@ export default function ProjectsPage() {
 
       {/* 60% Left / 40% Right Split Page Layout */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* 60% LEFT COLUMN: Header & Projects Grid */}
-        <div className="w-full lg:w-[58%] xl:w-[60%] flex-1 space-y-6">
+        {/* LEFT COLUMN: Header & Projects Grid */}
+        <div className={`w-full flex-1 space-y-6 transition-all duration-300 ${isStudioOpen ? "lg:w-[58%] xl:w-[60%]" : "w-full"}`}>
           {/* Header Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 glass-card p-6 rounded-3xl border border-white/15 shadow-2xl bg-gradient-to-r from-zinc-950/90 via-zinc-900/80 to-zinc-950/90 backdrop-blur-2xl">
             <div className="flex items-center gap-3">
@@ -446,7 +447,7 @@ export default function ProjectsPage() {
                     {projects.length}
                   </span>
                 </h1>
-                <p className="text-xs text-zinc-400 font-medium">Click any project to load its visual flowchart on the right panel</p>
+                <p className="text-xs text-zinc-400 font-medium">Click any project to load its visual flowchart on the right studio panel</p>
               </div>
             </div>
 
@@ -472,7 +473,7 @@ export default function ProjectsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${isStudioOpen ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"}`}>
               {projects.map((project) => {
                 const reqs = parseReqs(project.requirements);
                 const completedCount = reqs.filter((r) => r.completed).length;
@@ -488,7 +489,10 @@ export default function ProjectsPage() {
                     key={project.id}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    onClick={() => setSelectedProjectId(project.id)}
+                    onClick={() => {
+                      setSelectedProjectId(project.id);
+                      setIsStudioOpen(true);
+                    }}
                     className={`rounded-3xl border p-5 shadow-xl space-y-4 flex flex-col justify-between transition-all cursor-pointer ${
                       isSelected
                         ? "bg-zinc-950 border-cyan-400/80 shadow-cyan-500/10 ring-2 ring-cyan-500/30"
@@ -714,123 +718,163 @@ export default function ProjectsPage() {
           )}
         </div>
 
-        {/* 40% RIGHT COLUMN: Dedicated Draw.io Live Flowchart Studio Panel */}
-        <div className="w-full lg:w-[42%] xl:w-[40%] shrink-0 lg:sticky lg:top-6 space-y-4">
-          <div className="rounded-3xl bg-zinc-950 border border-cyan-500/30 p-5 shadow-2xl space-y-4 bg-gradient-to-b from-zinc-950 via-zinc-900/90 to-zinc-950">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-black text-lg flex items-center justify-center shrink-0">
-                  📐
-                </div>
-                <div>
-                  <h2 className="text-base font-black text-white leading-tight">
-                    {selectedProject ? selectedProject.title : "Draw.io Studio"}
-                  </h2>
-                  <span className="text-[11px] text-zinc-400 font-semibold block">Live Visual Flowchart Diagram</span>
-                </div>
-              </div>
+        {/* RIGHT COLUMN: Dedicated Draw.io Live Flowchart Studio Panel */}
+        <AnimatePresence>
+          {isStudioOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="w-full lg:w-[42%] xl:w-[40%] shrink-0 lg:sticky lg:top-6 space-y-4"
+            >
+              <div className="rounded-3xl bg-zinc-950 border border-cyan-500/30 p-5 shadow-2xl space-y-4 bg-gradient-to-b from-zinc-950 via-zinc-900/90 to-zinc-950">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-black text-lg flex items-center justify-center shrink-0">
+                      📐
+                    </div>
+                    <div>
+                      <h2 className="text-base font-black text-white leading-tight">
+                        {selectedProject ? selectedProject.title : "Draw.io Studio"}
+                      </h2>
+                      <span className="text-[11px] text-zinc-400 font-semibold block">Live Visual Flowchart Diagram</span>
+                    </div>
+                  </div>
 
-              <a
-                href={selectedProject?.workflow || DRAWIO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-zinc-950 font-black text-xs transition-all shadow-lg flex items-center gap-1 cursor-pointer"
-              >
-                <span>Full Editor</span>
-                <span>↗</span>
-              </a>
-            </div>
-
-            {/* Live Studio Iframe Display */}
-            {selectedProject && selectedProject.workflow && selectedProject.workflow.trim() ? (
-              <div className="space-y-3">
-                <div className="w-full h-[540px] rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shadow-2xl relative">
-                  <iframe
-                    key={selectedProject.id + (selectedProject.workflow || "")}
-                    src={getEmbedUrl(selectedProject.workflow)}
-                    title="Live Flowchart Studio"
-                    className="w-full h-full border-0"
-                  />
-                </div>
-
-                {/* Side Input to Edit Flowchart Link */}
-                <div className="space-y-1.5 pt-1">
-                  <label className="text-[11px] font-bold text-zinc-400 flex items-center justify-between">
-                    <span>Flowchart Link (Draw.io)</span>
-                    <button
-                      type="button"
-                      onClick={handleSaveStudioWorkflow}
-                      className="text-cyan-400 hover:text-cyan-300 font-black text-[11px] cursor-pointer"
-                    >
-                      ✓ Update Diagram
-                    </button>
-                  </label>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="url"
-                      value={studioWorkflowInput}
-                      onChange={(e) => setStudioWorkflowInput(e.target.value)}
-                      placeholder="Paste Draw.io URL..."
-                      className="flex-1 bg-zinc-900 border border-white/10 focus:border-cyan-400 rounded-xl px-3 py-1.5 text-xs text-white outline-none font-medium"
-                    />
+                    <a
+                      href={selectedProject?.workflow || DRAWIO_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-zinc-950 font-black text-xs transition-all shadow-lg flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Full Editor</span>
+                      <span>↗</span>
+                    </a>
+
                     <button
                       type="button"
-                      onClick={handleSaveStudioWorkflow}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-black text-xs cursor-pointer shadow-md shrink-0"
+                      onClick={() => setIsStudioOpen(false)}
+                      title="Minimize Studio Panel"
+                      className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center font-black text-xs transition-colors cursor-pointer"
                     >
-                      Save
+                      ✕
                     </button>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="p-8 text-center rounded-2xl bg-zinc-900/60 border border-white/10 space-y-4 my-4">
-                <span className="text-4xl block">🎨</span>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white">
-                    {selectedProject ? `No flowchart added for "${selectedProject.title}"` : "Select a project to view flowchart"}
-                  </h4>
-                  <p className="text-xs text-zinc-400 max-w-xs mx-auto">
-                    Create a diagram on Draw.io, export as URL, and paste the link below to load your visual flowchart right here!
-                  </p>
-                </div>
 
-                {selectedProject && (
-                  <div className="space-y-2 pt-2 max-w-xs mx-auto">
-                    <input
-                      type="url"
-                      value={studioWorkflowInput}
-                      onChange={(e) => setStudioWorkflowInput(e.target.value)}
-                      placeholder="Paste Draw.io URL here..."
-                      className="w-full bg-zinc-900 border border-cyan-500/40 rounded-xl px-3 py-2 text-xs text-white outline-none font-medium"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSaveStudioWorkflow}
-                      className="w-full py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-zinc-950 font-black text-xs shadow-lg cursor-pointer"
-                    >
-                      + Attach Flowchart to Project
-                    </button>
+                {/* Live Studio Iframe Display */}
+                {selectedProject && selectedProject.workflow && selectedProject.workflow.trim() ? (
+                  <div className="space-y-3">
+                    <div className="w-full h-[540px] rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shadow-2xl relative">
+                      <iframe
+                        key={selectedProject.id + (selectedProject.workflow || "")}
+                        src={getEmbedUrl(selectedProject.workflow)}
+                        title="Live Flowchart Studio"
+                        className="w-full h-full border-0"
+                      />
+                    </div>
+
+                    {/* Side Input to Edit Flowchart Link */}
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-[11px] font-bold text-zinc-400 flex items-center justify-between">
+                        <span>Flowchart Link (Draw.io)</span>
+                        <button
+                          type="button"
+                          onClick={handleSaveStudioWorkflow}
+                          className="text-cyan-400 hover:text-cyan-300 font-black text-[11px] cursor-pointer"
+                        >
+                          ✓ Update Diagram
+                        </button>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          value={studioWorkflowInput}
+                          onChange={(e) => setStudioWorkflowInput(e.target.value)}
+                          placeholder="Paste Draw.io URL..."
+                          className="flex-1 bg-zinc-900 border border-white/10 focus:border-cyan-400 rounded-xl px-3 py-1.5 text-xs text-white outline-none font-medium"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveStudioWorkflow}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-black text-xs cursor-pointer shadow-md shrink-0"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center rounded-2xl bg-zinc-900/60 border border-white/10 space-y-4 my-4">
+                    <span className="text-4xl block">🎨</span>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-white">
+                        {selectedProject ? `No flowchart added for "${selectedProject.title}"` : "Select a project to view flowchart"}
+                      </h4>
+                      <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+                        Create a diagram on Draw.io, export as URL, and paste the link below to load your visual flowchart right here!
+                      </p>
+                    </div>
+
+                    {selectedProject && (
+                      <div className="space-y-2 pt-2 max-w-xs mx-auto">
+                        <input
+                          type="url"
+                          value={studioWorkflowInput}
+                          onChange={(e) => setStudioWorkflowInput(e.target.value)}
+                          placeholder="Paste Draw.io URL here..."
+                          className="w-full bg-zinc-900 border border-cyan-500/40 rounded-xl px-3 py-2 text-xs text-white outline-none font-medium"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveStudioWorkflow}
+                          className="w-full py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-zinc-950 font-black text-xs shadow-lg cursor-pointer"
+                        >
+                          + Attach Flowchart to Project
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      <a
+                        href={DRAWIO_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-black text-orange-400 hover:text-orange-300 cursor-pointer"
+                      >
+                        <span>Create diagram on app.diagrams.net</span>
+                        <span>↗</span>
+                      </a>
+                    </div>
                   </div>
                 )}
-
-                <div className="pt-2">
-                  <a
-                    href={DRAWIO_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-black text-orange-400 hover:text-orange-300 cursor-pointer"
-                  >
-                    <span>Create diagram on app.diagrams.net</span>
-                    <span>↗</span>
-                  </a>
-                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Floating Right-Edge Sidebar Pill when Minimized */}
+      <AnimatePresence>
+        {!isStudioOpen && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            onClick={() => setIsStudioOpen(true)}
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-40 px-3 py-4 rounded-l-2xl bg-zinc-950/95 border-l border-y border-cyan-500/50 hover:border-cyan-400 text-cyan-300 font-extrabold text-xs shadow-2xl shadow-cyan-500/20 backdrop-blur-xl flex flex-col items-center gap-2.5 group cursor-pointer hover:bg-zinc-900"
+          >
+            <span className="text-lg group-hover:scale-110 transition-transform">📐</span>
+            <span className="[writing-mode:vertical-lr] font-black tracking-wider text-[11px] uppercase">
+              Draw.io Studio
+            </span>
+            <span className="text-xs group-hover:-translate-x-0.5 transition-transform">◀</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
