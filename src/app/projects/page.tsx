@@ -13,6 +13,7 @@ export default function ProjectsPage() {
   // New Project Form State
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newWorkflowSteps, setNewWorkflowSteps] = useState<string[]>([""]);
   const [newReqs, setNewReqs] = useState<string[]>([""]);
 
   // Bulk Line Paste State
@@ -26,6 +27,7 @@ export default function ProjectsPage() {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
+  const [editingWorkflowSteps, setEditingWorkflowSteps] = useState<string[]>([""]);
 
   // Parse Requirements Helper
   const parseReqs = (raw: any): ProjectRequirement[] => {
@@ -35,6 +37,17 @@ export default function ProjectsPage() {
       return JSON.parse(raw);
     } catch {
       return [];
+    }
+  };
+
+  // Parse Workflow Helper
+  const parseWorkflow = (raw: any): string[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return typeof raw === "string" && raw.trim() ? [raw] : [];
     }
   };
 
@@ -68,14 +81,20 @@ export default function ProjectsPage() {
       .filter((r) => r.trim())
       .map((r, idx) => ({ id: `req-${Date.now()}-${idx}`, text: r.trim(), completed: false }));
 
+    const formattedWorkflow = newWorkflowSteps
+      .filter((s) => s.trim())
+      .map((s) => s.trim());
+
     await createProject({
       title: newTitle.trim(),
       description: newDescription.trim(),
+      workflow: JSON.stringify(formattedWorkflow),
       requirements: formattedReqs,
     });
 
     setNewTitle("");
     setNewDescription("");
+    setNewWorkflowSteps([""]);
     setNewReqs([""]);
     setIsCreateOpen(false);
   };
@@ -118,13 +137,18 @@ export default function ProjectsPage() {
     setEditingProjectId(project.id);
     setEditingTitle(project.title);
     setEditingDescription(project.description || "");
+    const wf = parseWorkflow(project.workflow);
+    setEditingWorkflowSteps(wf.length > 0 ? wf : [""]);
   };
 
   const saveEditing = async (projectId: string) => {
     if (!editingTitle.trim()) return;
+    const formattedWorkflow = editingWorkflowSteps.filter((s) => s.trim()).map((s) => s.trim());
+
     await updateProject(projectId, {
       title: editingTitle.trim(),
       description: editingDescription.trim(),
+      workflow: JSON.stringify(formattedWorkflow),
     });
     setEditingProjectId(null);
   };
@@ -148,7 +172,7 @@ export default function ProjectsPage() {
                 {projects.length}
               </span>
             </h1>
-            <p className="text-sm text-zinc-400 font-medium">Store project descriptions and track requirements checklist</p>
+            <p className="text-sm text-zinc-400 font-medium">Store project descriptions, workflow timelines, and requirements checklists</p>
           </div>
         </div>
 
@@ -201,7 +225,7 @@ export default function ProjectsPage() {
                 </div>
               )}
 
-              <form onSubmit={handleCreateProject} className="space-y-4">
+              <form onSubmit={handleCreateProject} className="space-y-5">
                 {/* 📌 Project Title */}
                 <div className="space-y-1.5">
                   <label className="text-base font-bold text-white flex items-center gap-1">
@@ -227,12 +251,56 @@ export default function ProjectsPage() {
                     <span>Project Description / Overview</span>
                   </label>
                   <textarea
-                    rows={4}
+                    rows={3}
                     value={newDescription}
                     onChange={(e) => setNewDescription(e.target.value)}
-                    placeholder="Enter project requirements overview, goals, or notes..."
+                    placeholder="Enter project overview, goals, or scope notes..."
                     className="w-full bg-zinc-900 border border-white/10 focus:border-indigo-400 rounded-xl p-4 text-sm text-white outline-none transition-all font-medium"
                   />
+                </div>
+
+                {/* 🔄 Project Workflow Timeline */}
+                <div className="space-y-3 pt-2 border-t border-white/10">
+                  <label className="text-base font-bold text-cyan-300 flex items-center gap-1.5">
+                    <span>🔄</span>
+                    <span>Project Workflow Timeline</span>
+                  </label>
+                  <div className="space-y-2">
+                    {newWorkflowSteps.map((step, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-cyan-400 text-zinc-950 font-black text-xs flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={step}
+                          onChange={(e) => {
+                            const updated = [...newWorkflowSteps];
+                            updated[idx] = e.target.value;
+                            setNewWorkflowSteps(updated);
+                          }}
+                          placeholder={`Step ${idx + 1}: (e.g., Setup Architecture & DB)...`}
+                          className="flex-1 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-cyan-400 font-medium"
+                        />
+                        {newWorkflowSteps.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setNewWorkflowSteps(newWorkflowSteps.filter((_, i) => i !== idx))}
+                            className="text-zinc-500 hover:text-rose-400 text-sm font-bold px-2 cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNewWorkflowSteps([...newWorkflowSteps, ""])}
+                    className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>+ Add Workflow Step</span>
+                  </button>
                 </div>
 
                 {/* 📋 Requirements Checklist */}
@@ -344,13 +412,14 @@ export default function ProjectsPage() {
           <span className="text-4xl">📁</span>
           <h3 className="text-lg font-bold text-white">No projects created yet</h3>
           <p className="text-sm text-zinc-400 max-w-md mx-auto">
-            Click "+ Create Project" above to add your first project description and requirements checklist.
+            Click "+ Create Project" above to add your first project description, workflow steps, and requirements checklist.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map((project) => {
             const reqs = parseReqs(project.requirements);
+            const workflowSteps = parseWorkflow(project.workflow);
             const completedCount = reqs.filter((r) => r.completed).length;
             const progressPct = reqs.length > 0 ? Math.round((completedCount / reqs.length) * 100) : 0;
             const isEditingThis = editingProjectId === project.id;
@@ -377,14 +446,52 @@ export default function ProjectsPage() {
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-zinc-400">Description / Overview</label>
                       <textarea
-                        rows={4}
+                        rows={3}
                         value={editingDescription}
                         onChange={(e) => setEditingDescription(e.target.value)}
                         className="w-full bg-zinc-900 border border-indigo-400 rounded-xl p-3 text-sm text-white outline-none font-medium"
                       />
                     </div>
 
-                    <div className="flex items-center justify-end gap-2">
+                    {/* Workflow Editing */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-cyan-300">🔄 Workflow Steps</label>
+                      {editingWorkflowSteps.map((step, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-cyan-400 text-zinc-950 font-black text-xs flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={step}
+                            onChange={(e) => {
+                              const updated = [...editingWorkflowSteps];
+                              updated[idx] = e.target.value;
+                              setEditingWorkflowSteps(updated);
+                            }}
+                            className="w-full bg-zinc-900 border border-cyan-500/40 rounded-xl px-3 py-1 text-sm text-white outline-none font-medium"
+                          />
+                          {editingWorkflowSteps.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingWorkflowSteps(editingWorkflowSteps.filter((_, i) => i !== idx))}
+                              className="text-zinc-500 hover:text-rose-400 text-xs font-bold px-1"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditingWorkflowSteps([...editingWorkflowSteps, ""])}
+                        className="text-xs font-bold text-cyan-400 hover:text-cyan-300"
+                      >
+                        + Add Step
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
                       <button
                         type="button"
                         onClick={cancelEditing}
@@ -416,7 +523,7 @@ export default function ProjectsPage() {
                         <button
                           type="button"
                           onClick={() => startEditing(project)}
-                          title="Edit Title & Description"
+                          title="Edit Project"
                           className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                         >
                           ✏️
@@ -437,6 +544,28 @@ export default function ProjectsPage() {
                       <p className="text-sm text-zinc-300 leading-relaxed bg-zinc-900/60 border border-white/5 p-4 rounded-2xl whitespace-pre-wrap font-medium">
                         {project.description}
                       </p>
+                    )}
+
+                    {/* 🔄 Workflow Steps Timeline */}
+                    {workflowSteps.length > 0 && (
+                      <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 space-y-2">
+                        <span className="text-xs font-extrabold text-cyan-300 flex items-center gap-1.5">
+                          <span>🔄</span>
+                          <span>Project Workflow Timeline</span>
+                        </span>
+                        <div className="space-y-2 pt-1 border-l-2 border-cyan-400/40 ml-2">
+                          {workflowSteps.map((step, idx) => (
+                            <div key={idx} className="flex items-start gap-2.5 pl-3 relative">
+                              <span className="w-5 h-5 rounded-full bg-cyan-400 text-zinc-950 font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5 shadow-md">
+                                {idx + 1}
+                              </span>
+                              <span className="text-sm font-semibold text-cyan-100 break-words leading-snug">
+                                {step}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
 
                     {/* Requirements Checklist & Progress Bar */}

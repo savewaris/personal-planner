@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, requirements } = body;
+    const { title, description, workflow, requirements } = body;
 
     if (!title || typeof title !== "string") {
       return NextResponse.json(
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
         data: {
           title: title.trim(),
           description: description?.trim() || "",
+          workflow: workflow ? (typeof workflow === "string" ? workflow : JSON.stringify(workflow)) : "",
           requirements: JSON.stringify(requirements || []),
         },
       });
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
         id: `proj-${Date.now()}`,
         title: title.trim(),
         description: description?.trim() || "",
+        workflow: workflow || "",
         requirements: requirements || [],
         createdAt: new Date().toISOString(),
       };

@@ -94,6 +94,7 @@ model Project {
   id           String   @id @default(uuid())
   title        String
   description  String?  @db.Text
+  workflow     String?  @db.Text // JSON string of workflow steps
   requirements String?  @db.Text // JSON string of ProjectRequirement[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

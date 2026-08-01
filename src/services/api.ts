@@ -51,6 +51,7 @@ export interface ProjectItem {
   id: string;
   title: string;
   description: string;
+  workflow?: string;
   requirements: ProjectRequirement[];
   createdAt?: string;
   updatedAt?: string;
@@ -81,6 +82,7 @@ class ApiService {
     create: (data: {
       title: string;
       description?: string;
+      workflow?: string;
       requirements?: ProjectRequirement[];
     }): Promise<ProjectItem> =>
       this.fetchJson("/api/projects", {

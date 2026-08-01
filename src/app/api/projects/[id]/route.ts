@@ -15,6 +15,9 @@ export async function PATCH(
         data: {
           ...(body.title !== undefined && { title: body.title }),
           ...(body.description !== undefined && { description: body.description }),
+          ...(body.workflow !== undefined && {
+            workflow: typeof body.workflow === "string" ? body.workflow : JSON.stringify(body.workflow),
+          }),
           ...(body.requirements !== undefined && {
             requirements: typeof body.requirements === "string" ? body.requirements : JSON.stringify(body.requirements),
           }),
