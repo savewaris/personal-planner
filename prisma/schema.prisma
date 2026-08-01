@@ -64,6 +64,7 @@ model User {
   accounts Account[]
   sessions Session[]
   contexts Context[]
+  projects Project[]
   tasks    Task[]
   routines Routine[]
   habits   Habit[]
@@ -90,18 +91,22 @@ model Context {
 
 // ─── Project ────────────────────────────────────────────────────────────────
 model Project {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  links       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  title        String
+  description  String?  @db.Text
+  requirements String?  @db.Text // JSON string of ProjectRequirement[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  contextId String
-  context   Context @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  contextId String?
+  context   Context? @relation(fields: [contextId], references: [id], onDelete: SetNull)
 
   tasks Task[]
 
+  @@index([userId])
   @@index([contextId])
 }
 
