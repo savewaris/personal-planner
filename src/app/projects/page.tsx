@@ -11,12 +11,18 @@ const getEmbedUrl = (rawUrl: string) => {
   if (!rawUrl) return "";
   let url = rawUrl.trim();
 
-  // app.diagrams.net blocks iframe embedding (X-Frame-Options: SAMEORIGIN).
-  // viewer.diagrams.net is the official iframe viewer host for Draw.io diagrams!
-  if (url.includes("app.diagrams.net")) {
-    url = url.replace("app.diagrams.net", "viewer.diagrams.net");
-  } else if (url.includes("draw.io")) {
-    url = url.replace("draw.io", "viewer.diagrams.net");
+  // If URL has a fragment hash (#R...), query parameters MUST be placed BEFORE the hash.
+  // Appending query strings after #R corrupts Base64 string decoding (atob).
+  if (url.includes("#")) {
+    const parts = url.split("#");
+    const baseUrl = parts[0];
+    const hash = parts.slice(1).join("#");
+
+    let cleanBase = baseUrl;
+    if (!cleanBase.includes("lightbox=1") && !cleanBase.includes("embed=1")) {
+      cleanBase = cleanBase.includes("?") ? `${cleanBase}&lightbox=1` : `${cleanBase}?lightbox=1`;
+    }
+    return `${cleanBase}#${hash}`;
   }
 
   if (!url.includes("lightbox=1") && !url.includes("embed=1")) {
