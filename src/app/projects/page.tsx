@@ -7,6 +7,17 @@ import { ProjectItem, ProjectRequirement } from "@/services/api";
 
 const DRAWIO_URL = "https://app.diagrams.net/";
 
+const getEmbedUrl = (rawUrl: string) => {
+  if (!rawUrl) return "";
+  if (rawUrl.includes("app.diagrams.net") || rawUrl.includes("draw.io")) {
+    if (rawUrl.includes("lightbox=1")) return rawUrl;
+    return rawUrl.includes("?")
+      ? `${rawUrl}&lightbox=1`
+      : `${rawUrl}?lightbox=1`;
+  }
+  return rawUrl;
+};
+
 export default function ProjectsPage() {
   const { projects, createProject, updateProject, deleteProject } = usePlannerStore();
 
@@ -628,7 +639,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {/* 📐 Top-Right of Mouse Cursor Flowchart Hover Preview Popover */}
+      {/* 📐 Top-Right of Mouse Cursor Flowchart Live Visual Iframe Hover Preview Popover */}
       <AnimatePresence>
         {hoveredFlowchartUrl && (
           <motion.div
@@ -636,23 +647,35 @@ export default function ProjectsPage() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 5 }}
             style={{
-              left: mousePos.x + 15,
-              top: mousePos.y - 75,
+              left: Math.min(mousePos.x + 15, typeof window !== "undefined" ? window.innerWidth - 460 : mousePos.x + 15),
+              top: Math.max(15, mousePos.y - 150),
             }}
-            className="fixed z-50 p-3.5 rounded-2xl bg-zinc-950/95 border border-cyan-400/80 shadow-2xl space-y-2 pointer-events-none backdrop-blur-xl max-w-xs"
+            className="fixed z-50 p-3 rounded-2xl bg-zinc-950/95 border border-cyan-400/80 shadow-2xl space-y-2 pointer-events-none backdrop-blur-2xl w-[440px]"
           >
-            <div className="flex items-center gap-2">
-              <span className="text-base">📐</span>
-              <div>
-                <span className="text-xs font-black text-cyan-300 block leading-tight">Flowchart Diagram Preview</span>
-                <span className="text-[10px] text-zinc-400 font-semibold block">External Editor Link</span>
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📐</span>
+                <div>
+                  <span className="text-xs font-black text-cyan-300 block leading-tight">Visual Flowchart Preview</span>
+                  <span className="text-[10px] text-zinc-400 font-semibold block">Live Draw.io Diagram</span>
+                </div>
               </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                Live Preview
+              </span>
             </div>
-            <div className="p-2 rounded-xl bg-zinc-900 border border-white/10 font-mono text-[11px] text-cyan-200 truncate">
-              {hoveredFlowchartUrl}
+
+            {/* 420x280px Live Visual Diagram Iframe */}
+            <div className="w-full h-[280px] rounded-xl overflow-hidden bg-zinc-900 border border-white/10 relative shadow-inner">
+              <iframe
+                src={getEmbedUrl(hoveredFlowchartUrl)}
+                title="Flowchart Preview"
+                className="w-full h-full border-0"
+              />
             </div>
-            <div className="flex items-center justify-between text-[10px] font-extrabold text-cyan-400">
-              <span>Click button to open in 1-click</span>
+
+            <div className="flex items-center justify-between text-[10px] font-extrabold text-cyan-300 pt-0.5">
+              <span>Click button on card to open full editor</span>
               <span>↗</span>
             </div>
           </motion.div>
