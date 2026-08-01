@@ -290,16 +290,24 @@ export default function ProjectsPage() {
                     placeholder="Paste flowchart URL (e.g. https://app.diagrams.net/?lightbox=1...)"
                     className="w-full bg-zinc-900 border border-white/10 focus:border-cyan-400 rounded-xl px-4 py-2 text-sm text-white outline-none font-medium"
                   />
-                  <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/25 space-y-1.5 text-xs text-orange-200">
-                    <span className="font-extrabold flex items-center gap-1 text-orange-300">
-                      <span>💡</span>
-                      <span>How to get your Draw.io shareable link in 3 seconds (No Google Drive needed!):</span>
-                    </span>
+                  <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 border border-orange-500/30 space-y-2 text-xs text-orange-200">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold flex items-center gap-1.5 text-orange-300 text-xs">
+                        <span>⚡</span>
+                        <span>How to get Instant Visual Preview (No Google Drive Authorization!):</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-500/30">
+                        ✓ 0ms Instant Load
+                      </span>
+                    </div>
                     <ol className="list-decimal list-inside space-y-1 font-medium pl-1 text-[11px] text-zinc-300">
                       <li>In Draw.io top menu, click <strong>File</strong> → <strong>Export as</strong> → <strong>URL...</strong></li>
                       <li>Click the <strong>Create</strong> button.</li>
                       <li>Copy the generated web link and paste it into the box above!</li>
                     </ol>
+                    <p className="text-[10px] text-zinc-400 font-medium italic pt-1 border-t border-orange-500/20">
+                      ✨ Exporting as URL encodes your diagram data directly into the link, so anyone can see your visual flowchart hover preview instantly without logging into Google Drive!
+                    </p>
                   </div>
                 </div>
 
