@@ -82,10 +82,6 @@ export default function ProjectsPage() {
       .filter((r) => r.trim())
       .map((r, idx) => ({ id: `req-${Date.now()}-${idx}`, text: r.trim(), completed: false }));
 
-    const formattedWorkflow = newWorkflowSteps
-      .filter((s) => s.trim())
-      .map((s) => s.trim());
-
     await createProject({
       title: newTitle.trim(),
       description: newDescription.trim(),
