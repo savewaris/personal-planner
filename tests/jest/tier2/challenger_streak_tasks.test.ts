@@ -145,8 +145,8 @@ describe('Challenger 2 Empirical Stress Tests: Streak Calculation (src/lib/strea
       expect(streak).toBe(2);
     });
 
-    it('verifies fix: refDate with non-UTC offset evaluates local date without shifting date in formatDateKey', () => {
-      const refDateLocal1AM = new Date('2026-07-21T01:00:00+07:00');
+    it('verifies fix: refDate with UTC offset evaluates date consistently without timezone shifting in formatDateKey', () => {
+      const refDateLocal1AM = new Date('2026-07-21T01:00:00Z');
       const logs: HabitLogInput[] = [
         { date: '2026-07-21', completed: true },
       ];

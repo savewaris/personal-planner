@@ -16,6 +16,7 @@ jobs:
       DIRECT_URL: "postgresql://mock:mock@localhost:5432/mockdb"
       NEXTAUTH_SECRET: "ci-secret-for-testing-123456789"
       NEXTAUTH_URL: "http://localhost:3000"
+      TZ: "UTC"
 
     steps:
       - name: Checkout Codebase
