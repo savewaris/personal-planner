@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { TaskList } from "@/components/TaskList";
-import { CommandPalette } from "@/components/CommandPalette";
-import { QuickAddFAB } from "@/components/QuickAddFAB";
+import { TaskList } from "@/components/tasks";
+import { CommandPalette, QuickAddFAB } from "@/components/layout";
+import { useKeyboardShortcut } from "@/hooks";
 
 export default function TasksPage() {
   const [isCmdOpen, setIsCmdOpen] = useState(false);
@@ -12,16 +12,7 @@ export default function TasksPage() {
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
 
   // Global Cmd+K Keyboard Shortcut Listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setIsCmdOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  useKeyboardShortcut("k", () => setIsCmdOpen((prev) => !prev));
 
   return (
     <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-8">

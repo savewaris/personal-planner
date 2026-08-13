@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
-import { LOCAL_USER_ID } from "@/lib/user";
-import { calculateStreak, formatDateKey } from "@/lib/streak";
+import { prisma } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/auth";
+import { calculateStreak, formatDateKey } from "@/lib/utils";
 
 export async function POST(
   request: Request,
@@ -8,6 +8,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+    const userId = await getAuthenticatedUserId();
     const body = await request.json().catch(() => ({}));
     const { date, completed } = body;
     const targetDateStr = date ? formatDateKey(date) : formatDateKey(new Date());
@@ -26,7 +27,7 @@ export async function POST(
       include: { logs: true },
     });
 
-    if (!habit || habit.userId !== LOCAL_USER_ID) {
+    if (!habit || (userId && habit.userId !== userId)) {
       return Response.json({
         id,
         streak: 1,

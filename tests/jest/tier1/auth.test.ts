@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { LOCAL_USER_ID, LOCAL_USER_EMAIL, LOCAL_USER_NAME } from '@/lib/user';
+import { LOCAL_USER_ID, LOCAL_USER_EMAIL, LOCAL_USER_NAME } from '@/lib/auth/user';
 
 /**
  * Tier 1 Test Suite: Personal Mode Local Identity Coverage

@@ -1,5 +1,4 @@
-import { prisma } from "@/lib/prisma";
-import { serverDb } from "@/lib/db-store";
+import { prisma, serverDb } from "@/lib/db";
 
 export async function PATCH(
   request: Request,

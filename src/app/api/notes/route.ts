@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
-import { getAuthenticatedUserId } from "@/lib/user";
-import { withErrorHandler, successResponse, errorResponse } from "@/lib/api-response";
+import { prisma } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/auth";
+import { withErrorHandler, successResponse, errorResponse } from "@/lib/utils";
 
 export const GET = withErrorHandler(async () => {
   const userId = await getAuthenticatedUserId();

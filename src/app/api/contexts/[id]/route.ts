@@ -2,34 +2,36 @@
  * API Route: /api/contexts/[id]
  * 
  * Handles updating and deleting individual contexts.
- * No authentication — ownership verified via LOCAL_USER_ID.
+ * Uses getAuthenticatedUserId() for robust session/auth user matching.
  * 
  * NEXT.JS 16: params is a Promise and must be awaited.
  */
 
-import { prisma } from "@/lib/prisma";
-import { LOCAL_USER_ID } from "@/lib/user";
+import { prisma } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/auth";
 
 // ─── PATCH /api/contexts/[id] ───────────────────────────────────────────────
-// Updates a context's name and/or color
-// Body: { name?: string, color?: string }
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { name, color } = body;
 
-    // Verify the context exists and belongs to the local user
+    // Verify the context exists and belongs to the authenticated user
     const existing = await prisma.context.findUnique({ where: { id } });
 
-    if (!existing || existing.userId !== LOCAL_USER_ID) {
+    if (!existing || existing.userId !== userId) {
       return Response.json({ error: "Context not found" }, { status: 404 });
     }
 
-    // Build update data — only include fields that were provided
     const updateData: { name?: string; color?: string } = {};
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim().length === 0) {
@@ -66,19 +68,34 @@ export async function PATCH(
 }
 
 // ─── DELETE /api/contexts/[id] ──────────────────────────────────────────────
-// Deletes a context and all its cascading tasks/projects
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // Verify the context exists and belongs to the local user
+    // Verify the context exists and belongs to the authenticated user
     const existing = await prisma.context.findUnique({ where: { id } });
 
-    if (!existing || existing.userId !== LOCAL_USER_ID) {
+    if (!existing || existing.userId !== userId) {
       return Response.json({ error: "Context not found" }, { status: 404 });
+    }
+
+    // Reassign tasks to remaining fallback context if present to avoid cascade loss
+    const remainingContext = await prisma.context.findFirst({
+      where: { userId, id: { not: id } },
+    });
+
+    if (remainingContext) {
+      await prisma.task.updateMany({
+        where: { contextId: id },
+        data: { contextId: remainingContext.id },
+      });
     }
 
     await prisma.context.delete({ where: { id } });

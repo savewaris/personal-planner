@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
-import { getAuthenticatedUserId } from "@/lib/user";
+import { prisma } from "@/lib/db";
+import { getAuthenticatedUserId } from "@/lib/auth";
 
 export async function PATCH(
   request: Request,

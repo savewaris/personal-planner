@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { api, HabitItem, WorkspaceContextItem, NoteItem, RoutineItem, ProjectItem } from "@/services/api";
-import { TaskItem } from "@/components/TaskCard";
+import { TaskItem } from "@/components/tasks";
 
 interface PlannerStoreContextType {
   tasks: TaskItem[];
@@ -23,7 +23,7 @@ interface PlannerStoreContextType {
 
   // Task Mutations
   createTask: (data: Parameters<typeof api.tasks.create>[0]) => Promise<TaskItem>;
-  updateTask: (taskId: string, updates: { title?: string; priority?: string; tags?: string[] | string | null }) => Promise<void>;
+  updateTask: (taskId: string, updates: Partial<Omit<TaskItem, "id">>) => Promise<void>;
   updateTaskStatus: (taskId: string, newStatus: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
 
@@ -44,9 +44,12 @@ interface PlannerStoreContextType {
   deleteNote: (noteId: string) => Promise<void>;
   convertNoteToTask: (noteId: string, taskData: Parameters<typeof api.tasks.create>[0]) => Promise<void>;
   convertNoteToHabit: (noteId: string, habitName: string) => Promise<void>;
+  convertNoteToProject: (noteId: string, projectData: Parameters<typeof api.projects.create>[0]) => Promise<void>;
+  convertNoteToSop: (noteId: string, sopData: { title: string; category?: string; description?: string }) => Promise<void>;
 
   // Context Mutations
   createContext: (name: string, color?: string) => Promise<WorkspaceContextItem>;
+  updateContext: (id: string, name: string, color?: string) => Promise<void>;
   deleteContext: (contextId: string) => Promise<void>;
 
   // Computed Stats
@@ -217,7 +220,7 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       const cleanCustomHabits = customHabits.filter((ch) => {
         if (ch.id.startsWith("temp-")) {
-          if (habitsData.some((dh) => dh.name.trim().toLowerCase() === ch.name.trim().toLowerCase())) {
+          if (habitsData.some((dh) => ((dh.name || dh.title || "").trim().toLowerCase() === (ch.name || ch.title || "").trim().toLowerCase()))) {
             removeCustomItem(CUSTOM_HABITS_KEY, ch.id);
             return false;
           }
@@ -330,15 +333,18 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const updateTask = async (taskId: string, updates: { title?: string; priority?: string; tags?: string[] | string | null }) => {
+  const updateTask = async (taskId: string, updates: Partial<Omit<TaskItem, "id">>) => {
     const formattedUpdates = {
       ...updates,
-      tags: updates.tags ? (typeof updates.tags === "string" ? updates.tags : JSON.stringify(updates.tags)) : null,
+      tags: updates.tags !== undefined ? (typeof updates.tags === "string" ? updates.tags : updates.tags ? JSON.stringify(updates.tags) : null) : undefined,
     };
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id === taskId) {
           const updated = { ...t, ...formattedUpdates };
+          if (updates.status) {
+            updated.completed = updates.status === "DONE";
+          }
           saveCustomItem<TaskItem>(CUSTOM_TASKS_KEY, updated);
           return updated;
         }
@@ -474,8 +480,9 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
       prev.map((h) => {
         if (h.id === habitId) {
           const nextCompleted = !h.completedToday;
-          const nextStreak = nextCompleted ? h.streak + 1 : Math.max(0, h.streak - 1);
-          const updated = { ...h, completedToday: nextCompleted, streak: nextStreak };
+          const currentStreak = h.streak || h.streakCount || 0;
+          const nextStreak = nextCompleted ? currentStreak + 1 : Math.max(0, currentStreak - 1);
+          const updated = { ...h, completedToday: nextCompleted, streak: nextStreak, streakCount: nextStreak };
           saveCustomItem<HabitItem>(CUSTOM_HABITS_KEY, updated);
           return updated;
         }
@@ -548,6 +555,15 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     await deleteNote(noteId);
   };
 
+  const convertNoteToProject = async (noteId: string, projectData: Parameters<typeof api.projects.create>[0]) => {
+    await createProject(projectData);
+    await deleteNote(noteId);
+  };
+
+  const convertNoteToSop = async (noteId: string, sopData: { title: string; category?: string; description?: string }) => {
+    await deleteNote(noteId);
+  };
+
   // ─── Project Mutations ───────────────────────────────────────────────────
   const createProject = async (data: Parameters<typeof api.projects.create>[0]) => {
     const tempId = `temp-proj-${Date.now()}`;
@@ -605,9 +621,30 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // ─── Context Mutations ────────────────────────────────────────────────────
   const createContext = async (name: string, color?: string) => {
-    const created = await api.contexts.create({ name, color });
-    await refetchAll();
-    return created;
+    const tempId = `temp-ctx-${Date.now()}`;
+    const tempCtx: WorkspaceContextItem = {
+      id: tempId,
+      name,
+      color: color || "#6366f1",
+    };
+    setContexts((prev) => [...prev, tempCtx]);
+
+    try {
+      const created = await api.contexts.create({ name, color });
+      setContexts((prev) => prev.map((c) => (c.id === tempId ? created : c)));
+      return created;
+    } catch {
+      return tempCtx;
+    }
+  };
+
+  const updateContext = async (id: string, name: string, color?: string) => {
+    setContexts((prev) => prev.map((c) => (c.id === id ? { ...c, name, color: color || c.color } : c)));
+    try {
+      await api.contexts.update(id, { name, color });
+    } catch (err) {
+      console.error("[PlannerStore] Update context failed:", err);
+    }
   };
 
   const deleteContext = async (contextId: string) => {
@@ -615,7 +652,6 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (activeContextId === contextId) setActiveContextId(null);
     try {
       await api.contexts.delete(contextId);
-      await refetchAll();
     } catch (err) {
       console.error("[PlannerStore] Delete context failed:", err);
     }
@@ -672,7 +708,10 @@ export const PlannerStoreProvider: React.FC<{ children: React.ReactNode }> = ({ 
         deleteNote,
         convertNoteToTask,
         convertNoteToHabit,
+        convertNoteToProject,
+        convertNoteToSop,
         createContext,
+        updateContext,
         deleteContext,
         stats,
       }}

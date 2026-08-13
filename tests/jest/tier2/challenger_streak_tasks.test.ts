@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { calculateStreak, formatDateKey, HabitLogInput } from '@/lib/streak';
+import { calculateStreak, formatDateKey, HabitLogInput } from '@/lib/utils';
 
 /**
  * Empirical Stress Test Suite created by Challenger 2

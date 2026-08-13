@@ -5,57 +5,25 @@
  * Provides type-safe methods for Contexts, Tasks, Routines, Habits, and Quick Notes.
  */
 
-import { TaskItem } from "@/components/TaskCard";
+import {
+  TaskItem,
+  WorkspaceContextItem,
+  RoutineItem,
+  HabitItem,
+  NoteItem,
+  ProjectRequirement,
+  ProjectItem,
+} from "@/types";
 
-export interface WorkspaceContextItem {
-  id: string;
-  name: string;
-  color?: string | null;
-  userId?: string;
-}
-
-export interface RoutineItem {
-  id: string;
-  title: string;
-  dayKey: string; // MON | TUE | WED | THU | FRI | SAT | SUN
-  completed: boolean;
-  tags?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-  userId?: string;
-}
-
-export interface HabitItem {
-  id: string;
-  name: string;
-  streak: number;
-  completedToday?: boolean;
-  logs: { id: string; date: string; completed: boolean }[];
-}
-
-export interface NoteItem {
-  id: string;
-  content: string;
-  createdAt: string;
-  updatedAt?: string;
-  contextId?: string | null;
-}
-
-export interface ProjectRequirement {
-  id: string;
-  text: string;
-  completed: boolean;
-}
-
-export interface ProjectItem {
-  id: string;
-  title: string;
-  description: string;
-  workflow?: string;
-  requirements: ProjectRequirement[];
-  createdAt?: string;
-  updatedAt?: string;
-}
+export type {
+  TaskItem,
+  WorkspaceContextItem,
+  RoutineItem,
+  HabitItem,
+  NoteItem,
+  ProjectRequirement,
+  ProjectItem,
+};
 
 class ApiService {
   private async fetchJson<T>(url: string, options?: RequestInit): Promise<T> {

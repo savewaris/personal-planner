@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CommandPalette } from "@/components/CommandPalette";
-import { QuickAddFAB } from "@/components/QuickAddFAB";
+import { CommandPalette, QuickAddFAB } from "@/components/layout";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { api } from "@/services/api";
 

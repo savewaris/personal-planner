@@ -1,8 +1,6 @@
-import { prisma } from "@/lib/prisma";
-import { getAuthenticatedUserId, seedUserDefaults } from "@/lib/user";
-import { calculateStreak, formatDateKey } from "@/lib/streak";
-import { withErrorHandler, successResponse, errorResponse } from "@/lib/api-response";
-import { serverDb } from "@/lib/db-store";
+import { prisma, serverDb } from "@/lib/db";
+import { getAuthenticatedUserId, seedUserDefaults } from "@/lib/auth";
+import { calculateStreak, formatDateKey, withErrorHandler, successResponse, errorResponse } from "@/lib/utils";
 
 export const GET = withErrorHandler(async () => {
   const userId = await getAuthenticatedUserId();
