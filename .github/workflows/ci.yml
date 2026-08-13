@@ -10,6 +10,13 @@ jobs:
   test-and-verify:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: "postgresql://mock:mock@localhost:5432/mockdb"
+      DATABASE_URL_UNPOOLED: "postgresql://mock:mock@localhost:5432/mockdb"
+      DIRECT_URL: "postgresql://mock:mock@localhost:5432/mockdb"
+      NEXTAUTH_SECRET: "ci-secret-for-testing-123456789"
+      NEXTAUTH_URL: "http://localhost:3000"
+
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
