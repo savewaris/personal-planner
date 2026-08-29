@@ -195,25 +195,25 @@ export default function ProjectsPage() {
   return (
     <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto w-full space-y-6 pb-12">
       {/* Top Header Mode Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-card p-4 rounded-2xl shadow-xs">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Projects & Workflows Studio</h1>
-          <p className="text-xs text-slate-500 font-medium">Manage building projects, associated project tasks, and standalone SOP workflows</p>
+          <h1 className="text-2xl font-black tracking-tight">Projects & Workflows Studio</h1>
+          <p className="text-xs opacity-70 font-medium">Manage building projects, associated project tasks, and standalone SOP workflows</p>
         </div>
 
         {/* Top 2-Way View Switcher: Projects Hub vs Standalone SOP Library */}
-        <div className="flex items-center bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+        <div className="flex items-center p-1.5 rounded-2xl border shadow-inner" style={{ backgroundColor: "var(--surface-subtle)", borderColor: "var(--border-subtle)" }}>
           <button
             type="button"
             onClick={() => setMainSection("PROJECTS")}
             className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
               mainSection === "PROJECTS"
-                ? "bg-white text-indigo-700 shadow-xs border border-slate-200"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "opacity-70 hover:opacity-100"
             }`}
           >
             <span>📁 Projects Hub</span>
-            <span className="px-2 py-0.2 rounded-full text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className={`px-2 py-0.2 rounded-full text-[10px] ${mainSection === "PROJECTS" ? "bg-white/20 text-white" : "bg-indigo-500/15 text-indigo-500"}`}>
               {projects.length}
             </span>
           </button>
@@ -223,8 +223,8 @@ export default function ProjectsPage() {
             onClick={() => setMainSection("SOP_LIBRARY")}
             className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
               mainSection === "SOP_LIBRARY"
-                ? "bg-white text-indigo-700 shadow-xs border border-slate-200"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "opacity-70 hover:opacity-100"
             }`}
           >
             <span>🧠 Independent SOPs Library</span>

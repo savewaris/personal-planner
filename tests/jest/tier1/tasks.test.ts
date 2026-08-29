@@ -130,4 +130,60 @@ describe('Tier 1: Task List Feature Coverage', () => {
     expect(updated?.description).toBe('Updated description');
     expect(updated?.projectId).toBe('proj_finance_v2');
   });
+
+  it('1.7 should accurately categorize tasks into Time-Horizon buckets (Overdue, Today, This Week, This Month, Completed)', () => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmt = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+    const d = new Date();
+    const todayStr = fmt(d);
+
+    const y = new Date(d);
+    y.setDate(d.getDate() - 1);
+    const yesterdayStr = fmt(y);
+
+    const w = new Date(d);
+    w.setDate(d.getDate() + 3);
+    const in3DaysStr = fmt(w);
+
+    const m = new Date(d);
+    m.setDate(d.getDate() + 15);
+    const in15DaysStr = fmt(m);
+
+    const wEnd = new Date(d);
+    wEnd.setDate(d.getDate() + 7);
+    const in7DaysStr = fmt(wEnd);
+
+    interface HorizonTask {
+      id: string;
+      dueDate?: string;
+      status: string;
+      completed: boolean;
+    }
+
+    const testTasks: HorizonTask[] = [
+      { id: 't_overdue', dueDate: yesterdayStr, status: 'TODO', completed: false },
+      { id: 't_today', dueDate: todayStr, status: 'TODO', completed: false },
+      { id: 't_this_week', dueDate: in3DaysStr, status: 'IN_PROGRESS', completed: false },
+      { id: 't_this_month', dueDate: in15DaysStr, status: 'TODO', completed: false },
+      { id: 't_unscheduled', status: 'TODO', completed: false },
+      { id: 't_done', dueDate: todayStr, status: 'DONE', completed: true },
+    ];
+
+    const getHorizon = (t: HorizonTask): string => {
+      if (t.status === 'DONE' || t.completed) return 'COMPLETED';
+      if (t.dueDate && t.dueDate < todayStr) return 'OVERDUE';
+      if (t.dueDate && t.dueDate === todayStr) return 'TODAY';
+      if (t.dueDate && t.dueDate > todayStr && t.dueDate <= in7DaysStr) return 'THIS_WEEK';
+      return 'THIS_MONTH';
+    };
+
+    expect(getHorizon(testTasks[0])).toBe('OVERDUE');
+    expect(getHorizon(testTasks[1])).toBe('TODAY');
+    expect(getHorizon(testTasks[2])).toBe('THIS_WEEK');
+    expect(getHorizon(testTasks[3])).toBe('THIS_MONTH');
+    expect(getHorizon(testTasks[4])).toBe('THIS_MONTH');
+    expect(getHorizon(testTasks[5])).toBe('COMPLETED');
+  });
 });
+

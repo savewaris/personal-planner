@@ -1,23 +1,20 @@
-## 📝 Description
-Briefly describe the purpose of this Pull Request and what changes were introduced.
+## 📌 Description
+<!-- Provide a brief description of the changes introduced by this pull request. -->
 
-## 🛠️ Type of Change
-- [ ] 🚀 New Feature (`feat`)
-- [ ] 🐛 Bug Fix (`fix`)
-- [ ] 🎨 Refactoring & Clean Architecture (`refactor`)
-- [ ] 📚 Documentation (`docs`)
-- [ ] ⚙️ CI/CD & Security (`ci` / `chore`)
+## 🛠️ Changes Made
+- [ ] 
 
 ## 🧪 Verification & Testing
-Describe how changes were tested and verified:
-- [ ] `npx tsc --noEmit` passed with 0 errors.
-- [ ] `npm run test:unit` passed 100% of tests.
-- [ ] Verified manually on local dev server (`http://localhost:3000`).
+- [ ] TypeScript compilation passed (`npx tsc --noEmit`)
+- [ ] Linter passed (`npm run lint`)
+- [ ] Unit & Component tests passed (`npm test`)
+- [ ] Automated UX/UI & WCAG tests passed (`npm run test:ui`)
+- [ ] Production build passed (`npm run build`)
 
-## 🖼️ Screenshots / Diffs (If applicable)
-*Attach screenshots or UI recordings here if UI was changed.*
+## 🔒 Security Checklist
+- [ ] No hardcoded API keys, passwords, or secrets
+- [ ] Input data sanitized before persistence
+- [ ] External links use `rel="noopener noreferrer"`
 
-## 📋 Checklist
-- [ ] My code follows the project's design system and architecture rules.
-- [ ] I have performed a self-review of my own code.
-- [ ] I have commented my code where necessary for complex logic.
+## 📸 Screenshots / Visual Evidence (If applicable)
+<!-- Add before/after screenshots or terminal verification logs -->

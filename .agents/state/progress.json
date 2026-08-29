@@ -1,0 +1,10 @@
+{
+  "currentMilestone": "v1.0 — Initial Setup",
+  "activeTask": null,
+  "queue": [],
+  "completedTasks": [],
+  "lastDoctorCheck": {
+    "passed": true,
+    "totalChecks": 10
+  }
+}

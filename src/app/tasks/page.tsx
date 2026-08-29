@@ -21,14 +21,15 @@ export default function TasksPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6"
+        style={{ borderColor: "var(--border-subtle)" }}
       >
         <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight text-white">
+          <h1 className="text-3xl font-black tracking-tight">
             Task <span className="gradient-text">Hub</span>
           </h1>
-          <p className="text-sm text-zinc-400">
-            All tasks across all workspaces.
+          <p className="text-sm opacity-70">
+            All tasks across all workspaces. Toggle between Kanban and List views.
           </p>
         </div>
       </motion.div>

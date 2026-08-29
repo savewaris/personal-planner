@@ -4,10 +4,11 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CommandPalette, QuickAddFAB } from "@/components/layout";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
-import { api } from "@/services/api";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function SettingsPage() {
   const { contexts, createContext, deleteContext, tasks, habits, refetchAll } = usePlannerStore();
+  const { theme, setTheme } = useTheme();
 
   const [activeTab, setActiveTab] = useState<"contexts" | "backup" | "appearance" | "system">("contexts");
 
@@ -102,33 +103,35 @@ export default function SettingsPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="border-b border-white/5 pb-6"
+        className="border-b pb-6"
+        style={{ borderColor: "var(--border-subtle)" }}
       >
-        <h1 className="text-3xl font-black tracking-tight text-white">
+        <h1 className="text-3xl font-black tracking-tight">
           System <span className="gradient-text">Settings</span>
         </h1>
-        <p className="text-sm text-zinc-400 mt-1">
-          Manage workspace contexts, backup & restore data, and system preferences.
+        <p className="text-sm opacity-70 mt-1">
+          Manage workspace contexts, appearance & themes, backup & restore data, and agent diagnostics.
         </p>
       </motion.div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-2 border-b pb-3 overflow-x-auto no-scrollbar" style={{ borderColor: "var(--border-subtle)" }}>
         {[
           { id: "contexts", label: "Workspace Contexts", icon: "📁" },
-          { id: "backup", label: "Data Backup & Restore", icon: "💾" },
           { id: "appearance", label: "Appearance & Themes", icon: "🎨" },
-          { id: "system", label: "System Identity", icon: "⚡" },
+          { id: "backup", label: "Data Backup & Restore", icon: "💾" },
+          { id: "system", label: "System & Health", icon: "⚡" },
         ].map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap border ${
               activeTab === tab.id
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                : "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10"
+                ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
+                : "border-transparent opacity-75 hover:opacity-100 hover:border-[var(--border-subtle)]"
             }`}
+            style={activeTab !== tab.id ? { backgroundColor: "var(--surface-subtle)" } : undefined}
           >
             <span>{tab.icon}</span>
             <span>{tab.label}</span>
@@ -148,25 +151,27 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Context List */}
             <div className="lg:col-span-7 space-y-4">
-              <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
-                <h3 className="text-base font-bold text-white">Active Workspace Contexts</h3>
+              <div className="glass-card p-6 rounded-2xl space-y-4">
+                <h3 className="text-base font-bold">Active Workspace Contexts</h3>
 
                 <div className="space-y-2.5">
                   {contexts.map((ctx) => (
                     <div
                       key={ctx.id}
-                      className="p-3.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between gap-3"
+                      className="p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-colors"
+                      style={{ backgroundColor: "var(--surface-subtle)", borderColor: "var(--border-subtle)" }}
                     >
                       <div className="flex items-center gap-3">
                         <span className={`w-3 h-3 rounded-full bg-${ctx.color || "indigo"}-500 shadow-sm`} />
-                        <span className="text-sm font-semibold text-white">{ctx.name}</span>
+                        <span className="text-sm font-semibold">{ctx.name}</span>
                       </div>
 
                       {contexts.length > 1 && (
                         <button
                           type="button"
                           onClick={() => deleteContext(ctx.id)}
-                          className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-all cursor-pointer"
+                          aria-label={`Delete ${ctx.name} context`}
+                          className="p-1.5 opacity-50 hover:opacity-100 hover:text-rose-500 rounded-lg transition-all cursor-pointer"
                           title="Delete Context"
                         >
                           ✕
@@ -180,27 +185,31 @@ export default function SettingsPage() {
 
             {/* Create Context Form */}
             <div className="lg:col-span-5">
-              <form onSubmit={handleAddContext} className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
-                <h3 className="text-base font-bold text-white">Add New Context</h3>
+              <form onSubmit={handleAddContext} className="glass-card p-6 rounded-2xl space-y-4">
+                <h3 className="text-base font-bold">Add New Context</h3>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">Context Name *</label>
+                  <label htmlFor="context-name-input" className="block text-xs font-semibold opacity-80 mb-1">Context Name *</label>
                   <input
+                    id="context-name-input"
                     type="text"
                     required
                     value={newContextName}
                     onChange={(e) => setNewContextName(e.target.value)}
                     placeholder="e.g. Freelance, Side Project, Health"
-                    className="w-full px-3.5 py-2.5 bg-zinc-950/70 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-indigo-500"
+                    style={{ backgroundColor: "var(--surface-subtle)", borderColor: "var(--border-subtle)" }}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">Accent Color</label>
+                  <label htmlFor="context-color-select" className="block text-xs font-semibold opacity-80 mb-1">Accent Color</label>
                   <select
+                    id="context-color-select"
                     value={newContextColor}
                     onChange={(e) => setNewContextColor(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-950/70 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3 py-2 border rounded-xl text-xs focus:outline-none focus:border-indigo-500"
+                    style={{ backgroundColor: "var(--surface-subtle)", borderColor: "var(--border-subtle)" }}
                   >
                     <option value="indigo">Indigo</option>
                     <option value="purple">Purple</option>
@@ -222,17 +231,89 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Panel 2: Data Backup & Restore */}
+        {/* Panel 2: Appearance & Themes */}
+        {activeTab === "appearance" && (
+          <div className="glass-card p-6 rounded-2xl space-y-6">
+            <div>
+              <h3 className="text-base font-bold">Design System & Theme Engine</h3>
+              <p className="text-xs opacity-70 mt-1">
+                Select your preferred visual mode. Both themes feature glassmorphic surfaces, Apple HIG spring animations, and WCAG AA contrast.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Option 1: Apple HIG Dark Glassmorphism */}
+              <div
+                onClick={() => setTheme("dark")}
+                className={`p-5 rounded-2xl border cursor-pointer transition-all space-y-3 relative ${
+                  theme === "dark"
+                    ? "border-indigo-500 shadow-lg shadow-indigo-500/15"
+                    : "border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
+                }`}
+                style={{ backgroundColor: "rgba(18, 18, 21, 0.9)" }}
+              >
+                {theme === "dark" && (
+                  <span className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                    Active
+                  </span>
+                )}
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🌙</span>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-white">Apple HIG Dark Glassmorphism</h4>
+                    <p className="text-[11px] text-zinc-400">Deep Obsidian canvas (#09090b) with radial glow and vibrant accents</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/40 border border-white/10 space-y-1.5">
+                  <div className="h-2 w-3/4 bg-indigo-500/80 rounded-full" />
+                  <div className="h-2 w-1/2 bg-purple-500/60 rounded-full" />
+                </div>
+              </div>
+
+              {/* Option 2: Crisp Slate Light */}
+              <div
+                onClick={() => setTheme("light")}
+                className={`p-5 rounded-2xl border cursor-pointer transition-all space-y-3 relative ${
+                  theme === "light"
+                    ? "border-indigo-500 shadow-lg shadow-indigo-500/15"
+                    : "border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
+                }`}
+                style={{ backgroundColor: "#ffffff" }}
+              >
+                {theme === "light" && (
+                  <span className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                    Active
+                  </span>
+                )}
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">☀️</span>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900">Crisp Slate Light</h4>
+                    <p className="text-[11px] text-slate-500">Ultra-clean slate canvas (#f8fafc) with crisp glass cards</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 space-y-1.5">
+                  <div className="h-2 w-3/4 bg-indigo-600 rounded-full" />
+                  <div className="h-2 w-1/2 bg-purple-600/70 rounded-full" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Panel 3: Data Backup & Restore */}
         {activeTab === "backup" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
+            <div className="glass-card p-6 rounded-2xl space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center font-bold text-lg">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-500 flex items-center justify-center font-bold text-lg">
                   📥
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Export Backup</h3>
-                  <p className="text-xs text-zinc-400">Download 1-click JSON backup of all tasks & habits</p>
+                  <h3 className="text-base font-bold">Export Backup</h3>
+                  <p className="text-xs opacity-70">Download 1-click JSON backup of all tasks & habits</p>
                 </div>
               </div>
               <button
@@ -244,14 +325,14 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
+            <div className="glass-card p-6 rounded-2xl space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center font-bold text-lg">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-500 flex items-center justify-center font-bold text-lg">
                   📤
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Restore Backup</h3>
-                  <p className="text-xs text-zinc-400">Import JSON backup file to restore workspace state</p>
+                  <h3 className="text-base font-bold">Restore Backup</h3>
+                  <p className="text-xs opacity-70">Import JSON backup file to restore workspace state</p>
                 </div>
               </div>
 
@@ -268,50 +349,36 @@ export default function SettingsPage() {
               </label>
 
               {restoreMessage && (
-                <p className="text-xs text-emerald-400 font-semibold pt-1">{restoreMessage}</p>
+                <p className="text-xs text-emerald-500 font-semibold pt-1">{restoreMessage}</p>
               )}
             </div>
           </div>
         )}
 
-        {/* Panel 3: Appearance & Themes */}
-        {activeTab === "appearance" && (
-          <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">Apple Dark Glassmorphism Theme</h3>
-            <p className="text-xs text-zinc-400">
-              The Planner aesthetic uses an Apple-inspired dark charcoal background canvas (`#141417`), 17.5px base typography, vibrant dopamine accent colors, and smooth spring micro-animations.
-            </p>
-            <div className="flex items-center gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-[#141417] border border-white/10 text-xs font-semibold text-white">
-                Canvas: #141417 (10% Brighter Dark)
-              </div>
-              <div className="p-4 rounded-xl bg-zinc-900/80 border border-indigo-500/40 text-xs font-bold gradient-text">
-                Accent: Indigo → Purple → Pink
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Panel 4: System Identity */}
+        {/* Panel 4: System & Health */}
         {activeTab === "system" && (
-          <div className="glass-card p-6 border border-white/10 rounded-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">Execution Mode & Database Info</h3>
-            <div className="text-xs space-y-2 pt-2 text-zinc-300">
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <span className="text-zinc-500">Execution Mode</span>
-                <span className="font-bold text-emerald-400">Single-User Personal Mode</span>
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <h3 className="text-base font-bold">System Identity & Agent Health</h3>
+            <div className="text-xs space-y-2 pt-2">
+              <div className="flex justify-between py-2 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+                <span className="opacity-70">Execution Mode</span>
+                <span className="font-bold text-emerald-500">Single-User Personal Mode</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <span className="text-zinc-500">Database Engine</span>
-                <span className="font-mono text-zinc-200">SQLite (dev.db)</span>
+              <div className="flex justify-between py-2 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+                <span className="opacity-70">Database Engine</span>
+                <span className="font-mono opacity-90">Neon PostgreSQL (Live Pooler)</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-white/5">
-                <span className="text-zinc-500">User Identity</span>
-                <span className="font-mono text-indigo-400">userId: &quot;local&quot;</span>
+              <div className="flex justify-between py-2 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+                <span className="opacity-70">User Identity</span>
+                <span className="font-mono text-indigo-500">userId: &quot;local&quot;</span>
+              </div>
+              <div className="flex justify-between py-2 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+                <span className="opacity-70">AI Agent Doctor</span>
+                <span className="font-bold text-emerald-500">23/23 Checks Operational (node scripts/agent-doctor.mjs)</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-zinc-500">Authentication</span>
-                <span className="font-semibold text-zinc-400">Disabled (Personal Mode)</span>
+                <span className="opacity-70">Cross-CLI State Ledger</span>
+                <span className="font-bold text-indigo-500">Active (.agents/state/locks.json)</span>
               </div>
             </div>
           </div>

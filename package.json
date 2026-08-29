@@ -1,47 +1,53 @@
 {
-  "name": "my-app",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "postinstall": "prisma generate",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "jest",
-    "test:e2e": "playwright test",
-    "db:seed": "npx tsx prisma/seed.ts"
-  },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
-  },
-  "dependencies": {
-    "@auth/prisma-adapter": "^1.6.0",
-    "@prisma/client": "^6.4.0",
-    "framer-motion": "^12.42.2",
-    "mermaid": "^11.16.0",
-    "next": "16.2.10",
-    "next-auth": "^4.24.15",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.61.1",
-    "@tailwindcss/postcss": "^4",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "jest": "^30.4.2",
-    "jest-environment-jsdom": "^30.4.1",
-    "prisma": "^6.4.0",
-    "tailwindcss": "^4",
-    "ts-jest": "^29.4.11",
-    "tsx": "^4.19.2",
-    "typescript": "^5"
-  }
+    "name": "my-app",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "postinstall": "prisma generate",
+        "build": "prisma generate && next build",
+        "start": "next start",
+        "lint": "eslint",
+        "test": "npm run test:unit && npm run test:e2e",
+        "test:unit": "jest",
+        "test:e2e": "playwright test",
+        "db:seed": "npx tsx prisma/seed.ts",
+        "agent:doctor": "node scripts/agent-doctor.mjs",
+        "agent:state": "node scripts/agent-state.mjs",
+        "test:ui": "playwright test",
+        "test:ui:headed": "playwright test --headed",
+        "test:ui:report": "playwright show-report"
+    },
+    "prisma": {
+        "seed": "npx tsx prisma/seed.ts"
+    },
+    "dependencies": {
+        "@auth/prisma-adapter": "^1.6.0",
+        "@prisma/client": "^6.4.0",
+        "framer-motion": "^12.42.2",
+        "mermaid": "^11.16.0",
+        "next": "16.2.10",
+        "next-auth": "^4.24.15",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@axe-core/playwright": "^4.13.0",
+        "@playwright/test": "^1.61.1",
+        "@tailwindcss/postcss": "^4",
+        "@types/jest": "^30.0.0",
+        "@types/node": "^20",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "eslint": "^9",
+        "eslint-config-next": "16.2.10",
+        "jest": "^30.4.2",
+        "jest-environment-jsdom": "^30.4.1",
+        "prisma": "^6.4.0",
+        "tailwindcss": "^4",
+        "ts-jest": "^29.4.11",
+        "tsx": "^4.19.2",
+        "typescript": "^5"
+    }
 }

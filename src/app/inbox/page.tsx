@@ -21,13 +21,14 @@ export default function InboxPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6"
+        style={{ borderColor: "var(--border-subtle)" }}
       >
         <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">
+          <h1 className="text-3xl font-black tracking-tight">
             Idea <span className="gradient-text">Inbox</span>
           </h1>
-          <p className="text-sm text-slate-500 font-medium">
+          <p className="text-sm opacity-70 font-medium">
             Dump spontaneous thoughts instantly. Review and triage them into Tasks, Habits, Projects, or SOPs anytime.
           </p>
         </div>

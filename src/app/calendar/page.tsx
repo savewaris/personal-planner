@@ -66,13 +66,14 @@ export default function CalendarPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6"
+        style={{ borderColor: "var(--border-subtle)" }}
       >
         <div className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight text-white">
+          <h1 className="text-3xl font-black tracking-tight">
             Schedule <span className="gradient-text">Calendar</span>
           </h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm opacity-70">
             Overview of all scheduled tasks across your workspaces. Click any date cell to add a task.
           </p>
         </div>

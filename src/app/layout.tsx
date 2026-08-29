@@ -23,7 +23,6 @@ export const viewport: Viewport = {
   themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -32,10 +31,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} light h-full antialiased`}>
-      <body suppressHydrationWarning className="min-h-full text-slate-900 font-sans transition-colors duration-200" style={{ backgroundColor: "var(--background)" }}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} h-full antialiased overflow-x-hidden`}>
+      <body suppressHydrationWarning className="min-h-full font-sans transition-colors duration-200 overflow-x-hidden max-w-[100vw]" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>
         <Providers>
-          <div className="flex min-h-screen w-full text-slate-900 bg-grid relative" style={{ backgroundColor: "var(--background)" }}>
+          <div className="flex min-h-screen w-full bg-grid relative overflow-x-hidden" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>
             {/* Left Sidebar Navigation */}
             <SidebarNav />
 

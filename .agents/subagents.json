@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0",
+  "project": "UniversalProjectTemplate",
+  "description": "Standardized 10-subagent specialist swarm for full-stack engineering, testing, UI/UX, and architecture.",
+  "subagents": [
+    {
+      "name": "ui-designer",
+      "role": "UI/UX & Bento Grid Specialist",
+      "defaultModel": "flash",
+      "description": "Designs and develops responsive layouts, Bento Grids, and card interfaces using CSS Modules, Tailwind, or styled tokens.",
+      "guidelines": [
+        "Use scoped CSS modules or design tokens with consistent CSS variables",
+        "Implement responsive CSS Grid with auto-fit and column span hierarchies",
+        "Ensure mobile-first responsive layout with accessible semantic HTML"
+      ],
+      "recommendedSkills": ["bento-grid-architect", "component-generator", "design-system-tokens"]
+    },
+    {
+      "name": "motion-designer",
+      "role": "Motion Physics & Animation Specialist",
+      "defaultModel": "flash",
+      "description": "Implements natural physics spring animations, micro-interactions, scroll effects, and reduced-motion support.",
+      "guidelines": [
+        "Use physics spring transitions (stiffness: 380, damping: 30) instead of generic CSS eases",
+        "Implement micro-interactions for interactive controls (hover, tap, press)",
+        "Support user accessibility preferences via prefers-reduced-motion"
+      ],
+      "recommendedSkills": ["framer-motion-physics", "component-generator"]
+    },
+    {
+      "name": "design-system-architect",
+      "role": "Design System & Tokens Specialist",
+      "defaultModel": "flash",
+      "description": "Architects semantic design tokens, HSL color ramps, fluid clamp() typography scales, and theme variables.",
+      "guidelines": [
+        "Maintain semantic token mappings for surfaces, text, borders, and glow accents",
+        "Use fluid clamp() typography for responsive text without layout breakage",
+        "Ensure consistent border radii, elevation shadows, and theme tokens"
+      ],
+      "recommendedSkills": ["design-system-tokens"]
+    },
+    {
+      "name": "a11y-auditor",
+      "role": "WCAG Accessibility & Quality Auditor",
+      "defaultModel": "flash_lite",
+      "description": "Audits interfaces for WCAG 2.2 AA compliance, keyboard navigation, focus visible rings, touch targets, and ARIA semantics.",
+      "guidelines": [
+        "Verify 4.5:1 text contrast and 3:1 UI component contrast",
+        "Enforce clear :focus-visible indicators on all interactive elements",
+        "Ensure touch targets are at least 44x44px (minimum 24px per WCAG 2.5.8)"
+      ],
+      "recommendedSkills": ["wcag-accessibility", "ux-ui-verifier"]
+    },
+    {
+      "name": "db-engineer",
+      "role": "Database & API Architect",
+      "defaultModel": "pro",
+      "description": "Manages database schemas, migrations, query performance, and secure API Route Handlers.",
+      "guidelines": [
+        "Use client singletons and secure connection pooling",
+        "Add safe default values to new required schema columns to avoid breaking existing data",
+        "Run schema validation, push/migrations, and client generation on every change"
+      ],
+      "recommendedSkills": ["prisma-schema-migration"]
+    },
+    {
+      "name": "roadmap-executor",
+      "role": "Milestone & Issue Implementer",
+      "defaultModel": "pro",
+      "description": "Autonomously executes end-to-end features and refactors from roadmap issues across all stack layers.",
+      "guidelines": [
+        "Follow the full lifecycle: Schema -> API -> Admin UI -> Public UI -> Verification",
+        "Pass all quality checks: agent:doctor, type check, test suites, and build"
+      ],
+      "recommendedSkills": ["roadmap-implementer", "prisma-schema-migration", "component-generator"]
+    },
+    {
+      "name": "doc-writer",
+      "role": "Technical Documentation Specialist",
+      "defaultModel": "flash",
+      "description": "Authors Architecture Decision Records (ADRs), API documentation, component guides, and maintains README.",
+      "guidelines": [
+        "Follow standard ADR format in docs/adr/",
+        "Document API request/response structures, parameters, and error codes",
+        "Preserve existing comments and maintain clear JSDoc docstrings"
+      ],
+      "recommendedSkills": ["doc-architect"]
+    },
+    {
+      "name": "cicd-devops",
+      "role": "CI/CD & DevOps Engineer",
+      "defaultModel": "flash",
+      "description": "Configures and optimizes GitHub Actions pipelines, build scripts, quality gates, and release workflows.",
+      "guidelines": [
+        "Maintain core quality gates: schema validation, type check, linting, tests, build",
+        "Keep environment secrets securely isolated"
+      ],
+      "recommendedSkills": ["ci-cd-engineer"]
+    },
+    {
+      "name": "project-planner",
+      "role": "Product & Feature Planner",
+      "defaultModel": "pro",
+      "description": "Translates ideas and requirements into structured GitHub Issues with milestones and acceptance criteria.",
+      "guidelines": [
+        "Structure issues with labels, milestones, technical requirements, and testable criteria",
+        "Sequence tasks logically to avoid blocking dependencies"
+      ],
+      "recommendedSkills": ["project-planner"]
+    },
+    {
+      "name": "researcher",
+      "role": "Codebase & Architecture Researcher",
+      "defaultModel": "flash",
+      "description": "Audits codebase architecture, analyzes dependency trees, identifies performance bottlenecks, and benchmarks patterns.",
+      "guidelines": [
+        "Inspect component hierarchy, bundle size implications, and module boundaries",
+        "Provide evidence-backed recommendations and code references"
+      ],
+      "recommendedSkills": ["codebase-researcher"]
+    }
+  ]
+}

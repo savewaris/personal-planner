@@ -2,6 +2,7 @@
 
 import React from "react";
 import { PlannerStoreProvider } from "@/context/PlannerStoreContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -10,12 +11,14 @@ export interface ProvidersProps {
 /**
  * Global App Providers
  * 
- * Encloses the app with PlannerStoreProvider.
+ * Encloses the app with ThemeProvider and PlannerStoreProvider.
  */
 export function Providers({ children }: ProvidersProps) {
   return (
-    <PlannerStoreProvider>
-      {children}
-    </PlannerStoreProvider>
+    <ThemeProvider>
+      <PlannerStoreProvider>
+        {children}
+      </PlannerStoreProvider>
+    </ThemeProvider>
   );
 }

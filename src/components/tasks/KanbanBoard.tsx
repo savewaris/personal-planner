@@ -6,7 +6,7 @@ import { TaskItem, TaskCard } from "./TaskCard";
 import { WorkspaceContextItem } from "@/services/api";
 import { getTagColorClasses } from "@/components/ui/inputs";
 
-export type GroupByOption = "status" | "context" | "priority" | "tag";
+export type GroupByOption = "horizon" | "status" | "context" | "priority" | "tag";
 
 interface KanbanBoardProps {
   tasks: TaskItem[];
@@ -20,16 +20,17 @@ interface KanbanBoardProps {
     initialStatus?: string,
     initialContextId?: string,
     initialPriority?: string,
-    initialTag?: string
+    initialTag?: string,
+    initialDueDate?: string
   ) => void;
 }
 
 interface ColumnDef {
   id: string;
   title: string;
+  subtitle?: string;
   badgeColor: string;
   borderColor: string;
-  gradientColor: string;
   icon?: React.ReactNode;
 }
 
@@ -50,7 +51,7 @@ const parseTaskTags = (tagsField?: string | string[] | null): string[] => {
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   tasks,
   contexts = [],
-  groupBy = "tag",
+  groupBy = "horizon",
   onGroupByChange,
   onStatusChange,
   onUpdateTask,
@@ -84,16 +85,55 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   // 2. Define Columns based on active GroupBy mode
   const columns: ColumnDef[] = useMemo(() => {
+    if (activeGroupBy === "horizon") {
+      return [
+        {
+          id: "OVERDUE",
+          title: "⚠️ Overdue",
+          subtitle: "Immediate action needed",
+          borderColor: "border-rose-500/30",
+          badgeColor: "bg-rose-500/15 text-rose-500 border border-rose-500/30",
+        },
+        {
+          id: "TODAY",
+          title: "🔥 Today",
+          subtitle: "Daily focus & momentum",
+          borderColor: "border-amber-500/30",
+          badgeColor: "bg-amber-500/15 text-amber-500 border border-amber-500/30",
+        },
+        {
+          id: "THIS_WEEK",
+          title: "⚡ This Week",
+          subtitle: "Next 7 days horizon",
+          borderColor: "border-indigo-500/30",
+          badgeColor: "bg-indigo-500/15 text-indigo-500 border border-indigo-500/30",
+        },
+        {
+          id: "THIS_MONTH",
+          title: "📅 This Month",
+          subtitle: "Next 30 days & planning",
+          borderColor: "border-purple-500/30",
+          badgeColor: "bg-purple-500/15 text-purple-500 border border-purple-500/30",
+        },
+        {
+          id: "COMPLETED",
+          title: "✅ Completed",
+          subtitle: "Accomplished tasks",
+          borderColor: "border-emerald-500/30",
+          badgeColor: "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30",
+        },
+      ];
+    }
+
     if (activeGroupBy === "status") {
       return [
         {
           id: "TODO",
           title: "To Do",
-          gradientColor: "from-indigo-50/80 via-slate-50 to-white",
-          borderColor: "border-indigo-200",
-          badgeColor: "bg-indigo-100 text-indigo-700 border border-indigo-200",
+          borderColor: "border-indigo-500/30",
+          badgeColor: "bg-indigo-500/15 text-indigo-500 border border-indigo-500/30",
           icon: (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
           ),
@@ -101,11 +141,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         {
           id: "IN_PROGRESS",
           title: "In Progress",
-          gradientColor: "from-amber-50/80 via-slate-50 to-white",
-          borderColor: "border-amber-200",
-          badgeColor: "bg-amber-100 text-amber-700 border border-amber-200",
+          borderColor: "border-amber-500/30",
+          badgeColor: "bg-amber-500/15 text-amber-500 border border-amber-500/30",
           icon: (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
           ),
@@ -113,11 +152,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         {
           id: "DONE",
           title: "Done",
-          gradientColor: "from-emerald-50/80 via-slate-50 to-white",
-          borderColor: "border-emerald-200",
-          badgeColor: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+          borderColor: "border-emerald-500/30",
+          badgeColor: "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30",
           icon: (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
           ),
@@ -130,30 +168,26 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         {
           id: "URGENT",
           title: "🔴 Urgent",
-          gradientColor: "from-rose-50/80 via-slate-50 to-white",
-          borderColor: "border-rose-200",
-          badgeColor: "bg-rose-100 text-rose-700 border border-rose-200",
+          borderColor: "border-rose-500/30",
+          badgeColor: "bg-rose-500/15 text-rose-500 border border-rose-500/30",
         },
         {
           id: "HIGH",
           title: "🟠 High",
-          gradientColor: "from-orange-50/80 via-slate-50 to-white",
-          borderColor: "border-orange-200",
-          badgeColor: "bg-orange-100 text-orange-700 border border-orange-200",
+          borderColor: "border-orange-500/30",
+          badgeColor: "bg-orange-500/15 text-orange-500 border border-orange-500/30",
         },
         {
           id: "MEDIUM",
           title: "🟡 Medium",
-          gradientColor: "from-yellow-50/80 via-slate-50 to-white",
-          borderColor: "border-yellow-200",
-          badgeColor: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+          borderColor: "border-yellow-500/30",
+          badgeColor: "bg-yellow-500/15 text-yellow-600 border border-yellow-500/30",
         },
         {
           id: "LOW",
           title: "🟢 Low",
-          gradientColor: "from-emerald-50/80 via-slate-50 to-white",
-          borderColor: "border-emerald-200",
-          badgeColor: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+          borderColor: "border-emerald-500/30",
+          badgeColor: "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30",
         },
       ];
     }
@@ -162,21 +196,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       const contextCols: ColumnDef[] = contexts.map((ctx) => ({
         id: ctx.id,
         title: ctx.name,
-        gradientColor: "from-indigo-50/80 via-slate-50 to-white",
-        borderColor: "border-slate-200",
-        badgeColor: "bg-indigo-100 text-indigo-700 border border-indigo-200",
+        borderColor: "border-indigo-500/30",
+        badgeColor: "bg-indigo-500/15 text-indigo-500 border border-indigo-500/30",
         icon: (
-          <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
+          <span
+            className="w-2.5 h-2.5 rounded-full inline-block"
+            style={{ backgroundColor: ctx.color || "#6366f1" }}
+          />
         ),
       }));
 
-      // Add unassigned context column if tasks exist without matching context
+      // Add unassigned context column
       contextCols.push({
         id: "UNASSIGNED",
         title: "Unassigned Workspace",
-        gradientColor: "from-slate-100/80 via-slate-50 to-white",
-        borderColor: "border-slate-200",
-        badgeColor: "bg-slate-100 text-slate-700 border border-slate-200",
+        borderColor: "border-slate-500/30",
+        badgeColor: "bg-slate-500/15 text-slate-500 border border-slate-500/30",
         icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block" />,
       });
 
@@ -187,23 +222,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       const tagCols: ColumnDef[] = allUniqueTags.map((tag) => ({
         id: tag,
         title: `#${tag}`,
-        gradientColor: "from-blue-50/80 via-slate-50 to-white",
-        borderColor: "border-blue-200",
-        badgeColor: "bg-blue-100 text-blue-700 border border-blue-200",
+        borderColor: "border-blue-500/30",
+        badgeColor: "bg-blue-500/15 text-blue-500 border border-blue-500/30",
         icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
           </svg>
         ),
       }));
 
-      // Always include Untagged column
       tagCols.push({
         id: "UNTAGGED",
         title: "🏷️ Untagged",
-        gradientColor: "from-slate-100/80 via-slate-50 to-white",
-        borderColor: "border-slate-200",
-        badgeColor: "bg-slate-100 text-slate-700 border border-slate-200",
+        borderColor: "border-slate-500/30",
+        badgeColor: "bg-slate-500/15 text-slate-500 border border-slate-500/30",
       });
 
       return tagCols;
@@ -217,7 +249,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     return columns.filter((col) => !hiddenColumnIds.includes(col.id));
   }, [columns, hiddenColumnIds]);
 
-  // Toggle individual column visibility
   const toggleColumnVisibility = (colId: string) => {
     setHiddenColumnIds((prev) =>
       prev.includes(colId) ? prev.filter((id) => id !== colId) : [...prev, colId]
@@ -226,6 +257,47 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   // 3. Map Tasks to Column IDs
   const getTasksForColumn = (colId: string): TaskItem[] => {
+    if (activeGroupBy === "horizon") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split("T")[0];
+
+      const in7Days = new Date(Date.now() + 7 * 86400000);
+      const in7DaysStr = in7Days.toISOString().split("T")[0];
+
+      if (colId === "COMPLETED") {
+        return tasks.filter((t) => t.status === "DONE" || t.completed);
+      }
+
+      const activeTasks = tasks.filter((t) => t.status !== "DONE" && !t.completed);
+
+      if (colId === "OVERDUE") {
+        return activeTasks.filter((t) => t.dueDate && t.dueDate.split("T")[0] < todayStr);
+      }
+
+      if (colId === "TODAY") {
+        return activeTasks.filter((t) => t.dueDate && t.dueDate.split("T")[0] === todayStr);
+      }
+
+      if (colId === "THIS_WEEK") {
+        return activeTasks.filter((t) => {
+          if (!t.dueDate) return false;
+          const due = t.dueDate.split("T")[0];
+          return due > todayStr && due <= in7DaysStr;
+        });
+      }
+
+      if (colId === "THIS_MONTH") {
+        return activeTasks.filter((t) => {
+          if (!t.dueDate) return true; // Unscheduled tasks bucket into This Month / Planning Horizon
+          const due = t.dueDate.split("T")[0];
+          return due > in7DaysStr;
+        });
+      }
+
+      return [];
+    }
+
     if (activeGroupBy === "status") {
       return tasks.filter((t) => (t.status || "TODO") === colId);
     }
@@ -271,7 +343,48 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       const task = tasks.find((t) => t.id === taskId);
       if (!task) return;
 
-      if (activeGroupBy === "status") {
+      if (activeGroupBy === "horizon") {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const in6DaysStr = new Date(Date.now() + 6 * 86400000).toISOString().split("T")[0];
+        const in29DaysStr = new Date(Date.now() + 29 * 86400000).toISOString().split("T")[0];
+        const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+
+        if (targetColId === "COMPLETED") {
+          onStatusChange(taskId, "DONE");
+        } else if (targetColId === "TODAY") {
+          if (onUpdateTask) {
+            onUpdateTask(taskId, {
+              dueDate: todayStr,
+              status: task.status === "DONE" ? "TODO" : task.status,
+              completed: false,
+            });
+          }
+        } else if (targetColId === "THIS_WEEK") {
+          if (onUpdateTask) {
+            onUpdateTask(taskId, {
+              dueDate: in6DaysStr,
+              status: task.status === "DONE" ? "TODO" : task.status,
+              completed: false,
+            });
+          }
+        } else if (targetColId === "THIS_MONTH") {
+          if (onUpdateTask) {
+            onUpdateTask(taskId, {
+              dueDate: in29DaysStr,
+              status: task.status === "DONE" ? "TODO" : task.status,
+              completed: false,
+            });
+          }
+        } else if (targetColId === "OVERDUE") {
+          if (onUpdateTask) {
+            onUpdateTask(taskId, {
+              dueDate: yesterdayStr,
+              status: task.status === "DONE" ? "TODO" : task.status,
+              completed: false,
+            });
+          }
+        }
+      } else if (activeGroupBy === "status") {
         if (targetColId !== task.status) {
           onStatusChange(taskId, targetColId);
         }
@@ -288,10 +401,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         const currentTags = parseTaskTags(task.tags);
 
         if (targetColId === "UNTAGGED") {
-          // Clear all tags if dropped onto Untagged
           onUpdateTask(taskId, { tags: [] as string[] });
         } else {
-          // Replace source tag with target tag (or set tags to target tag if untagged)
           let updatedTags: string[] = [];
           if (sourceColId && sourceColId !== "UNTAGGED" && currentTags.includes(sourceColId)) {
             updatedTags = currentTags.map((t) => (t === sourceColId ? targetColId : t));
@@ -313,23 +424,53 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     e.dataTransfer.effectAllowed = "move";
   };
 
+  const handleOpenAddForColumn = (colId: string) => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const in6DaysStr = new Date(Date.now() + 6 * 86400000).toISOString().split("T")[0];
+    const in29DaysStr = new Date(Date.now() + 29 * 86400000).toISOString().split("T")[0];
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+
+    if (activeGroupBy === "horizon") {
+      if (colId === "OVERDUE") onOpenAddModal("TODO", undefined, undefined, undefined, yesterdayStr);
+      else if (colId === "TODAY") onOpenAddModal("TODO", undefined, undefined, undefined, todayStr);
+      else if (colId === "THIS_WEEK") onOpenAddModal("TODO", undefined, undefined, undefined, in6DaysStr);
+      else if (colId === "THIS_MONTH") onOpenAddModal("TODO", undefined, undefined, undefined, in29DaysStr);
+      else if (colId === "COMPLETED") onOpenAddModal("DONE");
+      else onOpenAddModal();
+    } else if (activeGroupBy === "status") {
+      onOpenAddModal(colId);
+    } else if (activeGroupBy === "priority") {
+      onOpenAddModal("TODO", undefined, colId);
+    } else if (activeGroupBy === "context") {
+      onOpenAddModal("TODO", colId === "UNASSIGNED" ? undefined : colId);
+    } else if (activeGroupBy === "tag") {
+      onOpenAddModal("TODO", undefined, undefined, colId === "UNTAGGED" ? undefined : colId);
+    } else {
+      onOpenAddModal();
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Dynamic Grouping Controls & Column Filters Toolbar */}
-      <div className="bg-white border border-slate-200 p-3 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm">
+      <div
+        className="p-3.5 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs"
+        style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
+      >
         {/* Left: Group By Mode Selector */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 pr-1">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <span className="text-xs font-extrabold opacity-60 uppercase tracking-wider flex items-center gap-1.5 pr-1">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25A2.25 2.25 0 0 1 13.5 8.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
             </svg>
-            Group Cards By:
+            Group Cards:
           </span>
 
           {[
+            { id: "horizon", label: "⏳ Time Horizon" },
             { id: "status", label: "Status" },
-            { id: "context", label: "Workspace" },
             { id: "priority", label: "Priority" },
+            { id: "context", label: "Workspace" },
             { id: "tag", label: "Tags" },
           ].map((mode) => {
             const isActive = activeGroupBy === mode.id;
@@ -338,11 +479,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 key={mode.id}
                 type="button"
                 onClick={() => handleGroupBySelect(mode.id as GroupByOption)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
                   isActive
-                    ? "bg-indigo-600 text-white shadow-sm border border-indigo-500"
-                    : "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200 border border-slate-200"
+                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/20"
+                    : "border opacity-70 hover:opacity-100"
                 }`}
+                style={{
+                  backgroundColor: isActive ? undefined : "var(--surface-subtle)",
+                  borderColor: isActive ? undefined : "var(--border-subtle)",
+                }}
               >
                 {mode.label}
               </button>
@@ -352,63 +497,34 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
         {/* Right: Column Visibility Filter Pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-medium text-slate-500 pr-1">Filter Groups:</span>
+          <span className="text-[11px] font-semibold opacity-60 pr-1">Filter Columns:</span>
 
-          {/* Select All (Show All) */}
           {hiddenColumnIds.length > 0 && (
             <button
               type="button"
               onClick={() => setHiddenColumnIds([])}
-              className="text-[11px] text-indigo-600 hover:text-indigo-800 underline pr-1 cursor-pointer font-bold transition-colors"
+              className="text-[11px] text-indigo-500 hover:underline pr-1 cursor-pointer font-bold transition-colors"
             >
               Select All
-            </button>
-          )}
-
-          {/* Clear All (Hide All) */}
-          {hiddenColumnIds.length < columns.length && (
-            <button
-              type="button"
-              onClick={() => setHiddenColumnIds(columns.map((c) => c.id))}
-              className="text-[11px] text-slate-500 hover:text-rose-600 underline pr-1 cursor-pointer font-bold transition-colors"
-            >
-              Clear All
             </button>
           )}
 
           {columns.map((col) => {
             const isVisible = !hiddenColumnIds.includes(col.id);
 
-            if (activeGroupBy === "tag") {
-              const isUntagged = col.id === "UNTAGGED";
-              const colorClasses = isUntagged
-                ? isVisible
-                  ? "bg-slate-800 text-white border-slate-700 ring-2 ring-slate-400 font-extrabold shadow-md scale-105"
-                  : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-                : getTagColorClasses(col.id, isVisible);
-
-              return (
-                <button
-                  key={col.id}
-                  type="button"
-                  onClick={() => toggleColumnVisibility(col.id)}
-                  className={`px-3 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer select-none shrink-0 ${colorClasses}`}
-                >
-                  {isVisible ? "✓ " : ""}{col.title}
-                </button>
-              );
-            }
-
             return (
               <button
                 key={col.id}
                 type="button"
                 onClick={() => toggleColumnVisibility(col.id)}
-                className={`px-3 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer select-none ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer select-none shrink-0 ${
                   isVisible
-                    ? "bg-indigo-600 text-white border-indigo-500 ring-2 ring-indigo-400/80 shadow-md font-extrabold scale-105"
-                    : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+                    ? "bg-indigo-500 text-white border-indigo-500 shadow-xs"
+                    : "opacity-60 border-[var(--border-subtle)]"
                 }`}
+                style={{
+                  backgroundColor: isVisible ? undefined : "var(--surface-subtle)",
+                }}
               >
                 {isVisible ? "✓ " : ""}{col.title}
               </button>
@@ -417,25 +533,30 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
       </div>
 
-      {/* Grid Container for Visible Trello Card Columns */}
+      {/* Grid Container for Visible Cards Columns */}
       <div
-        className={`grid gap-5 ${
+        className={`grid gap-4 ${
           visibleColumns.length === 1
             ? "grid-cols-1 max-w-xl mx-auto"
             : visibleColumns.length === 2
             ? "grid-cols-1 md:grid-cols-2"
             : visibleColumns.length === 3
             ? "grid-cols-1 md:grid-cols-3"
-            : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+            : visibleColumns.length === 4
+            ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+            : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
         }`}
       >
         {visibleColumns.length === 0 ? (
-          <div className="col-span-full py-16 text-center border border-dashed border-slate-300 rounded-2xl bg-white space-y-3">
-            <p className="text-sm text-slate-500 font-medium">All group columns are currently hidden by filter.</p>
+          <div
+            className="col-span-full py-16 text-center border border-dashed rounded-2xl space-y-3"
+            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
+          >
+            <p className="text-sm opacity-60 font-semibold">All columns are currently hidden by filter.</p>
             <button
               type="button"
               onClick={() => setHiddenColumnIds([])}
-              className="btn-secondary text-xs px-4 py-2"
+              className="btn-premium text-xs px-4 py-2"
             >
               Reset Column Filters
             </button>
@@ -454,33 +575,36 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 }}
                 onDragLeave={() => setDragOverColId(null)}
                 onDrop={(e) => handleDropTask(e, col.id)}
-                className={`rounded-2xl bg-gradient-to-b ${col.gradientColor} border p-4 space-y-4 flex flex-col min-h-[440px] transition-all duration-200 ${
+                className={`rounded-2xl border p-4 space-y-4 flex flex-col min-h-[460px] transition-all duration-200 ${
                   isDragOver
-                    ? `${col.borderColor} ring-2 ring-indigo-500/50 scale-[1.01]`
-                    : `${col.borderColor} hover:border-slate-300`
+                    ? "ring-2 ring-indigo-500 scale-[1.01]"
+                    : "hover:border-indigo-500/30"
                 }`}
+                style={{
+                  backgroundColor: "var(--surface-card)",
+                  borderColor: isDragOver ? "#6366f1" : "var(--border-subtle)",
+                }}
               >
                 {/* Column Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {col.icon}
-                    <h3 className="font-bold text-sm text-slate-900 truncate">{col.title}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ${col.badgeColor}`}>
-                      {colTasks.length}
-                    </span>
+                <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border-subtle)" }}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      {col.icon}
+                      <h3 className="font-extrabold text-xs tracking-tight truncate">{col.title}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ${col.badgeColor}`}>
+                        {colTasks.length}
+                      </span>
+                    </div>
+                    {col.subtitle && (
+                      <p className="text-[10px] opacity-60 font-medium pt-0.5 truncate">{col.subtitle}</p>
+                    )}
                   </div>
 
                   {/* Add Task Button for Column */}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (activeGroupBy === "status") onOpenAddModal(col.id);
-                      else if (activeGroupBy === "priority") onOpenAddModal("TODO", undefined, col.id);
-                      else if (activeGroupBy === "context") onOpenAddModal("TODO", col.id === "UNASSIGNED" ? undefined : col.id);
-                      else if (activeGroupBy === "tag") onOpenAddModal("TODO", undefined, undefined, col.id === "UNTAGGED" ? undefined : col.id);
-                      else onOpenAddModal();
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-200/60 rounded-lg transition-all cursor-pointer shrink-0"
+                    onClick={() => handleOpenAddForColumn(col.id)}
+                    className="p-1.5 opacity-60 hover:opacity-100 hover:text-indigo-500 rounded-lg transition-all cursor-pointer shrink-0"
                     title={`Add task to ${col.title}`}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -494,19 +618,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   <AnimatePresence mode="popLayout">
                     {colTasks.length === 0 ? (
                       <div
-                        onClick={() => {
-                          if (activeGroupBy === "status") onOpenAddModal(col.id);
-                          else if (activeGroupBy === "priority") onOpenAddModal("TODO", undefined, col.id);
-                          else if (activeGroupBy === "context") onOpenAddModal("TODO", col.id === "UNASSIGNED" ? undefined : col.id);
-                          else if (activeGroupBy === "tag") onOpenAddModal("TODO", undefined, undefined, col.id === "UNTAGGED" ? undefined : col.id);
-                          else onOpenAddModal();
+                        onClick={() => handleOpenAddForColumn(col.id)}
+                        className="py-12 border border-dashed rounded-2xl text-center cursor-pointer transition-all duration-200 group"
+                        style={{
+                          backgroundColor: "var(--surface-subtle)",
+                          borderColor: "var(--border-subtle)",
                         }}
-                        className="py-12 border border-slate-200 hover:border-indigo-300 bg-white hover:bg-slate-50 rounded-2xl text-center cursor-pointer transition-all duration-200 group shadow-sm"
                       >
-                        <p className="text-xs text-slate-500 font-medium group-hover:text-slate-800 transition-colors">
+                        <p className="text-xs opacity-60 font-medium group-hover:text-indigo-500 transition-colors">
                           No tasks in {col.title}
                         </p>
-                        <span className="inline-block mt-2 text-xs text-indigo-600 group-hover:text-indigo-700 font-semibold transition-colors">
+                        <span className="inline-block mt-2 text-xs text-indigo-500 font-extrabold transition-colors">
                           + Create One
                         </span>
                       </div>
