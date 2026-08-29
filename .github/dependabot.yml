@@ -19,6 +19,8 @@ updates:
     ignore:
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       prisma:
         patterns:
@@ -28,6 +30,12 @@ updates:
         patterns:
           - "next"
           - "eslint-config-next"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
 
   # Maintain GitHub Actions dependencies
   - package-ecosystem: "github-actions"
