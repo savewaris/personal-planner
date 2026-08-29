@@ -16,6 +16,9 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
     groups:
       prisma:
         patterns:
