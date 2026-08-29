@@ -57,7 +57,7 @@ jobs:
           fi
 
       - name: Run Unit / Component Tests
-        run: npm test --if-present
+        run: npm run test:unit --if-present
         env:
           CI: "true"
 
