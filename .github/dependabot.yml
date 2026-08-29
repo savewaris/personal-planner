@@ -16,6 +16,15 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+    groups:
+      prisma:
+        patterns:
+          - "@prisma/*"
+          - "prisma"
+      next:
+        patterns:
+          - "next"
+          - "eslint-config-next"
 
   # Maintain GitHub Actions dependencies
   - package-ecosystem: "github-actions"
