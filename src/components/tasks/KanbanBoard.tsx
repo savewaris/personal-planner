@@ -3,25 +3,28 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TaskItem, TaskCard } from "./TaskCard";
-import { WorkspaceContextItem } from "@/services/api";
+import { WorkspaceContextItem, ProjectItem } from "@/services/api";
 import { getTagColorClasses } from "@/components/ui/inputs";
 
-export type GroupByOption = "horizon" | "status" | "context" | "priority" | "tag";
+export type GroupByOption = "horizon" | "status" | "project" | "context" | "priority" | "tag";
 
 interface KanbanBoardProps {
   tasks: TaskItem[];
   contexts?: WorkspaceContextItem[];
+  projects?: ProjectItem[];
   groupBy?: GroupByOption;
   onGroupByChange?: (groupBy: GroupByOption) => void;
   onStatusChange: (id: string, newStatus: string) => void;
   onUpdateTask?: (id: string, updates: Partial<TaskItem>) => void;
   onDeleteTask: (id: string) => void;
+  onEditTask?: (task: TaskItem) => void;
   onOpenAddModal: (
     initialStatus?: string,
     initialContextId?: string,
     initialPriority?: string,
     initialTag?: string,
-    initialDueDate?: string
+    initialDueDate?: string,
+    initialProjectId?: string
   ) => void;
 }
 
@@ -51,11 +54,13 @@ const parseTaskTags = (tagsField?: string | string[] | null): string[] => {
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   tasks,
   contexts = [],
+  projects = [],
   groupBy = "horizon",
   onGroupByChange,
   onStatusChange,
   onUpdateTask,
   onDeleteTask,
+  onEditTask,
   onOpenAddModal,
 }) => {
   const [internalGroupBy, setInternalGroupBy] = useState<GroupByOption>(groupBy);
@@ -163,6 +168,34 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       ];
     }
 
+    if (activeGroupBy === "project") {
+      const projectCols: ColumnDef[] = projects.map((p) => ({
+        id: p.id,
+        title: p.title,
+        subtitle: p.description || "Active initiative",
+        borderColor: "border-indigo-500/30",
+        badgeColor: "bg-indigo-500/15 text-indigo-500 border border-indigo-500/30",
+        icon: (
+          <span
+            className="w-2.5 h-2.5 rounded-full inline-block"
+            style={{ backgroundColor: p.color || "#6366f1" }}
+          />
+        ),
+      }));
+
+      // Add unassigned / standalone project column
+      projectCols.push({
+        id: "UNASSIGNED",
+        title: "📁 Standalone Tasks",
+        subtitle: "No project assigned",
+        borderColor: "border-slate-500/30",
+        badgeColor: "bg-slate-500/15 text-slate-500 border border-slate-500/30",
+        icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block" />,
+      });
+
+      return projectCols;
+    }
+
     if (activeGroupBy === "priority") {
       return [
         {
@@ -242,7 +275,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     }
 
     return [];
-  }, [activeGroupBy, contexts, allUniqueTags]);
+  }, [activeGroupBy, contexts, projects, allUniqueTags]);
 
   // Filter out hidden columns based on filter state
   const visibleColumns = useMemo(() => {
@@ -300,6 +333,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
     if (activeGroupBy === "status") {
       return tasks.filter((t) => (t.status || "TODO") === colId);
+    }
+
+    if (activeGroupBy === "project") {
+      if (colId === "UNASSIGNED") {
+        const validProjectIds = new Set(projects.map((p) => p.id));
+        return tasks.filter((t) => !t.projectId || !validProjectIds.has(t.projectId));
+      }
+      return tasks.filter((t) => t.projectId === colId);
     }
 
     if (activeGroupBy === "priority") {
@@ -388,6 +429,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         if (targetColId !== task.status) {
           onStatusChange(taskId, targetColId);
         }
+      } else if (activeGroupBy === "project") {
+        const targetProjectId = targetColId === "UNASSIGNED" ? undefined : targetColId;
+        if (targetProjectId !== task.projectId && onUpdateTask) {
+          onUpdateTask(taskId, { projectId: targetProjectId });
+        }
       } else if (activeGroupBy === "priority") {
         if (targetColId !== task.priority && onUpdateTask) {
           onUpdateTask(taskId, { priority: targetColId });
@@ -439,6 +485,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       else onOpenAddModal();
     } else if (activeGroupBy === "status") {
       onOpenAddModal(colId);
+    } else if (activeGroupBy === "project") {
+      onOpenAddModal("TODO", undefined, undefined, undefined, undefined, colId === "UNASSIGNED" ? undefined : colId);
     } else if (activeGroupBy === "priority") {
       onOpenAddModal("TODO", undefined, colId);
     } else if (activeGroupBy === "context") {
@@ -469,6 +517,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           {[
             { id: "horizon", label: "⏳ Time Horizon" },
             { id: "status", label: "Status" },
+            { id: "project", label: "📁 Projects" },
             { id: "priority", label: "Priority" },
             { id: "context", label: "Workspace" },
             { id: "tag", label: "Tags" },
@@ -644,6 +693,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             task={task}
                             onStatusChange={onStatusChange}
                             onDelete={onDeleteTask}
+                            onEdit={onEditTask}
                           />
                         </div>
                       ))

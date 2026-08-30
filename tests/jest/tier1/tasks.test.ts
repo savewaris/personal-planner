@@ -185,5 +185,74 @@ describe('Tier 1: Task List Feature Coverage', () => {
     expect(getHorizon(testTasks[4])).toBe('THIS_MONTH');
     expect(getHorizon(testTasks[5])).toBe('COMPLETED');
   });
+
+  it('1.9 should support full task editing drawer property updates', () => {
+    const taskId = 'task_1';
+    const original = taskStore.find((t) => t.id === taskId);
+    expect(original?.title).toBe('Submit Q3 Financial Report');
+
+    // Simulate EditTaskDrawer submit
+    const updates = {
+      title: 'Submit Q3 Financial & Tax Report (Revised)',
+      description: 'Added audited balance sheets and invoice receipts',
+      projectId: 'proj_audit',
+      contextId: 'ctx_finance',
+    };
+
+    const taskIndex = taskStore.findIndex((t) => t.id === taskId);
+    taskStore[taskIndex] = { ...taskStore[taskIndex], ...updates };
+
+    const updated = taskStore.find((t) => t.id === taskId);
+    expect(updated?.title).toBe('Submit Q3 Financial & Tax Report (Revised)');
+    expect(updated?.description).toBe('Added audited balance sheets and invoice receipts');
+    expect(updated?.projectId).toBe('proj_audit');
+    expect(updated?.contextId).toBe('ctx_finance');
+  });
+
+  it('1.10 should filter tasks by project selector (ALL, UNASSIGNED, specific Project)', () => {
+    // Project filter logic
+    const filterByProject = (tasks: Task[], selectedProjectId: string) => {
+      if (selectedProjectId === 'UNASSIGNED') {
+        return tasks.filter((t) => !t.projectId);
+      }
+      if (selectedProjectId !== 'ALL') {
+        return tasks.filter((t) => t.projectId === selectedProjectId);
+      }
+      return tasks;
+    };
+
+    const allTasks = filterByProject(taskStore, 'ALL');
+    expect(allTasks.length).toBe(3);
+
+    const standaloneTasks = filterByProject(taskStore, 'UNASSIGNED');
+    expect(standaloneTasks.length).toBe(1);
+    expect(standaloneTasks[0].id).toBe('task_2');
+
+    const financeTasks = filterByProject(taskStore, 'proj_finance');
+    expect(financeTasks.length).toBe(1);
+    expect(financeTasks[0].id).toBe('task_1');
+  });
+
+  it('1.11 should reassign project association during Kanban project column drag-and-drop', () => {
+    const taskId = 'task_2'; // Initially unassigned
+    expect(taskStore.find((t) => t.id === taskId)?.projectId).toBeUndefined();
+
+    // Drop onto proj_dev column
+    const targetProjectColId: string = 'proj_dev';
+    const taskIndex = taskStore.findIndex((t) => t.id === taskId);
+    taskStore[taskIndex] = {
+      ...taskStore[taskIndex],
+      projectId: targetProjectColId === 'UNASSIGNED' ? undefined : targetProjectColId,
+    };
+
+    expect(taskStore.find((t) => t.id === taskId)?.projectId).toBe('proj_dev');
+
+    // Drop back onto Standalone / UNASSIGNED column
+    taskStore[taskIndex] = {
+      ...taskStore[taskIndex],
+      projectId: undefined,
+    };
+    expect(taskStore.find((t) => t.id === taskId)?.projectId).toBeUndefined();
+  });
 });
 

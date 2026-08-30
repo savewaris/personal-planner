@@ -5,5 +5,6 @@ export * from './TaskListView';
 export * from './TaskCalendarView';
 export * from './TaskDetailModal';
 export * from './CreateTaskDrawer';
+export * from './EditTaskDrawer';
 export * from './ChatTaskInput';
 export * from './TasksInProgressCard';

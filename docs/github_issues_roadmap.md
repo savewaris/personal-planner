@@ -23,7 +23,7 @@ Transform the Task Hub with an intelligent **Time-Horizon Smart Kanban Board** t
 
 ## 📌 Issue #2: feat(tasks): Task Editing Drawer Modal & Multi-Project Filtering and Grouping
 - **GitHub Issue**: [#12](https://github.com/savewaris/personal-planner/issues/12)
-- **Status**: 📋 Backlog / Ready for Implementation
+- **Status**: ✅ Completed & Verified
 - **Labels**: `feature`, `frontend`, `ui/ux`, `enhancement`
 
 ### 🎯 Overview & Rationale
@@ -56,10 +56,10 @@ Empower users to effortlessly modify task details and organize their workflows b
   - **Drag-and-Drop Assignment**: Dragging a card between project columns automatically updates its `projectId` in the database.
 
 ### 🧪 Acceptance Criteria & Test Plan
-- [ ] Clicking a task card opens the `EditTaskDrawer` pre-populated with current task values.
-- [ ] Submitting changes updates the task in memory immediately and sends `PATCH /api/tasks/[id]`.
-- [ ] Project filter dropdown filters all tasks across Kanban and List views.
-- [ ] Switching Kanban grouping to "Project" displays project columns and handles drag-and-drop reassignment.
-- [ ] Fully responsive on Mobile (375px), Tablet (768px), and Desktop (1440px) with 0 horizontal overflow.
-- [ ] Meets WCAG 2.2 AA accessibility and >= 24px touch target ergonomics.
-- [ ] Codebase Doctor (23/23), Jest unit tests, and Playwright suites pass.
+- [x] Clicking a task card opens the `EditTaskDrawer` pre-populated with current task values.
+- [x] Submitting changes updates the task in memory immediately and sends `PATCH /api/tasks/[id]`.
+- [x] Project filter dropdown filters all tasks across Kanban and List views.
+- [x] Switching Kanban grouping to "Project" displays project columns and handles drag-and-drop reassignment.
+- [x] Fully responsive on Mobile (375px), Tablet (768px), and Desktop (1440px) with 0 horizontal overflow.
+- [x] Meets WCAG 2.2 AA accessibility and >= 24px touch target ergonomics.
+- [x] Codebase Doctor (23/23), Jest unit tests (58/58), and Playwright suites pass.

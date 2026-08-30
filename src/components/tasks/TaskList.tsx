@@ -1,25 +1,33 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
 import { KanbanBoard } from "./KanbanBoard";
 import { TaskListView } from "./TaskListView";
 import { CreateTaskDrawer } from "./CreateTaskDrawer";
+import { EditTaskDrawer } from "./EditTaskDrawer";
+import { TaskItem } from "@/types";
 
 export const TaskList: React.FC<{ isModalOpenExternal?: boolean; onCloseModalExternal?: () => void }> = ({
   isModalOpenExternal = false,
   onCloseModalExternal,
 }) => {
-  const { tasks, contexts, isLoading, updateTaskStatus, updateTask, deleteTask } = usePlannerStore();
+  const { tasks, contexts, projects, isLoading, updateTaskStatus, updateTask, deleteTask } = usePlannerStore();
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [search, setSearch] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("ALL");
 
-  // Drawer Modal State
+  // Create Drawer Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialStatus, setInitialStatus] = useState("TODO");
   const [initialDueDate, setInitialDueDate] = useState("");
+  const [initialProjectId, setInitialProjectId] = useState("");
+
+  // Edit Drawer Modal State
+  const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
   // Sync external modal trigger
   useEffect(() => {
@@ -28,34 +36,54 @@ export const TaskList: React.FC<{ isModalOpenExternal?: boolean; onCloseModalExt
     }
   }, [isModalOpenExternal]);
 
-  // Filter tasks locally by search input
-  const filteredTasks = React.useMemo(() => {
-    if (!search.trim()) return tasks;
-    const q = search.toLowerCase();
-    return tasks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        (t.description && t.description.toLowerCase().includes(q))
-    );
-  }, [tasks, search]);
+  // Filter tasks locally by project filter and search input
+  const filteredTasks = useMemo(() => {
+    let result = tasks;
+
+    // Filter by project
+    if (selectedProjectId === "UNASSIGNED") {
+      result = result.filter((t) => !t.projectId);
+    } else if (selectedProjectId !== "ALL") {
+      result = result.filter((t) => t.projectId === selectedProjectId);
+    }
+
+    // Filter by search query
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (t.description && t.description.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [tasks, selectedProjectId, search]);
 
   const handleOpenAddModalWithStatus = (
     initStatus?: string,
     initContextId?: string,
     initPriority?: string,
     initTag?: string,
-    initDueDate?: string
+    initDueDate?: string,
+    initProjId?: string
   ) => {
     if (initStatus) setInitialStatus(initStatus);
     if (initDueDate) setInitialDueDate(initDueDate);
+    if (initProjId) setInitialProjectId(initProjId);
     setIsModalOpen(true);
+  };
+
+  const handleOpenEditDrawer = (task: TaskItem) => {
+    setEditingTask(task);
+    setIsEditDrawerOpen(true);
   };
 
   return (
     <div className="space-y-6">
       {/* Task Hub Header Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-wrap">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* View Toggle (Kanban | List) + Direct Full Calendar Button */}
           <div className="flex items-center gap-2 flex-wrap">
             <div
@@ -103,11 +131,44 @@ export const TaskList: React.FC<{ isModalOpenExternal?: boolean; onCloseModalExt
               Open Calendar →
             </Link>
           </div>
+
+          {/* Project Filter Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold opacity-60 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+              </svg>
+              Project:
+            </span>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="px-3 py-1.5 rounded-xl border text-xs font-semibold focus:outline-none focus:border-indigo-500 shadow-xs cursor-pointer transition-all"
+              style={{
+                backgroundColor: "var(--surface-subtle)",
+                borderColor: "var(--border-subtle)",
+                color: "var(--foreground)",
+              }}
+            >
+              <option value="ALL">📁 All Projects ({tasks.length})</option>
+              <option value="UNASSIGNED">
+                Standalone / No Project ({tasks.filter((t) => !t.projectId).length})
+              </option>
+              {projects.map((p) => {
+                const count = tasks.filter((t) => t.projectId === p.id).length;
+                return (
+                  <option key={p.id} value={p.id}>
+                    ● {p.title} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
         </div>
 
         {/* Right Search Input & New Task Button */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex items-center gap-3 w-full lg:w-auto">
+          <div className="relative flex-1 lg:w-64">
             <input
               type="text"
               value={search}
@@ -149,9 +210,11 @@ export const TaskList: React.FC<{ isModalOpenExternal?: boolean; onCloseModalExt
         <KanbanBoard
           tasks={filteredTasks}
           contexts={contexts}
+          projects={projects}
           onStatusChange={updateTaskStatus}
           onUpdateTask={async (id, updates) => { await updateTask(id, updates); }}
           onDeleteTask={deleteTask}
+          onEditTask={handleOpenEditDrawer}
           onOpenAddModal={handleOpenAddModalWithStatus}
         />
       ) : (
@@ -159,6 +222,7 @@ export const TaskList: React.FC<{ isModalOpenExternal?: boolean; onCloseModalExt
           tasks={filteredTasks}
           onStatusChange={updateTaskStatus}
           onDeleteTask={deleteTask}
+          onEditTask={handleOpenEditDrawer}
         />
       )}
 
@@ -171,6 +235,17 @@ export const TaskList: React.FC<{ isModalOpenExternal?: boolean; onCloseModalExt
         }}
         initialStatus={initialStatus}
         initialDueDate={initialDueDate}
+        initialProjectId={initialProjectId}
+      />
+
+      {/* Edit Task Slide-over Drawer */}
+      <EditTaskDrawer
+        isOpen={isEditDrawerOpen}
+        onClose={() => {
+          setIsEditDrawerOpen(false);
+          setEditingTask(null);
+        }}
+        task={editingTask}
       />
     </div>
   );
