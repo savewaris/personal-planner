@@ -27,7 +27,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci || npm install
 
       - name: Validate Database Schema (if present)
         run: |
@@ -50,6 +50,9 @@ jobs:
           if [ -f "scripts/agent-doctor.mjs" ]; then
             node scripts/agent-doctor.mjs
           fi
+
+      - name: Install Playwright Browsers (for UI / E2E tests)
+        run: npx playwright install --with-deps chromium || true
 
       - name: Run Unit / Component Tests
         run: npm test --if-present

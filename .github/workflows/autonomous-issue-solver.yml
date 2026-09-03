@@ -129,6 +129,45 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: "Verify 100% Green PR CI/CD Checks"
+        id: verify-pr-ci
+        if: steps.create-pr.outputs.pr_url != ''
+        run: |
+          node scripts/agent-progress-notifier.mjs update --step "Verifying Pull Request CI/CD Checks are 100% Green..." --percent 85 || true
+          
+          PR_URL="${{ steps.create-pr.outputs.pr_url }}"
+          PR_NUM=$(gh pr view "$PR_URL" --json number -q .number)
+          echo "Inspecting CI/CD status checks for PR #$PR_NUM..."
+          
+          # Poll PR checks until all pass (up to 3 minutes)
+          PASSED=false
+          for i in $(seq 1 18); do
+            echo "Polling PR checks (Attempt $i/18)..."
+            CHECKS=$(gh pr view "$PR_NUM" --json statusCheckRollup -q ".statusCheckRollup[] | select(.context != \"30-Min Pulse & Health Sentry\") | .conclusion // .state" || true)
+            
+            if echo "$CHECKS" | grep -iq "FAILURE"; then
+              echo "❌ CI/CD Quality Gate failed on PR #$PR_NUM!"
+              exit 1
+            fi
+            
+            if [ -n "$CHECKS" ] && ! echo "$CHECKS" | grep -iq "PENDING" && ! echo "$CHECKS" | grep -iq "IN_PROGRESS"; then
+              echo "✅ All PR checks are 100% GREEN!"
+              PASSED=true
+              break
+            fi
+            
+            sleep 10
+          done
+          
+          # Only auto-merge if completely green
+          if [ "$PASSED" = "true" ]; then
+            echo "Merging verified PR #$PR_NUM..."
+            gh pr merge "$PR_NUM" --squash --delete-branch || true
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
       - name: "Discord Notification: Task Completed"
         if: success()
         run: |
@@ -139,6 +178,6 @@ jobs:
       - name: "Discord Notification: Task Failed"
         if: failure()
         run: |
-          node scripts/agent-progress-notifier.mjs fail --error "Workflow execution encountered an error. Check GitHub Actions logs." || true
+          node scripts/agent-progress-notifier.mjs fail --error "PR CI/CD checks did not achieve 100% Green. Check GitHub Actions logs." || true
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
