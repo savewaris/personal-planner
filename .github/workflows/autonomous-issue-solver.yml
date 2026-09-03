@@ -46,7 +46,7 @@ jobs:
             echo "title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Discord Notification: Task Started
+      - name: "Discord Notification: Task Started"
         run: |
           node scripts/agent-progress-notifier.mjs start --repo "$GITHUB_REPOSITORY" --task "Issue #${{ steps.issue-meta.outputs.number }}: ${{ steps.issue-meta.outputs.title }}" || true
         env:
@@ -72,7 +72,7 @@ jobs:
               body: '🤖 **Autonomous AI Coding Agent has picked up this issue.**\n\n- Workspace initialized from `config/model-registry.json`\n- Feature branch created\n- Running self-verification & browser quality gates...\n\nA Pull Request will be opened automatically upon verified completion.'
             });
 
-      - name: Discord Notification: Verification In Progress
+      - name: "Discord Notification: Verification In Progress"
         run: |
           node scripts/agent-progress-notifier.mjs update --step "Running Type Checks & Build Verification" --percent 40 || true
         env:
@@ -92,7 +92,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CI: "true"
 
-      - name: Discord Notification: Browser Quality Gate
+      - name: "Discord Notification: Browser Quality Gate"
         run: |
           node scripts/agent-progress-notifier.mjs update --step "Running Playwright Browser & Gemini Vision Gate" --percent 75 || true
         env:
@@ -129,14 +129,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Discord Notification: Task Completed
+      - name: "Discord Notification: Task Completed"
         if: success()
         run: |
           node scripts/agent-progress-notifier.mjs complete --pr "${{ steps.create-pr.outputs.pr_url }}" || true
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-      - name: Discord Notification: Task Failed
+      - name: "Discord Notification: Task Failed"
         if: failure()
         run: |
           node scripts/agent-progress-notifier.mjs fail --error "Workflow execution encountered an error. Check GitHub Actions logs." || true
