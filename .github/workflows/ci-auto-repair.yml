@@ -1,0 +1,142 @@
+name: ⚡ CI Auto-Repair (Autonomous)
+
+on:
+  # Triggered when any workflow run on this repo fails (via check_run event)
+  check_run:
+    types: [completed]
+  workflow_run:
+    workflows: ["*"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'The failed workflow run ID to repair'
+        required: true
+      branch:
+        description: 'Branch to push the fix to'
+        required: false
+        default: 'main'
+
+concurrency:
+  group: ci-auto-repair-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ─── Gate: Only run if a workflow just FAILED ─────────────────────────────
+  detect-failure:
+    name: 🔍 Detect Failing CI Run
+    runs-on: ubuntu-latest
+    # For workflow_run event: only trigger if the triggering run actually failed
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'failure' &&
+       github.event.workflow_run.name != 'CI Auto-Repair (Autonomous)')
+    outputs:
+      run_id: ${{ steps.resolve.outputs.run_id }}
+      branch: ${{ steps.resolve.outputs.branch }}
+      should_repair: ${{ steps.resolve.outputs.should_repair }}
+    steps:
+      - name: Resolve Failed Run Details
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run_id=${{ github.event.inputs.run_id }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.event.inputs.branch || 'main' }}" >> $GITHUB_OUTPUT
+            echo "should_repair=true" >> $GITHUB_OUTPUT
+          else
+            FAILED_RUN_ID="${{ github.event.workflow_run.id }}"
+            FAILED_BRANCH="${{ github.event.workflow_run.head_branch }}"
+            echo "run_id=$FAILED_RUN_ID" >> $GITHUB_OUTPUT
+            echo "branch=$FAILED_BRANCH" >> $GITHUB_OUTPUT
+            echo "should_repair=true" >> $GITHUB_OUTPUT
+            echo "🚨 Detected failed CI run #$FAILED_RUN_ID on branch: $FAILED_BRANCH"
+          fi
+
+  # ─── Auto-Repair Job ──────────────────────────────────────────────────────
+  auto-repair:
+    name: 🔧 AI-Powered Root Cause Repair
+    runs-on: ubuntu-latest
+    needs: detect-failure
+    if: needs.detect-failure.outputs.should_repair == 'true'
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: read
+      checks: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect-failure.outputs.branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Generate Database Client (if present)
+        run: |
+          if [ -f "prisma/schema.prisma" ]; then
+            npx prisma generate || true
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: 🤖 Run AI Root-Cause Diagnosis & Auto-Repair
+        run: |
+          echo "🔍 Analyzing failed CI run #${{ needs.detect-failure.outputs.run_id }}..."
+          node scripts/ci-auto-repair.mjs "${{ needs.detect-failure.outputs.run_id }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_HEAD_REF: ${{ needs.detect-failure.outputs.branch }}
+          GITHUB_REF_NAME: ${{ needs.detect-failure.outputs.branch }}
+          FAILED_RUN_ID: ${{ needs.detect-failure.outputs.run_id }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: 📝 Open GitHub Issue if Repair Couldn't Fix It
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = '${{ needs.detect-failure.outputs.run_id }}';
+            const branch = '${{ needs.detect-failure.outputs.branch }}';
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'ci-auto-repair-failed'
+            });
+            const alreadyOpen = existing.data.some(i =>
+              i.title.includes(`run #${runId}`)
+            );
+            if (!alreadyOpen) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `fix(ci): Auto-Repair could not fix failing run #${runId}`,
+                body: `## 🤖 CI Auto-Repair Could Not Fix This Automatically\n\n` +
+                  `The autonomous CI repair engine ran but **could not determine a safe fix**.\n\n` +
+                  `- **Failed Run:** [#${runId}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId})\n` +
+                  `- **Branch:** \`${branch}\`\n\n` +
+                  `### 👉 Action Required\n` +
+                  `Please review the logs from the failing run and apply a manual fix.\n\n` +
+                  `*Auto-created by CI Auto-Repair Engine. The Autonomous Issue Solver will attempt to resolve this.*`,
+                labels: ['bug', 'ci-auto-repair-failed']
+              });
+            }

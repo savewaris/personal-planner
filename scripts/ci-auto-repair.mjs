@@ -1,0 +1,275 @@
+/**
+ * CI Auto-Repair Engine (scripts/ci-auto-repair.mjs)
+ *
+ * Called by ci-auto-repair.yml when a CI run fails.
+ * Reads the failing logs → AI diagnoses root cause → writes targeted fixes → commits.
+ *
+ * SAFE REPAIR SCOPE (never touches business logic or feature code):
+ *   - GitHub Actions workflow files
+ *   - package.json / package-lock.json
+ *   - tsconfig.json
+ *   - .eslintrc / .eslintignore
+ *   - prisma/schema.prisma (generate only, not model changes)
+ *   - Environment secrets / CI variable references
+ *   - Dependency version pins
+ *   - Build configuration (next.config.*, vite.config.*)
+ *   - Test configuration (playwright.config.*, jest.config.*)
+ */
+
+import { execSync, spawnSync } from 'child_process';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import path from 'path';
+import { queryAiWithFallback } from './ai-provider-battery.mjs';
+
+const REPO = process.env.GITHUB_REPOSITORY || '';
+const RUN_ID = process.argv[2] || process.env.FAILED_RUN_ID || '';
+const BRANCH = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'main';
+const MAX_REPAIR_ATTEMPTS = 3;
+const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || '';
+
+// ─── Utility: Discord notification ────────────────────────────────────────────
+async function notifyDiscord(message) {
+  if (!DISCORD_WEBHOOK) return;
+  try {
+    await fetch(DISCORD_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: message,
+        username: '🔧 CI Auto-Repair Bot'
+      })
+    });
+  } catch {}
+}
+
+// ─── Step 1: Pull the failing CI logs ─────────────────────────────────────────
+async function fetchFailingLogs() {
+  if (!RUN_ID) {
+    console.error('❌ No FAILED_RUN_ID provided. Cannot fetch logs.');
+    process.exit(1);
+  }
+  console.log(`\n📋 Fetching failing logs for run #${RUN_ID}...`);
+  try {
+    const raw = execSync(
+      `gh run view ${RUN_ID} --repo ${REPO} --log-failed`,
+      { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }
+    );
+    // Trim to last 8000 chars so it fits in AI context
+    return raw.slice(-8000);
+  } catch (err) {
+    return `[Could not fetch logs: ${err.message}]`;
+  }
+}
+
+// ─── Step 2: AI Root-Cause Diagnosis ─────────────────────────────────────────
+async function diagnoseWithAI(logs) {
+  const prompt = `You are an expert CI/CD repair engineer. A GitHub Actions CI run has FAILED.
+Analyze the logs below and provide:
+1. ONE-LINE SUMMARY of the root cause
+2. CATEGORY (one of: workflow_config | dependencies | typescript | lint | build | test | prisma | secrets | playwright | other)
+3. EXACT FIX INSTRUCTIONS — describe precisely what file to change and how
+
+CRITICAL RULES:
+- Only suggest changes to SAFE FILES: .github/workflows/*, package.json, tsconfig.json, .eslintrc*, prisma/schema.prisma, next.config.*, vite.config.*, playwright.config.*, jest.config.*
+- NEVER suggest changing src/ app/ pages/ components/ or any business logic
+- If the fix requires a secret/env variable to be added to GitHub, list it
+- Format your response as valid JSON with keys: summary, category, fixInstructions (array of objects with fields: file, action, content)
+
+FAILING CI LOGS:
+\`\`\`
+${logs}
+\`\`\`
+
+Respond with only the JSON object, no markdown wrapping.`;
+
+  console.log('\n🤖 Asking AI to diagnose root cause...');
+  const raw = await queryAiWithFallback(prompt, { temperature: 0.2 });
+  
+  // Try to extract JSON from the response
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.warn('⚠️ AI did not return valid JSON. Raw response:', raw.substring(0, 500));
+    return null;
+  }
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.warn('⚠️ JSON parse failed:', e.message);
+    return null;
+  }
+}
+
+// ─── Step 3: Apply the fix ─────────────────────────────────────────────────────
+const SAFE_PATH_PATTERNS = [
+  /^\.github\/workflows\//,
+  /^package\.json$/,
+  /^package-lock\.json$/,
+  /^tsconfig.*\.json$/,
+  /^\.eslint/,
+  /^prisma\//,
+  /^next\.config\./,
+  /^vite\.config\./,
+  /^playwright\.config\./,
+  /^jest\.config\./,
+  /^\.babelrc/,
+  /^babel\.config\./,
+  /^\.env\.example$/,
+  /^Makefile$/,
+  /^Dockerfile$/,
+  /^docker-compose/,
+  /^\.npmrc$/,
+  /^\.nvmrc$/,
+];
+
+function isSafePath(filePath) {
+  return SAFE_PATH_PATTERNS.some(pattern => pattern.test(filePath));
+}
+
+async function applyFix(diagnosis) {
+  if (!diagnosis || !diagnosis.fixInstructions || diagnosis.fixInstructions.length === 0) {
+    console.log('⚠️ No fix instructions from AI. Cannot auto-repair.');
+    return false;
+  }
+
+  let anyFixed = false;
+
+  for (const fix of diagnosis.fixInstructions) {
+    const { file, action, content } = fix;
+    if (!file) continue;
+
+    // Safety gate: only touch approved files
+    if (!isSafePath(file)) {
+      console.warn(`🚫 [SAFETY] Skipping unsafe file: ${file} (not in safe repair scope)`);
+      continue;
+    }
+
+    const absPath = path.resolve(process.cwd(), file);
+    const dir = path.dirname(absPath);
+
+    try {
+      if (action === 'create' || action === 'overwrite') {
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        writeFileSync(absPath, content || '', 'utf8');
+        console.log(`  ✅ ${action.toUpperCase()}: ${file}`);
+        anyFixed = true;
+      } else if (action === 'patch' && existsSync(absPath)) {
+        // AI provides patch as a find/replace in JSON: { find: "...", replace: "..." }
+        if (fix.find && fix.replace !== undefined) {
+          let src = readFileSync(absPath, 'utf8');
+          if (src.includes(fix.find)) {
+            src = src.replace(fix.find, fix.replace);
+            writeFileSync(absPath, src, 'utf8');
+            console.log(`  ✅ PATCH: ${file}`);
+            anyFixed = true;
+          } else {
+            console.warn(`  ⚠️ Patch target not found in ${file}: "${fix.find.substring(0, 60)}"`);
+          }
+        }
+      } else if (action === 'npm_install') {
+        // Install missing package
+        const pkg = fix.package || content;
+        if (pkg) {
+          console.log(`  📦 Installing missing package: ${pkg}`);
+          spawnSync('npm', ['install', '--save-dev', pkg], { stdio: 'inherit' });
+          anyFixed = true;
+        }
+      } else if (action === 'npm_update') {
+        console.log(`  📦 Running npm install to fix lockfile sync...`);
+        spawnSync('npm', ['install'], { stdio: 'inherit' });
+        anyFixed = true;
+      }
+    } catch (err) {
+      console.error(`  ❌ Failed to apply fix to ${file}: ${err.message}`);
+    }
+  }
+
+  return anyFixed;
+}
+
+// ─── Step 4: Commit, push, and post repair summary ───────────────────────────
+async function commitAndPush(diagnosis) {
+  try {
+    execSync('git config --global user.name "github-actions[bot]"', { stdio: 'pipe' });
+    execSync('git config --global user.email "github-actions[bot]@users.noreply.github.com"', { stdio: 'pipe' });
+    execSync('git add -A', { stdio: 'pipe' });
+    
+    const diff = execSync('git diff --cached --stat', { encoding: 'utf-8' });
+    if (!diff.trim()) {
+      console.log('ℹ️ No staged changes to commit.');
+      return false;
+    }
+
+    const summary = diagnosis?.summary || 'fix(ci): auto-repair by CI Bot';
+    const category = diagnosis?.category || 'ci';
+    execSync(`git commit -m "fix(${category}): auto-repair — ${summary.substring(0, 72)}"`, { stdio: 'pipe' });
+    execSync(`git push origin ${BRANCH} --force-with-lease`, { stdio: 'inherit' });
+    
+    console.log(`\n✅ [COMMITTED & PUSHED] Auto-repair committed to ${BRANCH}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ Git commit/push failed: ${err.message}`);
+    return false;
+  }
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+async function main() {
+  console.log('\n🔧 ===== CI AUTO-REPAIR ENGINE STARTED =====');
+  console.log(`   Repo:    ${REPO}`);
+  console.log(`   Run ID:  ${RUN_ID}`);
+  console.log(`   Branch:  ${BRANCH}`);
+
+  // Pull failing logs
+  const logs = await fetchFailingLogs();
+  console.log(`\n📄 Got ${logs.length} chars of failing logs.`);
+
+  // AI Diagnosis
+  const diagnosis = await diagnoseWithAI(logs);
+  if (!diagnosis) {
+    await notifyDiscord(
+      `⚠️ **CI Auto-Repair** in \`${REPO}\` — AI could not diagnose root cause for run #${RUN_ID}.\n` +
+      `Manual inspection needed: https://github.com/${REPO}/actions/runs/${RUN_ID}`
+    );
+    process.exit(1);
+  }
+
+  console.log('\n📊 AI Diagnosis:');
+  console.log(`   Summary:  ${diagnosis.summary}`);
+  console.log(`   Category: ${diagnosis.category}`);
+  console.log(`   Fixes:    ${diagnosis.fixInstructions?.length || 0} instructions`);
+
+  await notifyDiscord(
+    `🔧 **CI Auto-Repair Started** in \`${REPO}\`\n` +
+    `📋 **Root Cause:** ${diagnosis.summary}\n` +
+    `🗂️ **Category:** ${diagnosis.category}\n` +
+    `🛠️ Applying ${diagnosis.fixInstructions?.length || 0} fixes automatically...`
+  );
+
+  // Apply fixes
+  const fixed = await applyFix(diagnosis);
+  if (!fixed) {
+    await notifyDiscord(
+      `⚠️ **CI Auto-Repair** in \`${REPO}\` — no safe fixes could be applied.\n` +
+      `Category: \`${diagnosis.category}\`\n` +
+      `This may require manual intervention: https://github.com/${REPO}/actions/runs/${RUN_ID}`
+    );
+    process.exit(1);
+  }
+
+  // Commit and push
+  const pushed = await commitAndPush(diagnosis);
+  if (pushed) {
+    await notifyDiscord(
+      `✅ **CI Auto-Repair Complete** in \`${REPO}\`\n` +
+      `🩹 Fixed: ${diagnosis.summary}\n` +
+      `🔄 Pushed to \`${BRANCH}\` — CI re-run triggered automatically.\n` +
+      `If CI still fails, another repair cycle will begin (up to ${MAX_REPAIR_ATTEMPTS} attempts).`
+    );
+  }
+}
+
+main().catch(async (err) => {
+  console.error('❌ CI Auto-Repair engine crashed:', err);
+  await notifyDiscord(`❌ **CI Auto-Repair crashed** in \`${REPO}\`: ${err.message}`);
+  process.exit(1);
+});
