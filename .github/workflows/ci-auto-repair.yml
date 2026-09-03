@@ -118,17 +118,29 @@ jobs:
           script: |
             const runId = '${{ needs.detect-failure.outputs.run_id }}';
             const branch = '${{ needs.detect-failure.outputs.branch }}';
+
+            // Check if ci-auto-repair.mjs already notified Discord
+            let alreadyNotified = false;
+            try {
+              const fs = await import('fs');
+              if (fs.existsSync('.agents/repair-status.json')) {
+                const status = JSON.parse(fs.readFileSync('.agents/repair-status.json', 'utf8'));
+                if (status.notified) alreadyNotified = true;
+              }
+            } catch {}
+
             const existing = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
               labels: 'ci-auto-repair-failed'
             });
-            const alreadyOpen = existing.data.some(i =>
-              i.title.includes(`run #${runId}`)
-            );
+
+            const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+            const recentIssue = existing.data.find(i => new Date(i.created_at) > thirtyMinAgo);
+
             let issueUrl = '';
-            if (!alreadyOpen) {
+            if (!recentIssue) {
               const res = await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -143,11 +155,21 @@ jobs:
                 labels: ['bug', 'ci-auto-repair-failed']
               });
               issueUrl = res.data.html_url;
+            } else {
+              issueUrl = recentIssue.html_url;
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: recentIssue.number,
+                  body: `ℹ️ Another failing run occurred on branch \`${branch}\`: [#${runId}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}).`
+                });
+              } catch {}
             }
 
-            // Fallback Discord notification: Notify user when error cannot be fixed by AI
+            // Fallback Discord notification: only send if ci-auto-repair.mjs crashed before notifying and no recent issue exists
             const webhook = process.env.DISCORD_WEBHOOK_URL;
-            if (webhook) {
+            if (webhook && !alreadyNotified && !recentIssue) {
               try {
                 await fetch(webhook, {
                   method: 'POST',
@@ -156,8 +178,8 @@ jobs:
                     username: '🔧 CI Auto-Repair Bot',
                     avatar_url: 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png',
                     embeds: [{
-                      title: `🔴 [ACTION REQUIRED] • ${context.repo.repo} (Run #${runId})`,
-                      description: `### 📌 What Happened\nCI Auto-Repair detected a failure that **could not be resolved by AI** on branch \`${branch}\`. Please review the error log and establish a pattern.\n`,
+                      title: `🔴 [CATEGORY: CI_FAILURE] • ${context.repo.repo}`,
+                      description: `### 📌 Unresolved CI Failure Detected\nCI Auto-Repair detected a failure that **could not be resolved autonomously** on branch \`${branch}\`.\n`,
                       color: 15158332,
                       fields: [
                         {

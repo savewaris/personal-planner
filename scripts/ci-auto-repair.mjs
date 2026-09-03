@@ -265,25 +265,71 @@ Respond with only the JSON object, no markdown wrapping.`;
   const queryAi = await getAiDispatcher();
   const raw = await queryAi(prompt, { temperature: 0.2 });
   
-  let cleaned = (raw || '').trim();
+  return parseAiDiagnosis(raw);
+}
+
+// ─── Step 2C: Resilient Multi-Stage AI Parser ────────────────────────────────
+function parseAiDiagnosis(raw) {
+  if (!raw) return null;
+  let cleaned = raw.trim();
   cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
-  if (cleaned.includes('```')) {
-    const codeFenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (codeFenceMatch) cleaned = codeFenceMatch[1].trim();
+
+  // 1. Strip code block wrappers even if not closed (truncated response)
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '');
+  cleaned = cleaned.replace(/\s*```$/i, '');
+
+  // 2. Try direct JSON parse if balanced
+  const firstBrace = cleaned.indexOf('{');
+  if (firstBrace !== -1) {
+    const possibleJson = cleaned.slice(firstBrace);
+    try {
+      const parsed = JSON.parse(possibleJson);
+      if (parsed.summary) return parsed;
+    } catch {
+      // Attempt auto-repair of unclosed brackets and braces
+      let repaired = possibleJson;
+      repaired = repaired.replace(/,\s*$/, '');
+      if ((repaired.match(/"/g) || []).length % 2 !== 0) {
+        repaired += '"';
+      }
+      
+      let openBraces = (repaired.match(/\{/g) || []).length;
+      let closeBraces = (repaired.match(/\}/g) || []).length;
+      let openBrackets = (repaired.match(/\[/g) || []).length;
+      let closeBrackets = (repaired.match(/\]/g) || []).length;
+
+      while (closeBrackets < openBrackets) {
+        repaired += ']';
+        closeBrackets++;
+      }
+      while (closeBraces < openBraces) {
+        repaired += '}';
+        closeBraces++;
+      }
+
+      try {
+        const parsed = JSON.parse(repaired);
+        if (parsed.summary) return parsed;
+      } catch {}
+    }
   }
 
-  // Extract JSON
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.warn('⚠️ AI did not return valid JSON. Raw response:', raw.substring(0, 500));
-    return null;
+  // 3. Fallback: Robust Regex Extraction for incomplete or non-JSON responses
+  const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i) ||
+                       cleaned.match(/summary[:\s-]+([^\n]+)/i);
+  const categoryMatch = cleaned.match(/"category"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i) ||
+                        cleaned.match(/category[:\s-]+([a-z_]+)/i);
+
+  if (summaryMatch || categoryMatch) {
+    return {
+      summary: summaryMatch ? summaryMatch[1].trim() : "Automated CI failure detected by AI",
+      category: categoryMatch ? categoryMatch[1].trim().toLowerCase() : "workflow_config",
+      fixInstructions: []
+    };
   }
-  try {
-    return JSON.parse(jsonMatch[0]);
-  } catch (e) {
-    console.warn('⚠️ JSON parse failed:', e.message);
-    return null;
-  }
+
+  console.warn('⚠️ AI diagnosis could not be extracted. Raw snippet:', raw.substring(0, 300));
+  return null;
 }
 
 // ─── Step 3: Apply the fix ─────────────────────────────────────────────────────
@@ -399,6 +445,90 @@ async function commitAndPush(diagnosis) {
   }
 }
 
+/// ─── Step 4B: Error Categorization & Time-Window Deduplication ────────────────
+const DEDUPLICATION_WINDOW_MS = 30 * 60 * 1000; // 30-minute cooldown
+const CACHE_DIR = '.agents';
+const CACHE_FILE = path.join(CACHE_DIR, 'error-cache.json');
+
+function classifyErrorCategory(logs, diagnosis) {
+  if (diagnosis?.category) return diagnosis.category.toUpperCase();
+  const text = (logs || '').toLowerCase();
+  if (text.includes('could not add label') || (text.includes('label') && text.includes('not found'))) return 'WORKFLOW_CONFIG';
+  if (text.includes('npm ci can only install') || text.includes('lock file') || text.includes('eresolve') || text.includes('cannot find module')) return 'DEPENDENCIES';
+  if (text.includes('type error') || text.includes('ts23') || text.includes('typescript')) return 'TYPESCRIPT';
+  if (text.includes('eslint') || text.includes('prettier')) return 'LINT';
+  if (text.includes('connection refused') || text.includes('platform authentication') || text.includes('vercel')) return 'ENVIRONMENT';
+  if (text.includes('prisma') || text.includes('database_url')) return 'PRISMA';
+  if (text.includes('playwright') || text.includes('test failed') || text.includes('jest')) return 'TEST';
+  if (text.includes('secret') || text.includes('token') || text.includes('unauthorized') || text.includes('403')) return 'SECRETS';
+  if (text.includes('next build') || text.includes('vite build') || text.includes('failed to compile')) return 'BUILD';
+  return 'GENERAL_CI_FAILURE';
+}
+
+function markRepairNotified() {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(path.join(CACHE_DIR, 'repair-status.json'), JSON.stringify({ notified: true, timestamp: Date.now() }), 'utf8');
+  } catch {}
+}
+
+async function shouldNotifyCategory(category, repo, runId) {
+  // 1. Check GitHub open issues (persists across runner VMs)
+  try {
+    const { execSync } = await import('child_process');
+    const out = execSync(
+      `gh issue list --repo ${repo} --state open --label "ci-auto-repair-failed" --json number,title,createdAt`,
+      { encoding: 'utf-8' }
+    );
+    const issues = JSON.parse(out || '[]');
+    const now = Date.now();
+    for (const issue of issues) {
+      const createdAt = new Date(issue.createdAt).getTime();
+      const ageMs = now - createdAt;
+      if (ageMs < DEDUPLICATION_WINDOW_MS && (issue.title.toUpperCase().includes(category) || issue.title.includes('Auto-Repair'))) {
+        console.log(`\nℹ️ [DEDUPLICATION] Category [${category}] matches recent open issue #${issue.number} created ${Math.round(ageMs / 60000)}m ago.`);
+        console.log(`   Suppressing duplicate Discord alert for Run #${runId}.`);
+        return false;
+      }
+    }
+  } catch (err) {
+    // If gh CLI is unavailable, fallback to local error cache
+  }
+
+  // 2. Check local/cached deduplication state
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+      const key = `${repo}::${category}`.toLowerCase();
+      const existing = cache.entries?.[key];
+      if (existing && (Date.now() - existing.lastNotified < DEDUPLICATION_WINDOW_MS)) {
+        console.log(`\nℹ️ [DEDUPLICATION] Category [${category}] already notified recently. Suppressing alert.`);
+        return false;
+      }
+    }
+  } catch {}
+
+  return true;
+}
+
+function recordNotificationSent(category, repo, runId) {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+    let cache = { entries: {} };
+    if (fs.existsSync(CACHE_FILE)) {
+      try { cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')); } catch {}
+    }
+    const key = `${repo}::${category}`.toLowerCase();
+    if (!cache.entries) cache.entries = {};
+    cache.entries[key] = {
+      category,
+      lastNotified: Date.now(),
+      runId
+    };
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
+  } catch {}
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('\n🔧 ===== CI AUTO-REPAIR ENGINE STARTED =====');
@@ -407,11 +537,17 @@ async function main() {
   console.log(`   Branch:  ${BRANCH}`);
 
   // Pull failing logs
-  const logs = await fetchFailingLogs();
+  console.log(`\n📋 Fetching failing logs for run #${RUN_ID}...`);
+  const logs = await fetchFailingLogs(RUN_ID);
+  if (!logs) {
+    console.error('❌ Could not retrieve CI logs from GitHub API.');
+    process.exit(1);
+  }
   console.log(`\n📄 Got ${logs.length} chars of failing logs.`);
 
-  // Step 2: First check central Second Brain Error Registry
-  let diagnosis = await diagnoseFromSecondBrain(logs);
+  // Step 2A: Check deterministic signatures from Second Brain Error Knowledge
+  console.log('🌐 Fetching live Error Signatures from GitHub agent-second-brain...');
+  let diagnosis = await matchErrorSignature(logs);
 
   // If no known signature matched, fall back to Multi-Provider AI battery
   if (!diagnosis) {
@@ -421,69 +557,85 @@ async function main() {
     console.log('\n✨ Matched known issue in Second Brain! Applying deterministic remediation.');
   }
 
+  const category = classifyErrorCategory(logs, diagnosis);
   const errorSnippet = extractSmartErrorSnippet(logs);
 
-  // If AI/Second Brain cannot diagnose the error, notify Discord immediately
+  // If AI/Second Brain cannot diagnose the error, notify Discord if not deduplicated
   if (!diagnosis) {
-    await notifyDiscordEmbed({
-      title: `🔴 [ACTION REQUIRED] • ${REPO} (Run #${RUN_ID})`,
-      description: `### 📌 What Happened\nAuto-Repair Engine could not diagnose or automatically resolve the failure on branch \`${BRANCH}\`. Human intervention needed so you can fix it and establish a pattern.\n`,
-      color: 15158332,
-      fields: [
-        {
-          name: '🚨 Error Output (Noise Stripped)',
-          value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
-          inline: false
-        },
-        {
-          name: '🔗 Action Links',
-          value: [
-            `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
-            `• **Branch:** \`${BRANCH}\``,
-            `• **Repository:** [${REPO}](https://github.com/${REPO})`
-          ].join('\n'),
-          inline: false
-        }
-      ]
-    });
+    const shouldSend = await shouldNotifyCategory(category, REPO, RUN_ID);
+    if (shouldSend) {
+      await notifyDiscordEmbed({
+        title: `🔴 [CATEGORY: ${category}] • ${REPO}`,
+        description: `### 📌 Categorized CI Failure Detected\n` +
+                     `The Autonomous Engine detected an issue under category **${category}** on branch \`${BRANCH}\` that could not be automatically resolved.\n\n` +
+                     `**Root Cause:** Inconclusive diagnosis from logs. Manual review needed to establish pattern.`,
+        color: 15158332,
+        fields: [
+          {
+            name: '🚨 Error Output (Noise Stripped)',
+            value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
+            inline: false
+          },
+          {
+            name: '🔗 Action Links',
+            value: [
+              `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+              `• **Branch:** \`${BRANCH}\``,
+              `• **Repository:** [${REPO}](https://github.com/${REPO})`
+            ].join('\n'),
+            inline: false
+          }
+        ]
+      });
+      recordNotificationSent(category, REPO, RUN_ID);
+      markRepairNotified();
+    }
     process.exit(1);
   }
 
   console.log('\n📊 AI Diagnosis:');
   console.log(`   Summary:  ${diagnosis.summary}`);
-  console.log(`   Category: ${diagnosis.category}`);
+  console.log(`   Category: ${diagnosis.category || category}`);
   console.log(`   Fixes:    ${diagnosis.fixInstructions?.length || 0} instructions`);
 
   // Apply fixes
   const fixed = await applyFix(diagnosis);
   if (!fixed) {
-    // If AI cannot safely apply fixes, notify Discord immediately
-    await notifyDiscordEmbed({
-      title: `🔴 [ACTION REQUIRED] • ${REPO} (Run #${RUN_ID})`,
-      description: `### 📌 What Happened\nAI diagnosed root cause: "${diagnosis.summary}", but no safe automated code changes could be applied to \`${BRANCH}\`. Please inspect and create a pattern.\n`,
-      color: 15158332,
-      fields: [
-        {
-          name: '🚨 Error Output (Noise Stripped)',
-          value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
-          inline: false
-        },
-        {
-          name: '🎯 Identified Root Cause',
-          value: diagnosis.summary,
-          inline: false
-        },
-        {
-          name: '🔗 Action Links',
-          value: [
-            `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
-            `• **Branch:** \`${BRANCH}\``,
-            `• **Repository:** [${REPO}](https://github.com/${REPO})`
-          ].join('\n'),
-          inline: false
-        }
-      ]
-    });
+    // If AI cannot safely apply fixes, notify Discord if not deduplicated
+    const shouldSend = await shouldNotifyCategory(category, REPO, RUN_ID);
+    if (shouldSend) {
+      await notifyDiscordEmbed({
+        title: `🔴 [CATEGORY: ${category}] • ${REPO}`,
+        description: `### 📌 Categorized CI Failure Detected\n` +
+                     `AI diagnosed root cause under category **${category}** on branch \`${BRANCH}\`:\n` +
+                     `> **${diagnosis.summary}**\n\n` +
+                     `No safe automated code changes could be applied autonomously. Please inspect and establish a pattern.`,
+        color: 15158332,
+        fields: [
+          {
+            name: '🚨 Error Output (Noise Stripped)',
+            value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
+            inline: false
+          },
+          {
+            name: '🎯 Identified Root Cause',
+            value: diagnosis.summary,
+            inline: false
+          },
+          {
+            name: '🔗 Action Links',
+            value: [
+              `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+              `• **Branch:** \`${BRANCH}\``,
+              `• **Repository:** [${REPO}](https://github.com/${REPO})`
+            ].join('\n'),
+            inline: false
+          }
+        ]
+      });
+      recordNotificationSent(category, REPO, RUN_ID);
+      markRepairNotified();
+    }
     process.exit(1);
   }
 
