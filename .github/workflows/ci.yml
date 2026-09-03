@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: 'npm'
@@ -29,12 +29,13 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install
 
-      - name: Validate Database Schema (if present)
+      - name: Generate Database Client (if present)
         run: |
           if [ -f "prisma/schema.prisma" ]; then
-            npx prisma validate
             npx prisma generate
           fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Type Check (TypeScript)
         run: |

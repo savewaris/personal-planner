@@ -139,10 +139,57 @@ async function runAudit() {
     routes: []
   };
 
+  // ============================
+  // AUTO ROUTE DISCOVERY ENGINE
+  // ============================
+  // 1. Scan Next.js app/pages directory structure
+  const discoveredRoutes = new Set(ROUTES);
+  const routeDirs = ['src/app', 'app', 'src/pages', 'pages'];
+  for (const dir of routeDirs) {
+    const absDir = path.join(process.cwd(), dir);
+    if (!fs.existsSync(absDir)) continue;
+    const walkDir = (base, prefix = '') => {
+      const entries = fs.readdirSync(base, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name.startsWith('_') || entry.name.startsWith('.') || entry.name === 'api' || entry.name === 'node_modules') continue;
+        const fullPath = path.join(base, entry.name);
+        if (entry.isDirectory()) {
+          walkDir(fullPath, `${prefix}/${entry.name}`);
+        } else if (/^page\.(tsx?|jsx?)$/.test(entry.name) || /^(index|page)\.(tsx?|jsx?)$/.test(entry.name)) {
+          const route = prefix || '/';
+          // Strip dynamic segments for testing with placeholder
+          const testRoute = route.replace(/\[\.\.\..*?\]/g, '').replace(/\[.*?\]/g, '1').replace(/\/+/g, '/') || '/';
+          discoveredRoutes.add(testRoute);
+        }
+      }
+    };
+    walkDir(absDir);
+  }
+
+  // 2. Link Crawler: open homepage and collect all internal hrefs
+  const crawlBrowser = await chromium.launch({ headless: true });
   try {
-    for (const route of ROUTES) {
+    const crawlPage = await crawlBrowser.newPage();
+    await crawlPage.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+    const hrefs = await crawlPage.evaluate((base) => {
+      return Array.from(document.querySelectorAll('a[href]'))
+        .map(a => a.getAttribute('href'))
+        .filter(h => h && h.startsWith('/') && !h.startsWith('/api') && !h.startsWith('/_next'));
+    }, TARGET_URL).catch(() => []);
+    hrefs.forEach(h => discoveredRoutes.add(h.split('?')[0].split('#')[0] || '/'));
+    await crawlPage.close();
+  } finally {
+    await crawlBrowser.close();
+  }
+
+  const EFFECTIVE_ROUTES = Array.from(discoveredRoutes).filter(r => r && r.startsWith('/'));
+  console.log(`\n🗺️  [ROUTE DISCOVERY] Auto-discovered ${EFFECTIVE_ROUTES.length} routes to audit: ${EFFECTIVE_ROUTES.join(', ')}\n`);
+
+  try {
+    for (const route of EFFECTIVE_ROUTES) {
       const fullUrl = new URL(route, TARGET_URL).toString();
       console.log(`\n📄 Auditing Route: ${route} (${fullUrl})`);
+
       
       const routeResult = {
         route,
