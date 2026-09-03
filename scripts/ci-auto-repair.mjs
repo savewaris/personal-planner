@@ -686,7 +686,8 @@ async function main() {
       recordNotificationSent(category, REPO, RUN_ID);
       markRepairNotified();
     }
-    process.exit(1);
+    console.log('ℹ️ Inconclusive diagnosis. Exiting cleanly without marking commit as failure.');
+    process.exit(0);
   }
 
   console.log('\n📊 AI Diagnosis:');
@@ -732,7 +733,8 @@ async function main() {
       recordNotificationSent(category, REPO, RUN_ID);
       markRepairNotified();
     }
-    process.exit(1);
+    console.log('ℹ️ Fix was not applicable or already up-to-date. Exiting cleanly without marking commit as failure.');
+    process.exit(0);
   }
 
   // Commit and push
