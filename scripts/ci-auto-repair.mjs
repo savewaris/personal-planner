@@ -61,7 +61,88 @@ async function fetchFailingLogs() {
   }
 }
 
-// ─── Step 2: AI Root-Cause Diagnosis ─────────────────────────────────────────
+// ─── Step 2A: Central Second Brain Error Knowledge Resolution ─────────────
+const CENTRAL_SIGNATURES_URL = 'https://raw.githubusercontent.com/savewaris/agent-second-brain/main/second-brain/Error-Knowledge/error-signatures.json';
+
+async function loadErrorSignatures() {
+  const localCandidates = [
+    path.join(process.cwd(), 'second-brain', 'Error-Knowledge', 'error-signatures.json'),
+    'C:\\agent-second-brain\\second-brain\\Error-Knowledge\\error-signatures.json',
+    path.join(process.cwd(), '..', 'agent-second-brain', 'second-brain', 'Error-Knowledge', 'error-signatures.json')
+  ];
+
+  for (const candidate of localCandidates) {
+    if (existsSync(candidate)) {
+      try {
+        console.log(`🧠 Reading local Second Brain Error Registry from: ${candidate}`);
+        const parsed = JSON.parse(readFileSync(candidate, 'utf8'));
+        if (parsed.signatures) return parsed.signatures;
+      } catch (e) {}
+    }
+  }
+
+  // Cloud fallback: Fetch live from Second Brain GitHub repo for isolated CI runners
+  try {
+    console.log('🌐 Fetching live Error Signatures from GitHub agent-second-brain...');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(CENTRAL_SIGNATURES_URL, { signal: controller.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.signatures) return data.signatures;
+    }
+  } catch (e) {
+    console.warn(`⚠️ Could not reach central Second Brain signatures: ${e.message}`);
+  }
+
+  return [];
+}
+
+async function diagnoseFromSecondBrain(logs) {
+  const signatures = await loadErrorSignatures();
+  if (!signatures || signatures.length === 0) return null;
+
+  for (const sig of signatures) {
+    const isMatch = sig.patterns.some(p => {
+      try {
+        const rx = new RegExp(p, 'i');
+        return rx.test(logs);
+      } catch {
+        return logs.toLowerCase().includes(p.toLowerCase());
+      }
+    });
+
+    if (isMatch) {
+      console.log(`\n🎯 [SECOND BRAIN MATCH] Detected known error signature: "${sig.name}" (${sig.id})`);
+      const fixInstructions = [];
+      if (sig.remediation?.action === 'npm_update') {
+        fixInstructions.push({
+          file: 'package-lock.json',
+          action: 'npm_update',
+          content: ''
+        });
+      } else if (sig.remediation?.action === 'patch' && sig.remediation?.targetFile) {
+        fixInstructions.push({
+          file: sig.remediation.targetFile,
+          action: 'patch',
+          content: sig.remediation.instructions || ''
+        });
+      }
+      return {
+        summary: sig.rootCause,
+        category: sig.category || 'dependencies',
+        source: 'second-brain-registry',
+        id: sig.id,
+        fixInstructions
+      };
+    }
+  }
+
+  return null;
+}
+
+// ─── Step 2B: AI Root-Cause Diagnosis (Fallback) ─────────────────────────────
 async function diagnoseWithAI(logs) {
   const prompt = `You are an expert CI/CD repair engineer. A GitHub Actions CI run has FAILED.
 Analyze the logs below and provide:
@@ -85,8 +166,15 @@ Respond with only the JSON object, no markdown wrapping.`;
   console.log('\n🤖 Asking AI to diagnose root cause...');
   const raw = await queryAiWithFallback(prompt, { temperature: 0.2 });
   
-  // Try to extract JSON from the response
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  let cleaned = (raw || '').trim();
+  cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
+  if (cleaned.includes('```')) {
+    const codeFenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeFenceMatch) cleaned = codeFenceMatch[1].trim();
+  }
+
+  // Extract JSON
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     console.warn('⚠️ AI did not return valid JSON. Raw response:', raw.substring(0, 500));
     return null;
@@ -223,11 +311,20 @@ async function main() {
   const logs = await fetchFailingLogs();
   console.log(`\n📄 Got ${logs.length} chars of failing logs.`);
 
-  // AI Diagnosis
-  const diagnosis = await diagnoseWithAI(logs);
+  // Step 2: First check central Second Brain Error Registry
+  let diagnosis = await diagnoseFromSecondBrain(logs);
+
+  // If no known signature matched, fall back to Multi-Provider AI battery
+  if (!diagnosis) {
+    console.log('\nℹ️ No Second Brain signature match found. Consulting Multi-Provider AI Battery...');
+    diagnosis = await diagnoseWithAI(logs);
+  } else {
+    console.log('\n✨ Matched known issue in Second Brain! Applying deterministic remediation.');
+  }
+
   if (!diagnosis) {
     await notifyDiscord(
-      `⚠️ **CI Auto-Repair** in \`${REPO}\` — AI could not diagnose root cause for run #${RUN_ID}.\n` +
+      `⚠️ **CI Auto-Repair** in \`${REPO}\` — could not diagnose root cause for run #${RUN_ID}.\n` +
       `Manual inspection needed: https://github.com/${REPO}/actions/runs/${RUN_ID}`
     );
     process.exit(1);
