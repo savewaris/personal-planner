@@ -423,63 +423,8 @@ ${isAiPassed ? 'Build satisfies baseline browser stability. Ready for production
   // AI VERDICT FAIL → AUTONOMOUS GITHUB ISSUE AUTO-CREATOR
   // ================================================================
   if (!isAiPassed) {
-    const repoName = process.env.GITHUB_REPOSITORY || '';
-    const issueTitle = `fix(visual-audit): AI Vision Quality Gate FAIL detected on ${new Date().toISOString().split('T')[0]}`;
-
-    if (repoName) {
-      try {
-        const { execSync } = await import('child_process');
-
-        // Check if an issue already exists for this audit
-        const existingJson = execSync(
-          `gh issue list --repo ${repoName} --state open --search "fix(visual-audit): AI Vision Quality Gate FAIL" --json number`,
-          { encoding: 'utf-8' }
-        );
-        const existing = JSON.parse(existingJson || '[]');
-
-        if (existing.length === 0) {
-          const issueBody = `## 🤖 Autonomous Visual Audit — AI Verdict: FAIL\n\n` +
-            `The Headless Browser & AI Vision Quality Gate detected defects on **${new Date().toISOString()}**.\n\n` +
-            `### 📋 Diagnosis Report\n\`\`\`\n${diagnosisText.substring(0, 2000)}\n\`\`\`\n\n` +
-            `### 🛠️ Required Actions\n` +
-            `1. Review the screenshots in \`.agents/audit-screenshots/\`\n` +
-            `2. Apply all recommended fixes from the diagnosis above\n` +
-            `3. Ensure Playwright tests pass on all ${summaryData.routes?.length || 'all'} discovered routes\n\n` +
-            `*Auto-created by Autonomous Vision Sentry. The Issue Solver will attempt to fix this automatically.*`;
-
-          const tempFile = `/tmp/vision-fail-issue-${Date.now()}.md`;
-          const { writeFileSync } = await import('fs');
-          writeFileSync(tempFile, issueBody, 'utf8');
-
-          let issueUrl = '';
-          try {
-            issueUrl = execSync(
-              `gh issue create --repo ${repoName} --title "${issueTitle.replace(/"/g, '\\"')}" --body-file "${tempFile}" --label "bug,ai-audit"`,
-              { encoding: 'utf-8' }
-            ).trim();
-          } catch {
-            try {
-              issueUrl = execSync(
-                `gh issue create --repo ${repoName} --title "${issueTitle.replace(/"/g, '\\"')}" --body-file "${tempFile}" --label "bug"`,
-                { encoding: 'utf-8' }
-              ).trim();
-            } catch (fallbackIssueErr) {
-              console.warn(`  ⚠️ Failed to create issue with fallback label: ${fallbackIssueErr.message}`);
-            }
-          }
-
-          if (issueUrl) {
-            console.log(`\n🎫 [AUTO-ISSUE CREATED] AI Verdict FAIL → Issue opened: ${issueUrl}`);
-            console.log(`   The Autonomous Issue Solver will pick this up and attempt to fix it automatically.\n`);
-          }
-        } else {
-          console.log(`\nℹ️ [AUTO-ISSUE SKIPPED] Active visual audit issue already exists: #${existing[0].number}\n`);
-        }
-      } catch (issueErr) {
-        console.warn(`⚠️ [AUTO-ISSUE WARN] Could not auto-create issue: ${issueErr.message}`);
-      }
-    }
-
+    console.log(`\nℹ️ [VISUAL AUDIT VERDICT: FAIL] Report preserved in .agents/reports/ai-vision-diagnosis.md.`);
+    console.log(`   Automated issue creation suppressed to prevent issue backlog pollution.`);
     console.error('\n❌ [QUALITY GATE FAILED] Deployment rejected by Autonomous Visual Audit.');
     console.error('👉 Visitors will not see this version. Fix reported errors and try again.\n');
     process.exit(1);

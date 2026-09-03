@@ -109,7 +109,7 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: 📝 Open GitHub Issue & Notify Discord if Repair Couldn't Fix It
+      - name: 📢 Notify Discord if Unresolved Failure Detected
         if: failure()
         uses: actions/github-script@v7
         env:
@@ -129,47 +129,9 @@ jobs:
               }
             } catch {}
 
-            const existing = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'ci-auto-repair-failed'
-            });
-
-            const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
-            const recentIssue = existing.data.find(i => new Date(i.created_at) > thirtyMinAgo);
-
-            let issueUrl = '';
-            if (!recentIssue) {
-              const res = await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: `fix(ci): Auto-Repair could not fix failing run #${runId}`,
-                body: `## 🤖 CI Auto-Repair Could Not Fix This Automatically\n\n` +
-                  `The autonomous CI repair engine ran but **could not determine a safe fix**.\n\n` +
-                  `- **Failed Run:** [#${runId}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId})\n` +
-                  `- **Branch:** \`${branch}\`\n\n` +
-                  `### 👉 Action Required\n` +
-                  `Please review the logs from the failing run and apply a manual fix.\n\n` +
-                  `*Auto-created by CI Auto-Repair Engine. The Autonomous Issue Solver will attempt to resolve this.*`,
-                labels: ['bug', 'ci-auto-repair-failed']
-              });
-              issueUrl = res.data.html_url;
-            } else {
-              issueUrl = recentIssue.html_url;
-              try {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: recentIssue.number,
-                  body: `ℹ️ Another failing run occurred on branch \`${branch}\`: [#${runId}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}).`
-                });
-              } catch {}
-            }
-
-            // Fallback Discord notification: only send if ci-auto-repair.mjs crashed before notifying and no recent issue exists
+            // Send Discord notification without creating spam GitHub issues
             const webhook = process.env.DISCORD_WEBHOOK_URL;
-            if (webhook && !alreadyNotified && !recentIssue) {
+            if (webhook && !alreadyNotified) {
               try {
                 await fetch(webhook, {
                   method: 'POST',
@@ -178,15 +140,14 @@ jobs:
                     username: '🔧 CI Auto-Repair Bot',
                     avatar_url: 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png',
                     embeds: [{
-                      title: `🔴 [CATEGORY: CI_FAILURE] • ${context.repo.repo}`,
-                      description: `### 📌 Unresolved CI Failure Detected\nCI Auto-Repair detected a failure that **could not be resolved autonomously** on branch \`${branch}\`.\n`,
+                      title: `🔴 [UNRESOLVED CI FAILURE] • ${context.repo.repo}`,
+                      description: `CI Auto-Repair detected an unresolvable failure on branch \`${branch}\`.\n`,
                       color: 15158332,
                       fields: [
                         {
                           name: '🔗 Action Links',
                           value: `• **Failed Run:** [View GitHub Actions #${runId}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId})\n` +
                                  `• **Branch:** \`${branch}\`\n` +
-                                 (issueUrl ? `• **GitHub Issue:** [View Issue](${issueUrl})\n` : '') +
                                  `• **Repository:** [${context.repo.owner}/${context.repo.repo}](https://github.com/${context.repo.owner}/${context.repo.repo})`,
                           inline: false
                         }
