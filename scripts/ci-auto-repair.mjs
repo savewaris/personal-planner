@@ -570,7 +570,8 @@ Return ONLY the complete updated file content wrapped in a single markdown code 
 Do NOT provide explanations, introductory text, or conversational markdown. Output only the codeblock.`;
 
   try {
-    const rawAiCode = await queryAi(cookPrompt);
+    const queryAi = await getAiDispatcher();
+    const rawAiCode = await queryAi(cookPrompt, { temperature: 0.1 });
     if (!rawAiCode) return false;
 
     // Extract code block
