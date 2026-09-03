@@ -423,10 +423,11 @@ async function main() {
 
   const errorSnippet = extractSmartErrorSnippet(logs);
 
+  // If AI/Second Brain cannot diagnose the error, notify Discord immediately
   if (!diagnosis) {
     await notifyDiscordEmbed({
-      title: `🔴 [ACTION REQUIRED] • ${REPO}`,
-      description: `### 📌 What Happened\nAuto-Repair Engine detected a pipeline failure on \`${BRANCH}\` that could not be safely resolved automatically.`,
+      title: `🔴 [ACTION REQUIRED] • ${REPO} (Run #${RUN_ID})`,
+      description: `### 📌 What Happened\nAuto-Repair Engine could not diagnose or automatically resolve the failure on branch \`${BRANCH}\`. Human intervention needed so you can fix it and establish a pattern.\n`,
       color: 15158332,
       fields: [
         {
@@ -435,8 +436,12 @@ async function main() {
           inline: false
         },
         {
-          name: '🔗 Inspection Link',
-          value: `👉 [Inspect Run #${RUN_ID} on GitHub](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+          name: '🔗 Action Links',
+          value: [
+            `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+            `• **Branch:** \`${BRANCH}\``,
+            `• **Repository:** [${REPO}](https://github.com/${REPO})`
+          ].join('\n'),
           inline: false
         }
       ]
@@ -449,42 +454,13 @@ async function main() {
   console.log(`   Category: ${diagnosis.category}`);
   console.log(`   Fixes:    ${diagnosis.fixInstructions?.length || 0} instructions`);
 
-  // Executive Human-Friendly Card: Auto-Repair Started
-  await notifyDiscordEmbed({
-    title: `🟡 [AUTO-REPAIRING] • ${REPO}`,
-    description: `### 📌 What Happened\n${diagnosis.summary || 'A pipeline or build failure was detected and is being resolved.'}\n`,
-    color: 15844367, // Gold / Orange
-    fields: [
-      {
-        name: '🚨 Error Output (Noise Stripped)',
-        value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
-        inline: false
-      },
-      {
-        name: '🛠️ Fix Being Applied Right Now',
-        value: diagnosis.fixInstructions?.length 
-          ? diagnosis.fixInstructions.map(f => `• **${f.action}**: \`${f.file}\``).join('\n') 
-          : '• Applying registered Second Brain remediation commands...',
-        inline: false
-      },
-      {
-        name: '🔗 Traceability & Links',
-        value: [
-          `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
-          `• **Branch:** \`${BRANCH}\``,
-          diagnosis.id ? `• **Knowledge Signature:** \`${diagnosis.id}\`` : '• **Diagnosis Engine:** `Dynamic AI Battery`'
-        ].join('\n'),
-        inline: false
-      }
-    ]
-  });
-
   // Apply fixes
   const fixed = await applyFix(diagnosis);
   if (!fixed) {
+    // If AI cannot safely apply fixes, notify Discord immediately
     await notifyDiscordEmbed({
-      title: `🔴 [ACTION REQUIRED] • ${REPO}`,
-      description: `### 📌 What Happened\nAutomated repair was attempted for: "${diagnosis.summary}", but no safe code patches could be automatically validated.`,
+      title: `🔴 [ACTION REQUIRED] • ${REPO} (Run #${RUN_ID})`,
+      description: `### 📌 What Happened\nAI diagnosed root cause: "${diagnosis.summary}", but no safe automated code changes could be applied to \`${BRANCH}\`. Please inspect and create a pattern.\n`,
       color: 15158332,
       fields: [
         {
@@ -493,8 +469,17 @@ async function main() {
           inline: false
         },
         {
-          name: '🔗 Inspection Link',
-          value: `👉 [Inspect Run #${RUN_ID} on GitHub](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+          name: '🎯 Identified Root Cause',
+          value: diagnosis.summary,
+          inline: false
+        },
+        {
+          name: '🔗 Action Links',
+          value: [
+            `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+            `• **Branch:** \`${BRANCH}\``,
+            `• **Repository:** [${REPO}](https://github.com/${REPO})`
+          ].join('\n'),
           inline: false
         }
       ]
@@ -505,39 +490,28 @@ async function main() {
   // Commit and push
   const pushed = await commitAndPush(diagnosis);
   if (pushed) {
-    await notifyDiscordEmbed({
-      title: `🟢 [FIXED & REDEPLOYED] • ${REPO}`,
-      description: `### 📌 Resolution Summary\n${diagnosis.summary}\n\nThe autonomous fix was committed and pushed with \`--force-with-lease\` to \`${BRANCH}\`. A fresh CI workflow and platform deployment has been triggered.`,
-      color: 3066993, // Green
-      fields: [
-        {
-          name: '🚨 Original Error Output (Traceability)',
-          value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
-          inline: false
-        },
-        {
-          name: '🛠️ Exact Changes Made',
-          value: diagnosis.fixInstructions?.length
-            ? diagnosis.fixInstructions.map(f => `• Modified \`${f.file}\` (${f.action})`).join('\n')
-            : '• Synchronized package-lock.json and workflow definitions',
-          inline: false
-        },
-        {
-          name: '🔗 Traceability & Links',
-          value: [
-            `• **Workflow Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
-            `• **Branch:** \`${BRANCH}\``,
-            diagnosis.id ? `• **Knowledge Signature:** \`${diagnosis.id}\`` : null
-          ].filter(Boolean).join('\n'),
-          inline: false
-        }
-      ]
-    });
+    console.log(`✅ [AUTO-REPAIR] Autonomous fix committed and pushed to \`${BRANCH}\`. (Zero notification sent to keep Discord quiet).`);
   }
 }
 
 main().catch(async (err) => {
   console.error('❌ CI Auto-Repair engine crashed:', err);
-  await notifyDiscord(`❌ **CI Auto-Repair crashed** in \`${REPO}\`: ${err.message}`);
+  await notifyDiscordEmbed({
+    title: `🔴 [ACTION REQUIRED] • ${REPO} (Auto-Repair Crash)`,
+    description: `### 📌 What Happened\nThe Auto-Repair Engine encountered an unhandled exception: ${err.message}`,
+    color: 15158332,
+    fields: [
+      {
+        name: '🚨 Crash Details',
+        value: `\`\`\`text\n${err.stack ? err.stack.substring(0, 800) : err.message}\n\`\`\``,
+        inline: false
+      },
+      {
+        name: '🔗 Run Reference',
+        value: `[View Run #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+        inline: false
+      }
+    ]
+  });
   process.exit(1);
 });
