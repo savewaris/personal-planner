@@ -69,7 +69,63 @@ const BRANCH = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'ma
 const MAX_REPAIR_ATTEMPTS = 3;
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || '';
 
-// ─── Utility: Discord notification ────────────────────────────────────────────
+// ─── Utility: Smart Error Log Isolator ─────────────────────────────────────────
+function extractSmartErrorSnippet(rawLog) {
+  if (!rawLog) return 'No log content available.';
+  // Strip ANSI color codes
+  const clean = rawLog.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+  const lines = clean.split('\n');
+
+  // Search for error anchors
+  const anchorRegex = /(?:npm error|error:|fatal:|FAIL|ERR_|ERESOLVE|status: ["']?NOT_FOUND|exit code 1|cannot find module)/i;
+  let anchorIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (anchorRegex.test(lines[i])) {
+      anchorIdx = i;
+      break;
+    }
+  }
+
+  let selectedLines = [];
+  if (anchorIdx !== -1) {
+    const start = Math.max(0, anchorIdx - 4);
+    const end = Math.min(lines.length, anchorIdx + 12);
+    selectedLines = lines.slice(start, end);
+  } else {
+    selectedLines = lines.slice(-12);
+  }
+
+  const snippet = selectedLines.join('\n').trim();
+  return snippet.length > 850 ? snippet.substring(0, 850) + '\n...[truncated]' : snippet;
+}
+
+// ─── Utility: Discord Comprehensive Traceability Embed ─────────────────────────
+async function notifyDiscordEmbed({ title, description, color, fields, url }) {
+  if (!DISCORD_WEBHOOK) return;
+  try {
+    const payload = {
+      username: '🔧 CI Auto-Repair Bot',
+      avatar_url: 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png',
+      embeds: [{
+        title: title || '🔧 CI Auto-Repair Notification',
+        description: description || '',
+        url: url || (RUN_ID ? `https://github.com/${REPO}/actions/runs/${RUN_ID}` : undefined),
+        color: color || 15158332,
+        fields: fields || [],
+        footer: { text: `Agent Second Brain • Traceability Engine | Repo: ${REPO}` },
+        timestamp: new Date().toISOString()
+      }]
+    };
+    await fetch(DISCORD_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.warn(`⚠️ Discord notification failed: ${err.message}`);
+  }
+}
+
 async function notifyDiscord(message) {
   if (!DISCORD_WEBHOOK) return;
   try {
@@ -365,11 +421,26 @@ async function main() {
     console.log('\n✨ Matched known issue in Second Brain! Applying deterministic remediation.');
   }
 
+  const errorSnippet = extractSmartErrorSnippet(logs);
+
   if (!diagnosis) {
-    await notifyDiscord(
-      `⚠️ **CI Auto-Repair** in \`${REPO}\` — could not diagnose root cause for run #${RUN_ID}.\n` +
-      `Manual inspection needed: https://github.com/${REPO}/actions/runs/${RUN_ID}`
-    );
+    await notifyDiscordEmbed({
+      title: `⚠️ [MANUAL INSPECTION NEEDED] ${REPO} (Run #${RUN_ID})`,
+      description: `CI Auto-Repair detected a pipeline failure but could not resolve a safe automated fix.`,
+      color: 15158332,
+      fields: [
+        {
+          name: '🚨 Raw Error Snippet',
+          value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
+          inline: false
+        },
+        {
+          name: '👉 Action Required',
+          value: `Manual inspection needed: https://github.com/${REPO}/actions/runs/${RUN_ID}`,
+          inline: false
+        }
+      ]
+    });
     process.exit(1);
   }
 
@@ -378,33 +449,95 @@ async function main() {
   console.log(`   Category: ${diagnosis.category}`);
   console.log(`   Fixes:    ${diagnosis.fixInstructions?.length || 0} instructions`);
 
-  await notifyDiscord(
-    `🔧 **CI Auto-Repair Started** in \`${REPO}\`\n` +
-    `📋 **Root Cause:** ${diagnosis.summary}\n` +
-    `🗂️ **Category:** ${diagnosis.category}\n` +
-    `🛠️ Applying ${diagnosis.fixInstructions?.length || 0} fixes automatically...`
-  );
+  // Comprehensive Traceability Card: Auto-Repair Started
+  await notifyDiscordEmbed({
+    title: `🔧 [AUTO-REPAIR IN PROGRESS] ${REPO} (Run #${RUN_ID})`,
+    description: `Auto-Repair Engine detected an error and is actively applying fixes to \`${BRANCH}\`.`,
+    color: 15844367, // Gold/Orange
+    fields: [
+      {
+        name: '🚨 Raw Error Snippet',
+        value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
+        inline: false
+      },
+      {
+        name: '🎯 Root Cause',
+        value: diagnosis.summary || 'Unspecified failure',
+        inline: false
+      },
+      {
+        name: '🛠️ Fix Being Applied Right Now',
+        value: diagnosis.fixInstructions?.length 
+          ? diagnosis.fixInstructions.map(f => `• **${f.action}**: \`${f.file}\``).join('\n') 
+          : 'Applying registered remediation commands...',
+        inline: true
+      },
+      {
+        name: '🏷️ Second Brain Signature',
+        value: diagnosis.id ? `\`${diagnosis.id}\`` : '*Dynamic AI Analysis*',
+        inline: true
+      }
+    ]
+  });
 
   // Apply fixes
   const fixed = await applyFix(diagnosis);
   if (!fixed) {
-    await notifyDiscord(
-      `⚠️ **CI Auto-Repair** in \`${REPO}\` — no safe fixes could be applied.\n` +
-      `Category: \`${diagnosis.category}\`\n` +
-      `This may require manual intervention: https://github.com/${REPO}/actions/runs/${RUN_ID}`
-    );
+    await notifyDiscordEmbed({
+      title: `⚠️ [AUTO-REPAIR BLOCKED] ${REPO} (Run #${RUN_ID})`,
+      description: `Automated repair was attempted but no safe changes could be applied.`,
+      color: 15158332,
+      fields: [
+        {
+          name: '🚨 Raw Error Snippet',
+          value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
+          inline: false
+        },
+        {
+          name: '🎯 Attempted Root Cause',
+          value: diagnosis.summary,
+          inline: false
+        },
+        {
+          name: '👉 Action Required',
+          value: `Manual inspection needed: https://github.com/${REPO}/actions/runs/${RUN_ID}`,
+          inline: false
+        }
+      ]
+    });
     process.exit(1);
   }
 
   // Commit and push
   const pushed = await commitAndPush(diagnosis);
   if (pushed) {
-    await notifyDiscord(
-      `✅ **CI Auto-Repair Complete** in \`${REPO}\`\n` +
-      `🩹 Fixed: ${diagnosis.summary}\n` +
-      `🔄 Pushed to \`${BRANCH}\` — CI re-run triggered automatically.\n` +
-      `If CI still fails, another repair cycle will begin (up to ${MAX_REPAIR_ATTEMPTS} attempts).`
-    );
+    await notifyDiscordEmbed({
+      title: `✅ [AUTO-REPAIRED & PUSHED] ${REPO} (Run #${RUN_ID})`,
+      description: `Autonomous fix committed to \`${BRANCH}\`. A fresh CI workflow has been re-triggered.`,
+      color: 3066993, // Green
+      fields: [
+        {
+          name: '🩹 Error That Was Fixed',
+          value: diagnosis.summary,
+          inline: false
+        },
+        {
+          name: '🚨 Original Error Snippet (For Future Traceability)',
+          value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
+          inline: false
+        },
+        {
+          name: '🏷️ Second Brain Signature',
+          value: diagnosis.id ? `\`${diagnosis.id}\`` : '*Dynamic AI Fix*',
+          inline: true
+        },
+        {
+          name: '🔄 Branch & Re-Run',
+          value: `Pushed to \`${BRANCH}\`. CI re-run triggered automatically (Safety cap: ${MAX_REPAIR_ATTEMPTS} attempts).`,
+          inline: true
+        }
+      ]
+    });
   }
 }
 
