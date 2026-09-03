@@ -68,7 +68,7 @@ function incrementUsage(provider) {
   fs.writeFileSync(USAGE_TRACKER_PATH, JSON.stringify(usage, null, 2), 'utf8');
 }
 
-async function callGoogle(model, prompt, options = {}) {
+async function callGoogle(model, prompt, options = {}, retryDepth = 0) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY missing');
 
@@ -86,7 +86,17 @@ async function callGoogle(model, prompt, options = {}) {
   });
 
   if (!res.ok) {
-    throw new Error(`Google API error ${res.status}: ${await res.text()}`);
+    const errText = await res.text();
+    // Edge case self-healing: Google model deprecated (404) with recommended model replacement
+    if (res.status === 404 && retryDepth < 2 && errText.includes('models/')) {
+      const recMatch = errText.match(/models\/([a-zA-Z0-9.\-_]+)/);
+      if (recMatch && recMatch[1] && recMatch[1] !== model) {
+        const recommendedModel = recMatch[1];
+        console.warn(`🔄 [MODEL AUTO-MIGRATION] Model '${model}' retired. Auto-rerouting to Google recommended model: '${recommendedModel}'...`);
+        return await callGoogle(recommendedModel, prompt, options, retryDepth + 1);
+      }
+    }
+    throw new Error(`Google API error ${res.status}: ${errText}`);
   }
 
   const data = await res.json();
@@ -134,13 +144,16 @@ async function callOpenAiCompatible(baseUrl, apiKey, model, prompt, options = {}
 
 export async function queryAiWithFallback(prompt, options = {}) {
   // Provider Hierarchy for Guaranteed 100% Free Operation:
-  // 1. Google Gemini Flash (6,000+ free req/day)
+  // 1. Google Gemini Active Models (gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-flash)
   // 2. Groq Cloud (14,400 free req/day at 800 tok/s)
   // 3. OpenRouter Free Endpoints (100% free models)
   // 4. Cerebras Free Tier (Hard capped at 200 req/day)
   const candidateChain = [
     { provider: 'google', model: 'gemini-2.5-flash' },
-    { provider: 'google', model: 'gemini-2.5-flash-lite' },
+    { provider: 'google', model: 'gemini-2.0-flash' },
+    { provider: 'google', model: 'gemini-1.5-flash' },
+    { provider: 'google', model: 'gemini-2.0-flash-lite' },
+    { provider: 'google', model: 'gemini-3.5-flash-lite' },
     { provider: 'groq', model: 'openai/gpt-oss-120b' },
     { provider: 'groq', model: 'qwen/qwen3.8-27b' },
     { provider: 'openrouter', model: 'nvidia/nemotron-3.5-lightning:free' },

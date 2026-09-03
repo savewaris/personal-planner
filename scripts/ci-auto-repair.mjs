@@ -19,7 +19,49 @@
 import { execSync, spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
-import { queryAiWithFallback } from './ai-provider-battery.mjs';
+// Dynamic AI Dispatcher loader with cloud self-healing fallback
+async function getAiDispatcher() {
+  try {
+    const mod = await import('./ai-provider-battery.mjs');
+    if (mod && mod.queryAiWithFallback) return mod.queryAiWithFallback;
+  } catch (err) {
+    console.warn(`⚠️ Local ai-provider-battery.mjs load failed (${err.message}). Attempting self-healing fetch...`);
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/savewaris/agent-second-brain/main/scripts/ai-provider-battery.mjs');
+      if (res.ok) {
+        const code = await res.text();
+        const targetPath = path.join(process.cwd(), 'scripts', 'ai-provider-battery.mjs');
+        if (!existsSync(path.dirname(targetPath))) mkdirSync(path.dirname(targetPath), { recursive: true });
+        writeFileSync(targetPath, code, 'utf8');
+        const mod = await import('./ai-provider-battery.mjs');
+        if (mod && mod.queryAiWithFallback) return mod.queryAiWithFallback;
+      }
+    } catch (fetchErr) {
+      console.warn(`⚠️ Could not auto-restore ai-provider-battery.mjs: ${fetchErr.message}`);
+    }
+  }
+
+  // Inlined fallback to protect against module omission
+  return async function inlineGeminiFallback(prompt) {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) throw new Error('No AI provider available and GEMINI_API_KEY is missing');
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    for (const m of models) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        if (res.ok) {
+          const d = await res.json();
+          return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        }
+      } catch {}
+    }
+    throw new Error('All inlined AI model attempts failed');
+  };
+}
 
 const REPO = process.env.GITHUB_REPOSITORY || '';
 const RUN_ID = process.argv[2] || process.env.FAILED_RUN_ID || '';
@@ -164,7 +206,8 @@ ${logs}
 Respond with only the JSON object, no markdown wrapping.`;
 
   console.log('\n🤖 Asking AI to diagnose root cause...');
-  const raw = await queryAiWithFallback(prompt, { temperature: 0.2 });
+  const queryAi = await getAiDispatcher();
+  const raw = await queryAi(prompt, { temperature: 0.2 });
   
   let cleaned = (raw || '').trim();
   cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
