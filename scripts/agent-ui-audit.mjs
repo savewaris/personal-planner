@@ -156,11 +156,16 @@ async function runAudit() {
       for (const vp of VIEWPORTS) {
         console.log(`  📱 Testing Viewport: ${vp.name} (${vp.width}x${vp.height})`);
         
-        const context = await browser.newContext({
+        const authPath = path.join(process.cwd(), '.agents', 'auth', 'storage-state.json');
+        const contextOpts = {
           viewport: { width: vp.width, height: vp.height },
           isMobile: vp.isMobile,
           hasTouch: vp.isMobile
-        });
+        };
+        if (fs.existsSync(authPath)) {
+          contextOpts.storageState = authPath;
+        }
+        const context = await browser.newContext(contextOpts);
 
         const page = await context.newPage();
         
@@ -191,6 +196,23 @@ async function runAudit() {
           await page.goto(fullUrl, { waitUntil: 'networkidle', timeout: 15000 });
         } catch (e) {
           console.warn(`    ⚠️ Page load warning: ${e.message}`);
+        }
+
+        // Check if Vercel Platform Authentication blocked the preview
+        const isVercelBlocked = await page.evaluate(() => {
+          return document.body?.innerText?.includes('Log in to Vercel') ||
+                 window.location.href.includes('vercel.com/login') ||
+                 document.title.includes('Log in to Vercel');
+        });
+
+        if (isVercelBlocked) {
+          console.warn(`    ⚠️ Vercel Platform Authentication detected on ${fullUrl}.`);
+          console.warn(`    🔄 Falling back to local server (http://localhost:3000${route})...`);
+          try {
+            await page.goto('http://localhost:3000' + route, { waitUntil: 'networkidle', timeout: 15000 });
+          } catch (fallbackErr) {
+            console.warn(`    ⚠️ Fallback navigation warning: ${fallbackErr.message}`);
+          }
         }
 
         // Layout sanity checks

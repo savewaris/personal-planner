@@ -35,14 +35,22 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install
 
-      - name: Resolve Issue Number
+      - name: Resolve Issue Metadata
         id: issue-meta
         run: |
           if [ -n "${{ github.event.inputs.issue_number }}" ]; then
             echo "number=${{ github.event.inputs.issue_number }}" >> $GITHUB_OUTPUT
+            echo "title=Manual Execution #${{ github.event.inputs.issue_number }}" >> $GITHUB_OUTPUT
           else
             echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            echo "title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Discord Notification: Task Started
+        run: |
+          node scripts/agent-progress-notifier.mjs start --repo "$GITHUB_REPOSITORY" --task "Issue #${{ steps.issue-meta.outputs.number }}: ${{ steps.issue-meta.outputs.title }}" || true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
       - name: Initialize Agent Workspace & Branch
         run: |
@@ -64,6 +72,12 @@ jobs:
               body: '🤖 **Autonomous AI Coding Agent has picked up this issue.**\n\n- Workspace initialized from `config/model-registry.json`\n- Feature branch created\n- Running self-verification & browser quality gates...\n\nA Pull Request will be opened automatically upon verified completion.'
             });
 
+      - name: Discord Notification: Verification In Progress
+        run: |
+          node scripts/agent-progress-notifier.mjs update --step "Running Type Checks & Build Verification" --percent 40 || true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
       - name: Run Self-Verification & UI Audits
         run: |
           # 1. Type check if present
@@ -78,7 +92,14 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CI: "true"
 
+      - name: Discord Notification: Browser Quality Gate
+        run: |
+          node scripts/agent-progress-notifier.mjs update --step "Running Playwright Browser & Gemini Vision Gate" --percent 75 || true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
       - name: Commit & Create Pull Request
+        id: create-pr
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -94,13 +115,30 @@ jobs:
             git push origin "$BRANCH_NAME" --force
             
             # Create Pull Request
-            gh pr create \
+            PR_URL=$(gh pr create \
               --title "feat(issue-$ISSUE_NUM): autonomous implementation of #$ISSUE_NUM" \
               --body "Automated implementation for issue #$ISSUE_NUM.\n\nCloses #$ISSUE_NUM\n\nVerified by Autonomous Quality Gate." \
               --base main \
-              --head "$BRANCH_NAME" || echo "PR already exists"
+              --head "$BRANCH_NAME" || gh pr view --json url -q .url)
+            
+            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
           else
             echo "ℹ️ No code changes detected to commit."
+            echo "pr_url=" >> $GITHUB_OUTPUT
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Discord Notification: Task Completed
+        if: success()
+        run: |
+          node scripts/agent-progress-notifier.mjs complete --pr "${{ steps.create-pr.outputs.pr_url }}" || true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Discord Notification: Task Failed
+        if: failure()
+        run: |
+          node scripts/agent-progress-notifier.mjs fail --error "Workflow execution encountered an error. Check GitHub Actions logs." || true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

@@ -281,7 +281,7 @@ Format your response in GitHub Flavored Markdown adhering strictly to this struc
     }
   ];
 
-  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
+  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-3.7-flash'];
   let lastError = null;
 
   for (const model of models) {
@@ -313,7 +313,14 @@ Format your response in GitHub Flavored Markdown adhering strictly to this struc
     }
   }
 
-  throw lastError;
+  // Fallback to 24/7 Free AI Battery (Groq / OpenRouter) if visual endpoints have temporary high-demand
+  console.log('🔄 Multimodal visual endpoints busy. Falling back to 24/7 AI Battery for text/DOM diagnosis...');
+  try {
+    const { queryAiWithFallback } = await import('./ai-provider-battery.mjs');
+    return await queryAiWithFallback(promptText, { tier: 'balanced' });
+  } catch (batteryErr) {
+    throw lastError || batteryErr;
+  }
 }
 
 async function runVisionAudit() {

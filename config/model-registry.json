@@ -1,66 +1,81 @@
 {
-  "": "http://json-schema.org/draft-07/schema#",
-  "version": "1.0.0",
-  "last_audited": "2026-09-03T08:22:13.037Z",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "2.0.0",
+  "last_audited": "2026-09-03T16:34:00Z",
+  "description": "24/7 Multi-Provider Free-Tier AI Model Battery for Autonomous Agents",
   "tiers": {
     "fast": {
-      "name": "Fast / Leaf Verification",
-      "model": "gemini-2.5-flash-lite",
+      "name": "Fast / Leaf Verification Tier",
+      "primary": { "provider": "google", "model": "gemini-2.5-flash-lite" },
       "fallbacks": [
-        "gemini-3.1-flash-lite",
-        "gemini-flash-lite-latest"
+        { "provider": "google", "model": "gemini-3.1-flash-lite" },
+        { "provider": "groq", "model": "llama-3.1-8b-instant" },
+        { "provider": "cerebras", "model": "llama3.1-8b" },
+        { "provider": "openrouter", "model": "meta-llama/llama-3.1-8b-instruct:free" }
       ],
-      "provider": "google",
-      "context_window": 1000000,
-      "max_output_tokens": 8192,
-      "supports_vision": true,
       "description": "Ultra-fast, deterministic scans, DOM inspection, a11y checks, and lightweight file refactoring."
     },
     "balanced": {
-      "name": "Flagship Workhorse / Balanced",
-      "model": "gemini-2.5-flash",
+      "name": "Flagship Workhorse / Balanced Tier",
+      "primary": { "provider": "google", "model": "gemini-2.5-flash" },
       "fallbacks": [
-        "gemini-flash-latest",
-        "gemini-2.5-flash-lite",
-        "gemini-3.7-flash"
+        { "provider": "google", "model": "gemini-flash-latest" },
+        { "provider": "google", "model": "gemini-3.7-flash" },
+        { "provider": "groq", "model": "llama-3.3-70b-versatile" },
+        { "provider": "cerebras", "model": "llama3.3-70b" },
+        { "provider": "openrouter", "model": "meta-llama/llama-3.3-70b-instruct:free" }
       ],
-      "provider": "google",
-      "context_window": 1000000,
-      "max_output_tokens": 8192,
-      "supports_vision": true,
       "description": "Daily engineering workhorse for full-stack code implementation, UI/UX components, CSS, and CI/CD."
     },
-    "pro": {
-      "name": "Deep Reasoning / Architecture",
-      "model": "gemini-2.5-pro",
+    "reasoning": {
+      "name": "Deep Reasoning / Architecture Tier",
+      "primary": { "provider": "google", "model": "gemini-2.5-pro" },
       "fallbacks": [
-        "gemini-3.1-pro-preview",
-        "gemini-pro-latest",
-        "gemini-2.5-flash"
+        { "provider": "groq", "model": "deepseek-r1-distill-llama-70b" },
+        { "provider": "openrouter", "model": "deepseek/deepseek-r1:free" },
+        { "provider": "google", "model": "gemini-3.1-pro-preview" },
+        { "provider": "google", "model": "gemini-pro-latest" }
       ],
-      "provider": "google",
-      "context_window": 2000000,
-      "max_output_tokens": 65536,
-      "supports_vision": true,
-      "description": "High-complexity reasoning, database relational schemas, security boundaries, and milestone planning."
+      "description": "Complex system architecture, database relational migrations, security auditing, and milestone planning."
     },
     "vision": {
-      "name": "Multimodal Visual Sentry",
-      "model": "gemini-2.5-flash",
+      "name": "Multimodal Visual Sentry Tier",
+      "primary": { "provider": "google", "model": "gemini-2.5-flash" },
       "fallbacks": [
-        "gemini-flash-latest",
-        "gemini-2.5-flash-lite",
-        "gemini-3.7-flash"
+        { "provider": "google", "model": "gemini-flash-latest" },
+        { "provider": "google", "model": "gemini-2.5-flash-lite" },
+        { "provider": "google", "model": "gemini-3.7-flash" }
       ],
-      "provider": "google",
-      "context_window": 1000000,
-      "max_output_tokens": 8192,
-      "supports_vision": true,
       "description": "Multimodal visual inspection, multi-viewport layout audits, and pixel fidelity analysis."
     }
   },
-  "deprecated_models": [
-    "gemini-1.5-flash",
-    "gemini-1.5-pro"
-  ]
+  "free_tier_providers": {
+    "google": {
+      "name": "Google AI Studio",
+      "env_key": "GEMINI_API_KEY",
+      "daily_quota": "6,000+ requests/day (1,500/model)",
+      "status": "ACTIVE"
+    },
+    "groq": {
+      "name": "Groq Cloud",
+      "env_key": "GROQ_API_KEY",
+      "daily_quota": "14,400 requests/day at 800 tokens/sec",
+      "signup_url": "https://console.groq.com",
+      "status": "MODULAR"
+    },
+    "openrouter": {
+      "name": "OpenRouter Free Models",
+      "env_key": "OPENROUTER_API_KEY",
+      "daily_quota": "Free tier endpoints (:free)",
+      "signup_url": "https://openrouter.ai",
+      "status": "MODULAR"
+    },
+    "cerebras": {
+      "name": "Cerebras Inference",
+      "env_key": "CEREBRAS_API_KEY",
+      "daily_quota": "Free tier at 2,000 tokens/sec",
+      "signup_url": "https://cloud.cerebras.ai",
+      "status": "MODULAR"
+    }
+  }
 }
