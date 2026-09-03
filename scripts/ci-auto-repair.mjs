@@ -240,6 +240,8 @@ async function diagnoseFromSecondBrain(logs) {
   return null;
 }
 
+const matchErrorSignature = diagnoseFromSecondBrain;
+
 // ─── Step 2B: Localize Failing Files in Repository ───────────────────────────
 function findFailingFiles(logs) {
   const found = new Set();
@@ -311,10 +313,14 @@ INSTRUCTIONS:
 Return ONLY the JSON object.`;
 
   console.log('\n👨‍🍳 [AI COOKING] Asking AI to analyze logs + file context and cook the fix...');
-  const queryAi = await getAiDispatcher();
-  const raw = await queryAi(prompt, { temperature: 0.2 });
-  
-  return parseAiDiagnosis(raw);
+  try {
+    const queryAi = await getAiDispatcher();
+    const raw = await queryAi(prompt, { temperature: 0.2 });
+    return parseAiDiagnosis(raw);
+  } catch (err) {
+    console.warn(`⚠️ AI diagnosis query failed: ${err.message}`);
+    return null;
+  }
 }
 
 // ─── Step 2C: Resilient Multi-Stage AI Parser ────────────────────────────────
@@ -557,8 +563,8 @@ function classifyErrorCategory(logs, diagnosis) {
 
 function markRepairNotified() {
   try {
-    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
-    fs.writeFileSync(path.join(CACHE_DIR, 'repair-status.json'), JSON.stringify({ notified: true, timestamp: Date.now() }), 'utf8');
+    if (!existsSync(CACHE_DIR)) mkdirSync(CACHE_DIR, { recursive: true });
+    writeFileSync(path.join(CACHE_DIR, 'repair-status.json'), JSON.stringify({ notified: true, timestamp: Date.now() }), 'utf8');
   } catch {}
 }
 
@@ -568,7 +574,7 @@ async function shouldNotifyCategory(category, repo, runId) {
     const { execSync } = await import('child_process');
     const out = execSync(
       `gh issue list --repo ${repo} --state open --label "ci-auto-repair-failed" --json number,title,createdAt`,
-      { encoding: 'utf-8' }
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }
     );
     const issues = JSON.parse(out || '[]');
     const now = Date.now();

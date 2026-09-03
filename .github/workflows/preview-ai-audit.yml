@@ -49,7 +49,7 @@ jobs:
             npx prisma generate
           fi
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mockdb?schema=public' }}
 
       - name: Determine Target URL
         id: determine-url
