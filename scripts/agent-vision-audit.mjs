@@ -451,13 +451,27 @@ ${isAiPassed ? 'Build satisfies baseline browser stability. Ready for production
           const { writeFileSync } = await import('fs');
           writeFileSync(tempFile, issueBody, 'utf8');
 
-          const issueUrl = execSync(
-            `gh issue create --repo ${repoName} --title "${issueTitle.replace(/"/g, '\\"')}" --body-file "${tempFile}" --label "bug,ai-audit"`,
-            { encoding: 'utf-8' }
-          ).trim();
+          let issueUrl = '';
+          try {
+            issueUrl = execSync(
+              `gh issue create --repo ${repoName} --title "${issueTitle.replace(/"/g, '\\"')}" --body-file "${tempFile}" --label "bug,ai-audit"`,
+              { encoding: 'utf-8' }
+            ).trim();
+          } catch {
+            try {
+              issueUrl = execSync(
+                `gh issue create --repo ${repoName} --title "${issueTitle.replace(/"/g, '\\"')}" --body-file "${tempFile}" --label "bug"`,
+                { encoding: 'utf-8' }
+              ).trim();
+            } catch (fallbackIssueErr) {
+              console.warn(`  ⚠️ Failed to create issue with fallback label: ${fallbackIssueErr.message}`);
+            }
+          }
 
-          console.log(`\n🎫 [AUTO-ISSUE CREATED] AI Verdict FAIL → Issue opened: ${issueUrl}`);
-          console.log(`   The Autonomous Issue Solver will pick this up and attempt to fix it automatically.\n`);
+          if (issueUrl) {
+            console.log(`\n🎫 [AUTO-ISSUE CREATED] AI Verdict FAIL → Issue opened: ${issueUrl}`);
+            console.log(`   The Autonomous Issue Solver will pick this up and attempt to fix it automatically.\n`);
+          }
         } else {
           console.log(`\nℹ️ [AUTO-ISSUE SKIPPED] Active visual audit issue already exists: #${existing[0].number}\n`);
         }
