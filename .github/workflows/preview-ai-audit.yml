@@ -31,10 +31,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Initialize Artifact Directories
+        run: mkdir -p .agents/reports .agents/audit-screenshots
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install Dependencies
@@ -68,8 +71,7 @@ jobs:
           echo "url=$TARGET" >> $GITHUB_OUTPUT
           echo "🎯 Audit Target: $TARGET"
 
-      - name: Start Local Production Server (if auditing locally)
-        if: steps.determine-url.outputs.url == 'local'
+      - name: Start Local Production Server (Fallback)
         run: |
           npm run build --if-present
           npm run start --if-present &
@@ -82,7 +84,7 @@ jobs:
           done
         env:
           PORT: 3000
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://mock:mock@localhost:5432/mockdb' }}
 
       - name: Resolve Final Audit URL
         id: resolve-url
@@ -149,4 +151,5 @@ jobs:
           path: |
             .agents/reports/
             .agents/audit-screenshots/
+          if-no-files-found: ignore
           retention-days: 14

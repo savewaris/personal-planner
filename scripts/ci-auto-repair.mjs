@@ -17,7 +17,7 @@
  */
 
 import { execSync, spawnSync } from 'child_process';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'fs';
 import path from 'path';
 // Dynamic AI Dispatcher loader with cloud self-healing fallback
 async function getAiDispatcher() {
@@ -240,28 +240,77 @@ async function diagnoseFromSecondBrain(logs) {
   return null;
 }
 
-// ─── Step 2B: AI Root-Cause Diagnosis (Fallback) ─────────────────────────────
-async function diagnoseWithAI(logs) {
-  const prompt = `You are an expert CI/CD repair engineer. A GitHub Actions CI run has FAILED.
-Analyze the logs below and provide:
-1. ONE-LINE SUMMARY of the root cause
-2. CATEGORY (one of: workflow_config | dependencies | typescript | lint | build | test | prisma | secrets | playwright | other)
-3. EXACT FIX INSTRUCTIONS — describe precisely what file to change and how
+// ─── Step 2B: Localize Failing Files in Repository ───────────────────────────
+function findFailingFiles(logs) {
+  const found = new Set();
+  const patterns = [
+    /(?:at\s+.*?\((.*?):(\d+):(\d+)\))/g,
+    /(?:(?:in|at)\s+([a-zA-Z0-9_\-./\\]+\.(?:mjs|js|ts|tsx|json|yml|yaml|prisma))):(\d+)/g,
+    /([a-zA-Z0-9_\-./\\]+\.(?:mjs|js|ts|tsx|json|yml|yaml|prisma))/g
+  ];
 
-CRITICAL RULES:
-- Only suggest changes to SAFE FILES: .github/workflows/*, package.json, tsconfig.json, .eslintrc*, prisma/schema.prisma, next.config.*, vite.config.*, playwright.config.*, jest.config.*
-- NEVER suggest changing src/ app/ pages/ components/ or any business logic
-- If the fix requires a secret/env variable to be added to GitHub, list it
-- Format your response as valid JSON with keys: summary, category, fixInstructions (array of objects with fields: file, action, content)
+  for (const regex of patterns) {
+    let match;
+    while ((match = regex.exec(logs)) !== null) {
+      let rawPath = (match[1] || match[0]).replace(/\\/g, '/');
+      const normalized = rawPath.replace(/^.*?\/work\/[^/]+\/[^/]+\//, '');
+      if (existsSync(normalized) && statSync(normalized).isFile()) {
+        found.add(normalized);
+      }
+    }
+  }
+  return Array.from(found);
+}
+
+// ─── Step 2C: "Let AI Cook" Autonomous Code Fixer ────────────────────────────
+async function diagnoseWithAI(logs) {
+  const failingFiles = findFailingFiles(logs);
+  let fileContext = '';
+  if (failingFiles.length > 0) {
+    const primaryFile = failingFiles[0];
+    try {
+      const content = readFileSync(primaryFile, 'utf8');
+      fileContext = `\nPRIMARY FAILING FILE (${primaryFile}):\n\`\`\`\n${content.substring(0, 15000)}\n\`\`\`\n`;
+      console.log(`📂 [CONTEXT] Ingested failing repository file: ${primaryFile} (${content.length} chars)`);
+    } catch {}
+  }
+
+  const prompt = `You are an elite autonomous AI software engineer. A GitHub Actions CI run has FAILED.
+Analyze the failing logs and code context below, then COOK the exact code fix.
+
+${fileContext}
 
 FAILING CI LOGS:
 \`\`\`
 ${logs}
 \`\`\`
 
-Respond with only the JSON object, no markdown wrapping.`;
+INSTRUCTIONS:
+1. Identify the root cause and canonical category (workflow_config, dependencies, typescript, lint, build, test, prisma, environment, secrets, other).
+2. Cook the exact fix:
+   - To patch or replace code in a file: provide "file", "action": "replace" | "patch", and "content" (or "find" & "replace").
+   - To install a package: "action": "npm_install", "package": "<name>".
+   - To update package-lock: "action": "npm_update".
+   - To run a shell command (e.g. create a missing label with gh): "action": "exec", "command": "<cmd>".
+3. Format output as valid JSON:
+{
+  "summary": "one-line explanation of root cause and fix",
+  "category": "<category>",
+  "fixInstructions": [
+    {
+      "file": "<file path>",
+      "action": "replace" | "patch" | "npm_install" | "npm_update" | "exec",
+      "content": "<code or replacement>",
+      "find": "<snippet to replace if patch>",
+      "replace": "<new snippet if patch>",
+      "command": "<command if exec>"
+    }
+  ]
+}
 
-  console.log('\n🤖 Asking AI to diagnose root cause...');
+Return ONLY the JSON object.`;
+
+  console.log('\n👨‍🍳 [AI COOKING] Asking AI to analyze logs + file context and cook the fix...');
   const queryAi = await getAiDispatcher();
   const raw = await queryAi(prompt, { temperature: 0.2 });
   
@@ -335,6 +384,7 @@ function parseAiDiagnosis(raw) {
 // ─── Step 3: Apply the fix ─────────────────────────────────────────────────────
 const SAFE_PATH_PATTERNS = [
   /^\.github\/workflows\//,
+  /^scripts\//,
   /^package\.json$/,
   /^package-lock\.json$/,
   /^tsconfig.*\.json$/,
@@ -352,6 +402,11 @@ const SAFE_PATH_PATTERNS = [
   /^docker-compose/,
   /^\.npmrc$/,
   /^\.nvmrc$/,
+  /^src\//,
+  /^app\//,
+  /^pages\//,
+  /^components\//,
+  /^lib\//,
 ];
 
 function isSafePath(filePath) {
@@ -368,11 +423,24 @@ async function applyFix(diagnosis) {
 
   for (const fix of diagnosis.fixInstructions) {
     const { file, action, content } = fix;
+
+    // Handle command execution fixes (e.g. creating labels, clearing cache)
+    if (action === 'exec' && fix.command) {
+      console.log(`  ⚡ Executing autonomous fix command: ${fix.command}`);
+      try {
+        const res = spawnSync(fix.command, { shell: true, stdio: 'inherit' });
+        if (res.status === 0) anyFixed = true;
+      } catch (cmdErr) {
+        console.warn(`  ⚠️ Fix command failed: ${cmdErr.message}`);
+      }
+      continue;
+    }
+
     if (!file) continue;
 
-    // Safety gate: only touch approved files
+    // Safety gate: verify path is in allowed repair scope
     if (!isSafePath(file)) {
-      console.warn(`🚫 [SAFETY] Skipping unsafe file: ${file} (not in safe repair scope)`);
+      console.warn(`🚫 [SAFETY] Skipping file: ${file} (not in safe repair scope)`);
       continue;
     }
 
@@ -380,26 +448,48 @@ async function applyFix(diagnosis) {
     const dir = path.dirname(absPath);
 
     try {
-      if (action === 'create' || action === 'overwrite') {
+      if (action === 'create' || action === 'overwrite' || action === 'replace') {
+        const backup = existsSync(absPath) ? readFileSync(absPath, 'utf8') : null;
         if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
         writeFileSync(absPath, content || '', 'utf8');
-        console.log(`  ✅ ${action.toUpperCase()}: ${file}`);
+
+        // Syntax verification for JS / MJS files
+        if (file.endsWith('.js') || file.endsWith('.mjs')) {
+          const check = spawnSync('node', ['--check', absPath], { encoding: 'utf-8' });
+          if (check.status !== 0) {
+            console.warn(`  ❌ [SYNTAX CHECK FAILED] Reverting ${file}: ${check.stderr}`);
+            if (backup !== null) writeFileSync(absPath, backup, 'utf8');
+            else fs.unlinkSync(absPath);
+            continue;
+          }
+        }
+        console.log(`  ✅ ${action.toUpperCase()} & SYNTAX VERIFIED: ${file}`);
         anyFixed = true;
       } else if (action === 'patch' && existsSync(absPath)) {
-        // AI provides patch as a find/replace in JSON: { find: "...", replace: "..." }
-        if (fix.find && fix.replace !== undefined) {
-          let src = readFileSync(absPath, 'utf8');
-          if (src.includes(fix.find)) {
-            src = src.replace(fix.find, fix.replace);
-            writeFileSync(absPath, src, 'utf8');
-            console.log(`  ✅ PATCH: ${file}`);
+        const target = fix.find;
+        const replacement = fix.replace !== undefined ? fix.replace : content;
+        if (target && replacement !== undefined) {
+          const original = readFileSync(absPath, 'utf8');
+          if (original.includes(target)) {
+            const patched = original.replace(target, replacement);
+            writeFileSync(absPath, patched, 'utf8');
+
+            // Syntax verification for JS / MJS files
+            if (file.endsWith('.js') || file.endsWith('.mjs')) {
+              const check = spawnSync('node', ['--check', absPath], { encoding: 'utf-8' });
+              if (check.status !== 0) {
+                console.warn(`  ❌ [SYNTAX CHECK FAILED] Reverting patch on ${file}: ${check.stderr}`);
+                writeFileSync(absPath, original, 'utf8');
+                continue;
+              }
+            }
+            console.log(`  ✅ PATCH & SYNTAX VERIFIED: ${file}`);
             anyFixed = true;
           } else {
-            console.warn(`  ⚠️ Patch target not found in ${file}: "${fix.find.substring(0, 60)}"`);
+            console.warn(`  ⚠️ Patch target not found in ${file}: "${target.substring(0, 60)}"`);
           }
         }
       } else if (action === 'npm_install') {
-        // Install missing package
         const pkg = fix.package || content;
         if (pkg) {
           console.log(`  📦 Installing missing package: ${pkg}`);
