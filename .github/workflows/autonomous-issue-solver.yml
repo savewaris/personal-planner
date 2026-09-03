@@ -60,6 +60,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 🤖 Execute Autonomous Issue Implementation (Let AI Cook)
+        run: |
+          echo "👨‍🍳 Cooking code implementation for Issue #${{ steps.issue-meta.outputs.number }}..."
+          node scripts/autonomous-issue-coder.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mockdb?schema=public' }}
+
       - name: Comment on Issue (Agent Started)
         uses: actions/github-script@v9
         with:

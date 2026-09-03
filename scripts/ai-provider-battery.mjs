@@ -152,13 +152,12 @@ export async function queryAiWithFallback(prompt, options = {}) {
     { provider: 'google', model: 'gemini-2.5-flash' },
     { provider: 'google', model: 'gemini-2.0-flash' },
     { provider: 'google', model: 'gemini-1.5-flash' },
-    { provider: 'google', model: 'gemini-2.0-flash-lite' },
-    { provider: 'google', model: 'gemini-3.5-flash-lite' },
-    { provider: 'groq', model: 'openai/gpt-oss-120b' },
-    { provider: 'groq', model: 'qwen/qwen3.8-27b' },
-    { provider: 'openrouter', model: 'nvidia/nemotron-3.5-lightning:free' },
-    { provider: 'openrouter', model: 'google/gemma-4-31b-it:free' },
-    { provider: 'cerebras', model: 'gpt-oss-120b' }
+    { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+    { provider: 'groq', model: 'llama-3.1-8b-instant' },
+    { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free' },
+    { provider: 'openrouter', model: 'google/gemini-2.0-flash-lite-preview-02-05:free' },
+    { provider: 'cerebras', model: 'llama3.3-70b' },
+    { provider: 'cerebras', model: 'llama3.1-8b' }
   ];
 
   let lastError = null;

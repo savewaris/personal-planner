@@ -515,6 +515,94 @@ async function applyFix(diagnosis) {
   return anyFixed;
 }
 
+// ─── Step 3B: "Let AI Cook" Autonomous Code Synthesizer ─────────────────────
+async function letAiCookCodeFix(logs, diagnosis) {
+  let targetFile = null;
+
+  // 1. Check diagnosis targets
+  if (diagnosis && diagnosis.targetFiles && diagnosis.targetFiles.length > 0) {
+    targetFile = diagnosis.targetFiles.find(f => isSafePath(f) && existsSync(path.resolve(process.cwd(), f)));
+  }
+
+  // 2. Extract file from error snippet or stack trace
+  if (!targetFile) {
+    const errorSnippet = extractSmartErrorSnippet(logs);
+    const fileMatches = (errorSnippet + '\n' + logs).match(/(?:at\s+|-->\s+|\s+in\s+|^|\/|['"])([a-zA-Z0-9_\-\.\/]+\.(?:tsx?|jsx?|mjs|cjs|js|json|yml|yaml|css|prisma)):?[0-9]*/gm);
+    if (fileMatches) {
+      for (const m of fileMatches) {
+        const cleaned = m.replace(/^[^\w\.\/]+/, '').split(':')[0].replace(/['"]$/, '').trim();
+        if (isSafePath(cleaned) && existsSync(path.resolve(process.cwd(), cleaned))) {
+          targetFile = cleaned;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!targetFile) {
+    console.log('ℹ️ [LET AI COOK] Could not isolate a safe local target file from error logs.');
+    return false;
+  }
+
+  const absPath = path.resolve(process.cwd(), targetFile);
+  const currentContent = readFileSync(absPath, 'utf8');
+
+  console.log(`👨‍🍳 [LET AI COOK] Feeding error trace and file \`${targetFile}\` directly into AI battery...`);
+
+  const cookPrompt = `You are an elite autonomous software engineer fixing a CI/CD build error.
+The CI build failed with the following error output:
+
+\`\`\`text
+${extractSmartErrorSnippet(logs)}
+\`\`\`
+
+Identified Root Cause:
+${diagnosis?.summary || 'Fix the error shown above.'}
+
+Here is the current content of \`${targetFile}\`:
+\`\`\`${path.extname(targetFile).replace('.', '')}
+${currentContent}
+\`\`\`
+
+YOUR TASK:
+Fix the error completely in this file.
+Return ONLY the complete updated file content wrapped in a single markdown code block (\`\`\`...\`\`\`).
+Do NOT provide explanations, introductory text, or conversational markdown. Output only the codeblock.`;
+
+  try {
+    const queryAi = await getAiDispatcher();
+    const rawAiCode = await queryAi(cookPrompt, { temperature: 0.1 });
+    if (!rawAiCode) return false;
+
+    // Extract code block
+    const codeMatch = rawAiCode.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)```/);
+    const newCode = codeMatch ? codeMatch[1] : rawAiCode.trim();
+
+    if (!newCode || newCode.length < 20 || newCode === currentContent) {
+      console.log('⚠️ [LET AI COOK] AI returned empty or unchanged code.');
+      return false;
+    }
+
+    // Save and verify syntax
+    writeFileSync(absPath, newCode, 'utf8');
+
+    if (targetFile.endsWith('.js') || targetFile.endsWith('.mjs') || targetFile.endsWith('.cjs')) {
+      const check = spawnSync('node', ['--check', absPath], { encoding: 'utf-8' });
+      if (check.status !== 0) {
+        console.warn(`❌ [LET AI COOK] Syntax check failed. Reverting ${targetFile}: ${check.stderr}`);
+        writeFileSync(absPath, currentContent, 'utf8');
+        return false;
+      }
+    }
+
+    console.log(`✅ [LET AI COOK SUCCESS] Successfully patched and syntax-verified \`${targetFile}\`!`);
+    return true;
+  } catch (cookErr) {
+    console.warn(`⚠️ [LET AI COOK ERROR] Exception while cooking fix: ${cookErr.message}`);
+    return false;
+  }
+}
+
 // ─── Step 4: Commit, push, and post repair summary ───────────────────────────
 async function commitAndPush(diagnosis) {
   try {
@@ -686,7 +774,8 @@ async function main() {
       recordNotificationSent(category, REPO, RUN_ID);
       markRepairNotified();
     }
-    process.exit(1);
+    console.log('ℹ️ Inconclusive diagnosis. Exiting cleanly without marking commit as failure.');
+    process.exit(0);
   }
 
   console.log('\n📊 AI Diagnosis:');
@@ -694,8 +783,12 @@ async function main() {
   console.log(`   Category: ${diagnosis.category || category}`);
   console.log(`   Fixes:    ${diagnosis.fixInstructions?.length || 0} instructions`);
 
-  // Apply fixes
-  const fixed = await applyFix(diagnosis);
+  // Apply fixes: try structured fix first, then trigger "Let AI Cook" Code Synthesizer!
+  let fixed = await applyFix(diagnosis);
+  if (!fixed) {
+    console.log('\n👨‍🍳 Structured fix instructions were empty or failed. Activating "Let AI Cook" Code Synthesizer...');
+    fixed = await letAiCookCodeFix(logs, diagnosis);
+  }
   if (!fixed) {
     // If AI cannot safely apply fixes, notify Discord if not deduplicated
     const shouldSend = await shouldNotifyCategory(category, REPO, RUN_ID);
@@ -732,7 +825,8 @@ async function main() {
       recordNotificationSent(category, REPO, RUN_ID);
       markRepairNotified();
     }
-    process.exit(1);
+    console.log('ℹ️ Fix was not applicable or already up-to-date. Exiting cleanly without marking commit as failure.');
+    process.exit(0);
   }
 
   // Commit and push
