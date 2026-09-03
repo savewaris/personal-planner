@@ -1,0 +1,131 @@
+name: Autonomous Browser & AI Vision Quality Gate
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Specific deployment or preview URL to audit (optional)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-ai-audit:
+    name: Headless Browser & Gemini AI Visual Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Generate Database Schemas (if present)
+        run: |
+          if [ -f "prisma/schema.prisma" ]; then
+            npx prisma generate
+          fi
+
+      - name: Determine Target URL
+        id: determine-url
+        run: |
+          if [ -n "${{ github.event.inputs.target_url }}" ]; then
+            echo "url=${{ github.event.inputs.target_url }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "deployment_status" ] && [ "${{ github.event.deployment_status.state }}" = "success" ]; then
+            echo "url=${{ github.event.deployment_status.target_url }}" >> $GITHUB_OUTPUT
+          else
+            echo "url=local" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Start Local Production Server (if auditing locally)
+        if: steps.determine-url.outputs.url == 'local'
+        run: |
+          npm run build --if-present
+          npm run start --if-present &
+          # Wait for server to bind to port 3000
+          for i in {1..30}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "✅ Local server ready on http://localhost:3000"
+              break
+            fi
+            sleep 1
+          done
+        env:
+          PORT: 3000
+          DATABASE_URL: "file:./dev.db"
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Execute Interactive Headless Browser Audit
+        run: |
+          AUDIT_URL="${{ steps.determine-url.outputs.url }}"
+          if [ "$AUDIT_URL" = "local" ]; then
+            AUDIT_URL="http://localhost:3000"
+          fi
+          echo "🚀 Auditing Target URL: $AUDIT_URL"
+          node scripts/agent-ui-audit.mjs --url "$AUDIT_URL" --interactive
+        env:
+          CI: "true"
+
+      - name: Execute Gemini Multimodal AI Visual Audit & Sentry
+        run: |
+          node scripts/agent-vision-audit.mjs --notify
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Post AI Diagnosis to Pull Request
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const reportPath = path.join(process.cwd(), '.agents', 'reports', 'ai-vision-diagnosis.md');
+            if (fs.existsSync(reportPath)) {
+              const body = fs.readFileSync(reportPath, 'utf8');
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `### 🤖 Autonomous AI Visual & Runtime Audit Report\n\n${body}`
+              });
+            }
+
+      - name: Autonomous Auto-Merge to Main (Quality Gate Passed)
+        if: github.event_name == 'pull_request' && success()
+        run: |
+          echo "🚀 Quality Gate 100% Passed. Auto-merging PR into main..."
+          gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Visual Audit Artifacts (Screenshots & HTML Report)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-audit-evidence
+          path: |
+            .agents/reports/
+            .agents/audit-screenshots/
+          retention-days: 14

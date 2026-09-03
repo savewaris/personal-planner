@@ -1,28 +1,26 @@
 ---
-name: '🐛 Bug Report'
-about: Create a report to help us improve and fix a bug
-title: '[BUG] '
-labels: 'bug'
-assignees: ''
+name: 🐛 Bug Report (Markdown)
+about: Create a report to help us improve and fix errors
+title: "[BUG]: "
+labels: ["bug"]
 ---
 
-## 🐛 Bug Description
-A clear and concise description of what the bug is.
+### 📝 Bug Description
+<!-- A clear and concise description of what the bug is -->
 
-## 🔄 Reproduction Steps
-Steps to reproduce the behavior:
+### 🔄 Steps to Reproduce
 1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
+2. Click on '....'
+3. Scroll down to '....'
 4. See error
 
-## 🎯 Expected Behavior
-A clear and concise description of what you expected to happen.
+### 🎯 Expected Behavior
+<!-- A clear and concise description of what you expected to happen -->
 
-## 🖥️ Environment & System Details
-- OS: [e.g. Windows / macOS / Linux]
-- Browser: [e.g. Chrome / Safari / Firefox]
-- Node Version: [e.g. v20.x]
+### 💻 Environment Details
+- OS: [e.g. Windows 11, macOS]
+- Browser / Runtime: [e.g. Chrome, Node v20]
+- Version: [e.g. v1.0.0]
 
-## 📋 Additional Context
-Add any other context or screenshots about the problem here.
+### 📋 Additional Context
+<!-- Add any other context, logs, or screenshots about the problem here -->

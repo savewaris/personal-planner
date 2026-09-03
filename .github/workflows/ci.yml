@@ -10,11 +10,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/planner?schema=public"
-  NEXTAUTH_SECRET: "ci-secret-for-testing-123456789012"
-  NEXTAUTH_URL: "http://localhost:3000"
-
 jobs:
   quality-gate:
     name: Typecheck, Lint & Build
@@ -57,9 +52,12 @@ jobs:
           fi
 
       - name: Run Unit / Component Tests
-        run: npm run test:unit --if-present
+        run: npm test --if-present
         env:
           CI: "true"
 
       - name: Production Build
         run: npm run build --if-present
+        env:
+          DATABASE_URL: "file:./dev.db"
+          NODE_ENV: "production"

@@ -1,6 +1,10 @@
 ## 📌 Description
 <!-- Provide a brief description of the changes introduced by this pull request. -->
 
+## 🔗 Related Issue
+<!-- Auto-closes the issue when PR is merged (e.g. Closes #12) -->
+Closes #
+
 ## 🛠️ Changes Made
 - [ ] 
 
@@ -10,6 +14,7 @@
 - [ ] Unit & Component tests passed (`npm test`)
 - [ ] Automated UX/UI & WCAG tests passed (`npm run test:ui`)
 - [ ] Production build passed (`npm run build`)
+- [ ] Agent Doctor passed (`npm run agent:doctor`)
 
 ## 🔒 Security Checklist
 - [ ] No hardcoded API keys, passwords, or secrets

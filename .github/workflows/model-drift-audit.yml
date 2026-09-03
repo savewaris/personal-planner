@@ -1,0 +1,52 @@
+name: Autonomous AI Model Registry & Drift Audit
+
+on:
+  schedule:
+    # Runs every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  audit-and-maintain:
+    name: Model Drift Detection & Self-Healing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Audit Model Registry
+        run: |
+          node scripts/audit-model-registry.mjs --update --notify
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Create Pull Request for Updated Model Registry
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(models): automated model registry update and drift resolution'
+          title: '🤖 [AI MAINTENANCE] Automated Frontier Model Update and Registry Refresh'
+          branch: 'chore/model-drift-update'
+          delete-branch: true
+          labels: 'maintenance, ai-models, automated-pr'
+          body: |
+            ### 🧠 Automated AI Model Registry & Drift Report
+            The weekly autonomous maintenance cron has audited our registered AI model tiers against live provider endpoints.
+
+            - Verified model tier health
+            - Checked deprecation statuses
+            - Updated `config/model-registry.json`
+
+            *Generated automatically by `.github/workflows/model-drift-audit.yml`*

@@ -1,0 +1,62 @@
+name: 🤖 AI Agent Task
+description: Structured task specification for autonomous AI execution agents
+title: "[TASK]: "
+labels: ["agent:ready", "feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🤖 Autonomous AI Agent Execution Specification
+        This issue is formatted for direct handoff to an AI coding agent. Complete each section below.
+  - type: textarea
+    id: objective
+    attributes:
+      label: 🎯 Core Objective
+      description: Concise summary of what capability, endpoint, or component needs to be created or refactored.
+      placeholder: "Build the user settings profile picture upload component and connect to storage."
+    validations:
+      required: true
+  - type: textarea
+    id: target_files
+    attributes:
+      label: 📁 Target Files & Scope Boundaries
+      description: Specific files, modules, or directories that the agent is expected to touch.
+      placeholder: |
+        - `src/components/profile/AvatarUpload.tsx`
+        - `src/lib/storage.ts`
+        - `src/types/user.ts`
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: 🚫 Non-Goals & Invariants (What NOT to touch or break)
+      description: Strict boundaries and invariants to prevent regressions or scope creep.
+      placeholder: |
+        - Do NOT modify global authentication flows.
+        - Do NOT introduce unneeded external dependencies.
+    validations:
+      required: false
+  - type: textarea
+    id: technical_requirements
+    attributes:
+      label: 📋 Technical Requirements
+      description: Layer-by-layer technical breakdown (Schema, API, UI, State).
+      placeholder: |
+        1. **Database / Schema**: Migration or model update with safe defaults.
+        2. **Backend / API**: Typed route handlers with validation.
+        3. **Frontend / UI**: Accessible, responsive component with design tokens and physics animation.
+    validations:
+      required: true
+  - type: textarea
+    id: verification_gate
+    attributes:
+      label: ✅ Acceptance Criteria & Verification Commands
+      description: Testable checklist and exact terminal commands to verify completion.
+      value: |
+        - [ ] TypeScript compilation passes (`npx tsc --noEmit`)
+        - [ ] Automated UI tests pass (`npm run test:ui`)
+        - [ ] Production build succeeds (`npm run build`)
+        - [ ] System health check passes (`npm run agent:doctor`)
+    validations:
+      required: true
