@@ -425,18 +425,18 @@ async function main() {
 
   if (!diagnosis) {
     await notifyDiscordEmbed({
-      title: `⚠️ [MANUAL INSPECTION NEEDED] ${REPO} (Run #${RUN_ID})`,
-      description: `CI Auto-Repair detected a pipeline failure but could not resolve a safe automated fix.`,
+      title: `🔴 [ACTION REQUIRED] • ${REPO}`,
+      description: `### 📌 What Happened\nAuto-Repair Engine detected a pipeline failure on \`${BRANCH}\` that could not be safely resolved automatically.`,
       color: 15158332,
       fields: [
         {
-          name: '🚨 Raw Error Snippet',
+          name: '🚨 Error Output (Noise Stripped)',
           value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
           inline: false
         },
         {
-          name: '👉 Action Required',
-          value: `Manual inspection needed: https://github.com/${REPO}/actions/runs/${RUN_ID}`,
+          name: '🔗 Inspection Link',
+          value: `👉 [Inspect Run #${RUN_ID} on GitHub](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
           inline: false
         }
       ]
@@ -449,33 +449,32 @@ async function main() {
   console.log(`   Category: ${diagnosis.category}`);
   console.log(`   Fixes:    ${diagnosis.fixInstructions?.length || 0} instructions`);
 
-  // Comprehensive Traceability Card: Auto-Repair Started
+  // Executive Human-Friendly Card: Auto-Repair Started
   await notifyDiscordEmbed({
-    title: `🔧 [AUTO-REPAIR IN PROGRESS] ${REPO} (Run #${RUN_ID})`,
-    description: `Auto-Repair Engine detected an error and is actively applying fixes to \`${BRANCH}\`.`,
-    color: 15844367, // Gold/Orange
+    title: `🟡 [AUTO-REPAIRING] • ${REPO}`,
+    description: `### 📌 What Happened\n${diagnosis.summary || 'A pipeline or build failure was detected and is being resolved.'}\n`,
+    color: 15844367, // Gold / Orange
     fields: [
       {
-        name: '🚨 Raw Error Snippet',
+        name: '🚨 Error Output (Noise Stripped)',
         value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
-        inline: false
-      },
-      {
-        name: '🎯 Root Cause',
-        value: diagnosis.summary || 'Unspecified failure',
         inline: false
       },
       {
         name: '🛠️ Fix Being Applied Right Now',
         value: diagnosis.fixInstructions?.length 
           ? diagnosis.fixInstructions.map(f => `• **${f.action}**: \`${f.file}\``).join('\n') 
-          : 'Applying registered remediation commands...',
-        inline: true
+          : '• Applying registered Second Brain remediation commands...',
+        inline: false
       },
       {
-        name: '🏷️ Second Brain Signature',
-        value: diagnosis.id ? `\`${diagnosis.id}\`` : '*Dynamic AI Analysis*',
-        inline: true
+        name: '🔗 Traceability & Links',
+        value: [
+          `• **Failed Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+          `• **Branch:** \`${BRANCH}\``,
+          diagnosis.id ? `• **Knowledge Signature:** \`${diagnosis.id}\`` : '• **Diagnosis Engine:** `Dynamic AI Battery`'
+        ].join('\n'),
+        inline: false
       }
     ]
   });
@@ -484,23 +483,18 @@ async function main() {
   const fixed = await applyFix(diagnosis);
   if (!fixed) {
     await notifyDiscordEmbed({
-      title: `⚠️ [AUTO-REPAIR BLOCKED] ${REPO} (Run #${RUN_ID})`,
-      description: `Automated repair was attempted but no safe changes could be applied.`,
+      title: `🔴 [ACTION REQUIRED] • ${REPO}`,
+      description: `### 📌 What Happened\nAutomated repair was attempted for: "${diagnosis.summary}", but no safe code patches could be automatically validated.`,
       color: 15158332,
       fields: [
         {
-          name: '🚨 Raw Error Snippet',
+          name: '🚨 Error Output (Noise Stripped)',
           value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
           inline: false
         },
         {
-          name: '🎯 Attempted Root Cause',
-          value: diagnosis.summary,
-          inline: false
-        },
-        {
-          name: '👉 Action Required',
-          value: `Manual inspection needed: https://github.com/${REPO}/actions/runs/${RUN_ID}`,
+          name: '🔗 Inspection Link',
+          value: `👉 [Inspect Run #${RUN_ID} on GitHub](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
           inline: false
         }
       ]
@@ -512,29 +506,30 @@ async function main() {
   const pushed = await commitAndPush(diagnosis);
   if (pushed) {
     await notifyDiscordEmbed({
-      title: `✅ [AUTO-REPAIRED & PUSHED] ${REPO} (Run #${RUN_ID})`,
-      description: `Autonomous fix committed to \`${BRANCH}\`. A fresh CI workflow has been re-triggered.`,
+      title: `🟢 [FIXED & REDEPLOYED] • ${REPO}`,
+      description: `### 📌 Resolution Summary\n${diagnosis.summary}\n\nThe autonomous fix was committed and pushed with \`--force-with-lease\` to \`${BRANCH}\`. A fresh CI workflow and platform deployment has been triggered.`,
       color: 3066993, // Green
       fields: [
         {
-          name: '🩹 Error That Was Fixed',
-          value: diagnosis.summary,
-          inline: false
-        },
-        {
-          name: '🚨 Original Error Snippet (For Future Traceability)',
+          name: '🚨 Original Error Output (Traceability)',
           value: `\`\`\`text\n${errorSnippet}\n\`\`\``,
           inline: false
         },
         {
-          name: '🏷️ Second Brain Signature',
-          value: diagnosis.id ? `\`${diagnosis.id}\`` : '*Dynamic AI Fix*',
-          inline: true
+          name: '🛠️ Exact Changes Made',
+          value: diagnosis.fixInstructions?.length
+            ? diagnosis.fixInstructions.map(f => `• Modified \`${f.file}\` (${f.action})`).join('\n')
+            : '• Synchronized package-lock.json and workflow definitions',
+          inline: false
         },
         {
-          name: '🔄 Branch & Re-Run',
-          value: `Pushed to \`${BRANCH}\`. CI re-run triggered automatically (Safety cap: ${MAX_REPAIR_ATTEMPTS} attempts).`,
-          inline: true
+          name: '🔗 Traceability & Links',
+          value: [
+            `• **Workflow Run:** [View GitHub Actions #${RUN_ID}](https://github.com/${REPO}/actions/runs/${RUN_ID})`,
+            `• **Branch:** \`${BRANCH}\``,
+            diagnosis.id ? `• **Knowledge Signature:** \`${diagnosis.id}\`` : null
+          ].filter(Boolean).join('\n'),
+          inline: false
         }
       ]
     });
