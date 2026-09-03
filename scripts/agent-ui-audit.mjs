@@ -229,13 +229,26 @@ async function runAudit() {
           routeResult.consoleLogs.push({ type: 'uncaught-error', text: err.message, viewport: vp.name });
         });
 
+        // Domains outside the project's control — errors here should NOT fail the gate
+        const THIRD_PARTY_SKIP_DOMAINS = [
+          'vercel.com/api', 'sentry.io', 'ingest.sentry.io',
+          'accounts.google.com', 'apis.google.com', 'googletagmanager.com',
+          'google-analytics.com', 'fonts.googleapis.com', 'cdn.jsdelivr.net',
+          'js.stripe.com', 'api.segment.io', 'hotjar.com', 'intercom.io'
+        ];
+        const SKIP_THIRD_PARTY = process.env.AUDIT_SKIP_THIRD_PARTY_ERRORS === 'true';
+
         page.on('response', (res) => {
           if (res.status() >= 400) {
-            routeResult.networkErrors.push({
-              status: res.status(),
-              url: res.url(),
-              viewport: vp.name
-            });
+            const url = res.url();
+            const isThirdParty = SKIP_THIRD_PARTY && THIRD_PARTY_SKIP_DOMAINS.some(d => url.includes(d));
+            if (!isThirdParty) {
+              routeResult.networkErrors.push({
+                status: res.status(),
+                url,
+                viewport: vp.name
+              });
+            }
           }
         });
 

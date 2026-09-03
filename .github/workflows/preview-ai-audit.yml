@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       target_url:
-        description: 'Specific deployment or preview URL to audit (optional)'
+        description: 'Specific deployment URL to audit (optional, defaults to production)'
         required: false
         default: ''
 
@@ -25,6 +25,7 @@ jobs:
       contents: write
       pull-requests: write
       statuses: write
+      issues: write
 
     steps:
       - name: Checkout Repository
@@ -39,60 +40,80 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install
 
-      - name: Generate Database Schemas (if present)
+      - name: Generate Database Client (if present)
         run: |
           if [ -f "prisma/schema.prisma" ]; then
             npx prisma generate
           fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Determine Target URL
         id: determine-url
         run: |
+          # Priority:
+          # 1. Manual workflow_dispatch input
+          # 2. Successful deployment_status event URL
+          # 3. PRODUCTION_URL secret (always-live, never behind auth wall)
           if [ -n "${{ github.event.inputs.target_url }}" ]; then
-            echo "url=${{ github.event.inputs.target_url }}" >> $GITHUB_OUTPUT
+            TARGET="${{ github.event.inputs.target_url }}"
           elif [ "${{ github.event_name }}" = "deployment_status" ] && [ "${{ github.event.deployment_status.state }}" = "success" ]; then
-            echo "url=${{ github.event.deployment_status.target_url }}" >> $GITHUB_OUTPUT
+            TARGET="${{ github.event.deployment_status.target_url }}"
+          elif [ -n "${{ secrets.PRODUCTION_URL }}" ]; then
+            TARGET="${{ secrets.PRODUCTION_URL }}"
+            echo "ℹ️ Using PRODUCTION_URL secret: $TARGET"
           else
-            echo "url=local" >> $GITHUB_OUTPUT
+            TARGET="local"
           fi
+          echo "url=$TARGET" >> $GITHUB_OUTPUT
+          echo "🎯 Audit Target: $TARGET"
 
       - name: Start Local Production Server (if auditing locally)
         if: steps.determine-url.outputs.url == 'local'
         run: |
           npm run build --if-present
           npm run start --if-present &
-          # Wait for server to bind to port 3000
           for i in {1..30}; do
             if curl -s http://localhost:3000 > /dev/null; then
-              echo "✅ Local server ready on http://localhost:3000"
+              echo "✅ Local server ready"
               break
             fi
             sleep 1
           done
         env:
           PORT: 3000
-          DATABASE_URL: "file:./dev.db"
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Resolve Final Audit URL
+        id: resolve-url
+        run: |
+          if [ "${{ steps.determine-url.outputs.url }}" = "local" ]; then
+            echo "url=http://localhost:3000" >> $GITHUB_OUTPUT
+          else
+            echo "url=${{ steps.determine-url.outputs.url }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Execute Interactive Headless Browser Audit
+      - name: Execute Interactive Headless Browser Audit (All Routes)
         run: |
-          AUDIT_URL="${{ steps.determine-url.outputs.url }}"
-          if [ "$AUDIT_URL" = "local" ]; then
-            AUDIT_URL="http://localhost:3000"
-          fi
-          echo "🚀 Auditing Target URL: $AUDIT_URL"
-          node scripts/agent-ui-audit.mjs --url "$AUDIT_URL" --interactive
+          echo "🚀 Auditing Target URL: ${{ steps.resolve-url.outputs.url }}"
+          node scripts/agent-ui-audit.mjs --url "${{ steps.resolve-url.outputs.url }}" --interactive
         env:
           CI: "true"
+          AUDIT_SKIP_THIRD_PARTY_ERRORS: "true"
 
       - name: Execute Gemini Multimodal AI Visual Audit & Sentry
         run: |
           node scripts/agent-vision-audit.mjs --notify
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Post AI Diagnosis to Pull Request
         if: github.event_name == 'pull_request' && always()
@@ -120,7 +141,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Visual Audit Artifacts (Screenshots & HTML Report)
+      - name: Upload Visual Audit Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
