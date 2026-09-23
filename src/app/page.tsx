@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlannerStore } from "@/context/PlannerStoreContext";
@@ -37,17 +37,34 @@ export default function DashboardPage() {
   useKeyboardShortcut("i", () => setIsBrainDumpOpen(true));
 
   // Today's Date Info
-  const today = new Date();
+  // `mounted` gates any Date-derived text so the first client render matches
+  // the statically-prerendered server HTML exactly; the real date/greeting
+  // are filled in immediately after hydration completes. Rendering
+  // `new Date()`-derived text unconditionally here caused a hydration
+  // mismatch (React error #418) whenever hydration happened at a different
+  // moment (e.g. crossing an hour/day boundary) than the static build.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const today = useMemo(() => new Date(), [mounted]);
   const todayStr = today.toISOString().split("T")[0];
-  const dateFormatted = today.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  });
+  const dateFormatted = mounted
+    ? today.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      })
+    : "";
 
   // Time of Day Greeting
   const hour = today.getHours();
-  const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
+  const greeting = mounted
+    ? hour < 12
+      ? "Good Morning"
+      : hour < 18
+      ? "Good Afternoon"
+      : "Good Evening"
+    : "Welcome back";
 
   // Filter items by active context (if set)
   const filteredTasks = useMemo(() => {
