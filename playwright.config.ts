@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Dedicated port so tests never attach to another project's dev server on :3000.
+const port = process.env.PLAYWRIGHT_PORT || '3100';
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || `http://localhost:${port}`;
+
 export default defineConfig({
   testDir: './tests/ui-ux',
   fullyParallel: true,
@@ -11,7 +15,7 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -21,8 +25,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
-    url: 'http://localhost:3000',
+    command: process.env.CI
+      ? `npm run build && npm run start -- -p ${port}`
+      : `npm run dev -- -p ${port}`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
